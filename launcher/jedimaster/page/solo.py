@@ -14,8 +14,7 @@ Flow:
 
 Invariants:
     - A mission marked ``&`` is never offered; one marked ``*`` is offered
-      with ``opens_once_flown`` true, because the pilot's flown missions
-      decide whether the door opens it.
+      like any other: the door flies a mission the pilot has not opened.
     - A file name that would break the launch description's pattern is not
       offered.
     - A tournament, battle or campaign entry is its sequence file.
@@ -119,7 +118,6 @@ def _entry(item: MenuEntry, section: str) -> Json | None:
         "section": section,
         "file": name,
         "title": item.title_line.text,
-        "opens_once_flown": item.marker == "*",
     }
 
 

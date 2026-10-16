@@ -89,13 +89,13 @@ def test_a_kind_without_a_side_goes_straight_to_its_missions(bot):
     assert labels(picker) == [("Open: Open Field", "delta.tie", "delta.tie")]
 
 
-def test_the_missions_leave_out_ampersand_and_mark_star_in_words(bot):
+def test_the_missions_leave_out_ampersand_and_list_star_plainly(bot):
     reply = bot.core.pick_solo(HOST, "side", "training", "rebel")
     (picker,) = reply.pickers
     assert picker.key == "training|rebel"
     assert labels(picker) == [
         ("Basic: First Flight", "alpha.tie", "alpha.tie"),
-        ("Advanced: Third Flight", "charlie.tie", "charlie.tie, opens once flown"),
+        ("Advanced: Third Flight", "charlie.tie", "charlie.tie"),
     ]
 
 

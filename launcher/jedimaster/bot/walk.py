@@ -19,8 +19,8 @@ Invariants:
     - Menus are built only from the launcher's own answers
       (``launch.menu``, ``pilots.list``, ``options.get``); no path and no
       program name ever comes from or goes to Discord.
-    - A mission marked ``&`` never appears; one marked ``*`` says in its
-      description that it opens once flown.
+    - A mission marked ``&`` never appears; one marked ``*`` appears like
+      any other, since the door flies it.
     - A launcher started without the game program is named as the reason at
       the pilot step, before the pilot folder is.
     - Every step goes through ``_gate``: only the linked account is answered.
@@ -157,9 +157,7 @@ class Walk:
             Option(
                 clip(f"{e['section']}: {e['title']}" if e["section"] else e["title"]),
                 e["file"],
-                clip(
-                    e["file"] + (", opens once flown" if e["opens_once_flown"] else "")
-                ),
+                clip(e["file"]),
             )
             for e in listed["entries"]
         ]

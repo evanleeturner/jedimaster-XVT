@@ -245,12 +245,11 @@ class ShowMissionResult:
 
 @dataclass
 class SoloEntryData:
-    """One mission a solo list offers; ``opens_once_flown`` marks a mission not yet open."""
+    """One mission a solo list offers; every one flies, opened by the pilot or not."""
 
     section: str
     file: str
     title: str
-    opens_once_flown: bool
 
 
 @dataclass

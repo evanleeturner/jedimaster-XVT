@@ -236,20 +236,19 @@ function soloMenuOf(value: Fields): Parsed<OkReply["result"]> {
   }
   const kept = [];
   for (const item of entries) {
-    const names = ["section", "file", "title", "opens_once_flown"];
+    const names = ["section", "file", "title"];
     if (!isRecord(item) || !hasExactly(item, names)) {
       return fail("a solo entry has the wrong fields");
     }
-    const { section, file, title, opens_once_flown } = item;
+    const { section, file, title } = item;
     if (
       typeof section !== "string" ||
       typeof file !== "string" ||
-      typeof title !== "string" ||
-      typeof opens_once_flown !== "boolean"
+      typeof title !== "string"
     ) {
       return fail("a solo entry has a value of the wrong type");
     }
-    kept.push({ section, file, title, opens_once_flown });
+    kept.push({ section, file, title });
   }
   return {
     value: { mission_type, side, game_path, resolved, entries: kept },

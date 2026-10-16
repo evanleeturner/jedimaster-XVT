@@ -1,8 +1,8 @@
 """The solo lists: what a pilot of one kind and side may be offered.
 
 Purpose:
-    Prove which entries a solo list offers (never ``&``, ``*`` marked as
-    opening once flown, one per file, only launchable names), which list is
+    Prove which entries a solo list offers (never ``&``, ``*`` like any
+    other, one per file, only launchable names), which list is
     read for each kind and side, and that a side that does not fit is
     refused.
 
@@ -54,10 +54,14 @@ def test_a_mission_marked_ampersand_is_never_offered(install):
     assert "bravo.tie" not in files
 
 
-def test_a_mission_marked_star_is_offered_as_opening_once_flown(install):
+def test_a_mission_marked_star_is_offered_like_any_other(install):
     entries = {e["file"]: e for e in solo_menu(install, "training", "rebel")["entries"]}
-    assert entries["charlie.tie"]["opens_once_flown"] is True
-    assert entries["alpha.tie"]["opens_once_flown"] is False
+    assert entries["charlie.tie"] == {
+        "section": "Advanced",
+        "file": "charlie.tie",
+        "title": "Third Flight",
+    }
+    assert set(entries["alpha.tie"]) == {"section", "file", "title"}
 
 
 def test_a_file_name_the_launch_cannot_carry_is_not_offered(install):

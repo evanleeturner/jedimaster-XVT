@@ -407,13 +407,12 @@ export interface SoloMenuResult {
   entries: SoloEntryData[];
 }
 /**
- * One mission a solo list offers; ``opens_once_flown`` marks a mission not yet open.
+ * One mission a solo list offers; every one flies, opened by the pilot or not.
  */
 export interface SoloEntryData {
   section: string;
   file: string;
   title: string;
-  opens_once_flown: boolean;
 }
 /**
  * The pilots the game has, and whether a battle can be flown at all.

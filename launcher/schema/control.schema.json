@@ -1592,7 +1592,7 @@
     },
     "SoloEntryData": {
       "type": "object",
-      "description": "One mission a solo list offers; ``opens_once_flown`` marks a mission not yet open.",
+      "description": "One mission a solo list offers; every one flies, opened by the pilot or not.",
       "properties": {
         "section": {
           "type": "string"
@@ -1602,16 +1602,12 @@
         },
         "title": {
           "type": "string"
-        },
-        "opens_once_flown": {
-          "type": "boolean"
         }
       },
       "required": [
         "section",
         "file",
-        "title",
-        "opens_once_flown"
+        "title"
       ],
       "additionalProperties": false
     },

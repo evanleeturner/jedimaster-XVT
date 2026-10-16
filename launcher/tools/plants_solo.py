@@ -939,10 +939,10 @@ SOLO_LIST_PLANTS: list[Plant] = [
         "tests/test_bot_walk.py::test_the_missions_leave_out",
     ),
     plant(
-        "list-star-not-flagged",
+        "list-star-held-back",
         SOL,
-        '"opens_once_flown": item.marker == "*",',
-        '"opens_once_flown": False,',
+        'if item.marker == "&":',
+        'if item.marker in ("&", "*"):',
         TSO + "test_a_mission_marked_star",
     ),
     plant(

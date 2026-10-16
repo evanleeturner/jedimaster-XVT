@@ -63,13 +63,6 @@ WALK_PLANTS: list[Plant] = [
         TW + "test_another_account_is_refused_and_nothing_is_sent",
     ),
     plant(
-        "walk-star-words",
-        WLK,
-        '", opens once flown"',
-        '""',
-        TW + "test_the_missions_leave_out_ampersand",
-    ),
-    plant(
         "walk-sided-always-asks",
         WLK,
         '        if side_problem(value, "none") is None:',

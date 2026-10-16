@@ -479,9 +479,7 @@ test("the launch and option replies are read back as written", () => {
       side: "rebel",
       game_path: "train\\rebel.lst",
       resolved: true,
-      entries: [
-        { section: "A", file: "a.tie", title: "T", opens_once_flown: true },
-      ],
+      entries: [{ section: "A", file: "a.tie", title: "T" }],
     },
     { found: true, pilots: ["Ace"], engine_given: true },
     { found: false, pilots: [], engine_given: false },
@@ -522,7 +520,7 @@ test("a launch or option reply with a wrong value is refused", () => {
       side: "rebel",
       game_path: "m",
       resolved: true,
-      entries: [{ section: "", file: "a", title: "t" }],
+      entries: [{ section: "", file: "a", title: "t", opens_once_flown: true }],
     },
   ];
   for (const result of results) refused({ id: 1, ok: true, result });
