@@ -33,11 +33,13 @@ from .world import CraftView
 from .world import HOLD_FIRE
 from .world import LinkMode
 
-# By skill tier, 0 to 2. The cone narrows with skill: a better pilot holds
-# fire until the shot is good.
-AIM_CONE = (0x800, 0x600, 0x400)
-FIRE_RANGE = (0x6000, 0x8000, 0xA000)
-BURST = (3, 4, 5)
+# By skill tier, 0 to 4; 3 and 4 are the Sith ranks'. The cone narrows with
+# skill: a better pilot holds fire until the shot is good. The Sith tiers
+# fire from no farther than a Jedi. Their bursts stay a Jedi's: each answer
+# sets the burst again, 16 or 8 ticks on.
+AIM_CONE = (0x800, 0x600, 0x400, 0x300, 0x200)
+FIRE_RANGE = (0x6000, 0x8000, 0xA000, 0xA000, 0xA000)
+BURST = (3, 4, 5, 5, 5)
 
 # The 1997 pilot's range changes: a fast target flying the same way, or
 # across, is harder to hit. 1997 also added 0x6000 for a starship or

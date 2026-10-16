@@ -207,7 +207,7 @@ def _dive(
         held.name.lower(),
         memory.shots,
     )
-    interval = _fight_interval(view)
+    interval = attack.fight_interval(view)
     actions = Actions(
         steer=Steer(yaw, pitch, view.roll),
         throttle=tactics.FULL_THROTTLE,
@@ -310,7 +310,7 @@ def _weaving(
     actions = Actions(
         steer=move.steer,
         throttle=tactics.FULL_THROTTLE,
-        think_interval=_fight_interval(view),
+        think_interval=attack.fight_interval(view),
         target=NO_OBJECT,
         lasers=(HOLD_FIRE, HOLD_FIRE),
         countermeasure=move.flare,
@@ -347,11 +347,3 @@ def _nearest(view: CraftView, targets: list[Contact]) -> Contact:
             contact.object_index,
         ),
     )
-
-
-def _fight_interval(view: CraftView) -> int | None:
-    """Return the think interval to ask for: Attack's, unless the craft
-    thinks at it already."""
-    if view.think_interval == attack.FIGHT_INTERVAL:
-        return None
-    return attack.FIGHT_INTERVAL

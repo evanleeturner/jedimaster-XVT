@@ -94,7 +94,8 @@ Invariants:
     - Unless it weaves, a craft inside a bulky target's keep breaks
       off from it rather than steer at it; a weave steers clear of it, and
       avoidance turns a break clear of it as of any bulky craft.
-    - A fighting craft thinks every FIGHT_INTERVAL ticks, whatever its skill.
+    - A fighting craft thinks every FIGHT_INTERVAL ticks, a Sith Lord twice
+      as often (``FIGHT_INTERVALS``).
 """
 
 from __future__ import annotations
@@ -135,16 +136,18 @@ ATTACK = 1
 BREAK = 2
 EVADE = 3
 
-# Ticks between a fighting craft's thinks: 64 ms, at every skill.
+# Ticks between a fighting craft's thinks, by skill tier, 0 to 4: 64 ms, and
+# a Sith Lord's 32 ms.
 FIGHT_INTERVAL = 16
+FIGHT_INTERVALS = (FIGHT_INTERVAL, FIGHT_INTERVAL, FIGHT_INTERVAL, FIGHT_INTERVAL, 8)
 FULL_THROTTLE = 0xFFFF
 # Two thirds, to stay behind a target it has caught.
 CLOSE_THROTTLE = 0xAAAA
 # Tier 0 flies at seven tenths at most while it attacks.
 ROOKIE_THROTTLE = 0xB333
 
-# By skill tier, 0 to 2: how soon a craft looks again for a nearer target.
-LOOK_AGAIN_TICKS = (1500, 750, 250)
+# By skill tier, 0 to 4: how soon a craft looks again for a nearer target.
+LOOK_AGAIN_TICKS = (1500, 750, 250, 125, 64)
 
 BREAK_CONE = 0x2000
 # A break ends at this many ticks even inside the clearance, so a target
@@ -250,7 +253,7 @@ def fight(
     if memory.fresh and view.lock_state != Lock.DECLARED:
         memory = dataclasses.replace(memory, fresh=0)
     tier = tactics.skill_tier(view.skill)
-    interval = None if view.think_interval == FIGHT_INTERVAL else FIGHT_INTERVAL
+    interval = fight_interval(view)
 
     if book.phase == BREAK and break_holds(view, question, book, memory):
         actions = Actions(
@@ -499,6 +502,13 @@ def break_holds(
     return False
 
 
+def fight_interval(view: CraftView) -> int | None:
+    """Return the think interval a fighting craft asks for, FIGHT_INTERVALS
+    by its skill tier, or None when it thinks at that already."""
+    wanted = FIGHT_INTERVALS[tactics.skill_tier(view.skill)]
+    return None if view.think_interval == wanted else wanted
+
+
 def tail_threat(view: CraftView, question: Question) -> Contact | None:
     """Return the nearest enemy on the craft's tail that targets it, or None;
     a disabled craft is never one."""
@@ -708,7 +718,7 @@ def _evade_ordered(view: CraftView, question: Question) -> Decision:
     book = dataclasses.replace(
         book.in_phase(EVADE, tick), dice=state, scratch=memory.write()
     )
-    interval = None if view.think_interval == FIGHT_INTERVAL else FIGHT_INTERVAL
+    interval = fight_interval(view)
     logger.info("attack.evade_ordered object=%d chaser=%d", view.object_index, chaser)
     actions = dataclasses.replace(
         _weave_actions(move, interval), target=NO_OBJECT, evaded=True

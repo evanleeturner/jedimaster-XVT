@@ -40,9 +40,11 @@ from . import Decision
 
 logger = logging.getLogger(__name__)
 
-# How close a homing shot comes before a craft answers it, by skill tier: the
-# 1997 AI's g_ai_warhead_threat_range_by_skill, in world units.
-THREAT_RANGE = (0x800, 0x1000, 0x1800)
+# How close a homing shot comes before a craft answers it, by skill tier, 0
+# to 4, in world units: to tier 2 the 1997 AI's
+# g_ai_warhead_threat_range_by_skill, then the Sith ranks', a step farther
+# each.
+THREAT_RANGE = (0x800, 0x1000, 0x1800, 0x2000, 0x2800)
 # Concussion missiles are answered from three times as far.
 CONCUSSION_RANGE_FACTOR = 3
 # The engine's object types of the concussion missiles (laser.h).

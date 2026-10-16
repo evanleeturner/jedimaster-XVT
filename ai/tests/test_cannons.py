@@ -79,9 +79,33 @@ def test_the_cone_narrows_with_skill_in_yaw_and_pitch_alike(
     assert cannons.aim(craft(), target, tier).lined_up is lined_up
 
 
+@pytest.mark.parametrize("axis", ["x", "z"])
+@pytest.mark.parametrize(
+    ("angle", "tier", "lined_up"),
+    [(0x380, 2, True), (0x380, 3, False), (0x280, 3, True), (0x280, 4, False)],
+)
+def test_the_sith_cones_narrow_past_a_jedis(
+    craft, foe, axis, angle, tier, lined_up
+) -> None:
+    """Tier 3's cone is 0x300 and tier 4's 0x200, inside tier 2's 0x400."""
+    target = foe(**{"x": 0, "y": 0x3000, "z": 0} | {axis: off_by(angle)})
+    assert cannons.aim(craft(), target, tier).lined_up is lined_up
+
+
+@pytest.mark.parametrize("tier", [2, 3, 4])
 @pytest.mark.parametrize(("reach", "lined_up"), [(0x9FFF, True), (0xA000, False)])
-def test_a_target_at_the_firing_range_is_out_of_it(craft, foe, reach, lined_up) -> None:
-    assert cannons.aim(craft(), foe(x=0, y=reach, z=0), 2).lined_up is lined_up
+def test_a_target_at_the_firing_range_is_out_of_it(
+    craft, foe, tier, reach, lined_up
+) -> None:
+    """The Sith tiers fire from no farther than a Jedi, 0xA000."""
+    assert cannons.aim(craft(), foe(x=0, y=reach, z=0), tier).lined_up is lined_up
+
+
+@pytest.mark.parametrize("tier", [2, 3, 4])
+def test_the_sith_tiers_burst_as_a_jedi(craft, tier) -> None:
+    """Each answer sets the burst again, so the Sith keep a Jedi's 5 shots."""
+    lasers = cannons.bursts(craft(cannon_type=(LASER, 0)), 0x5000, tier)
+    assert lasers[0] == CannonGroup(LinkMode.ONE_AT_A_TIME, 5)
 
 
 @pytest.mark.parametrize(
