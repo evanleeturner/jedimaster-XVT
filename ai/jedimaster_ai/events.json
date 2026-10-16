@@ -223,6 +223,16 @@
       "fields": ["object", "waypoint", "x", "y", "z"],
       "text": "The group of craft {object} has waypoint {waypoint} (mission point 4 + {waypoint}) on, at ({x}, {y}, {z})"
     },
+    "selfdestruct.start": {
+      "level": "I",
+      "fields": ["object", "slot", "ordered", "units", "ticks"],
+      "text": "Craft {object} stops for its Self Destruct order in slot {slot} and asks for a countdown of {units} units, {ticks} ticks (its order asks for {ordered}, and 0 for 2 to 5 at random)"
+    },
+    "selfdestruct.too_long": {
+      "level": "W",
+      "fields": ["object", "slot", "units"],
+      "text": "Craft {object} stops for its Self Destruct order in slot {slot} but never asks for a countdown: {units} units is more than the engine's timer holds"
+    },
     "wait.end": {
       "level": "I",
       "fields": ["object"],
