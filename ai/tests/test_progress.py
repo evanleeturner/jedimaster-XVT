@@ -15,6 +15,7 @@ import pytest
 
 from jedimaster_ai import progress
 from jedimaster_ai import wire
+from jedimaster_ai.behaviors import board
 from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.behaviors import waiting
 from jedimaster_ai.orders import OrderCode
@@ -141,6 +142,37 @@ def test_wait_and_wait_2_end_when_the_waiting_behavior_says_so() -> None:
     assert progress.GOALS[OrderCode.WAIT_2] is waiting.done
 
 
+# A Give leader asked for one boarding, on slot 0 of a group with orders in
+# slots 0 and 1.
+GIVING = {
+    "order_code": OrderCode.BOARD_AND_GIVE_CARGO,
+    "order_codes": (OrderCode.BOARD_AND_GIVE_CARGO, OrderCode.ATTACK, 0, 0),
+    "order_variable2": 1,
+}
+
+
+def test_a_boarding_order_is_done_once_its_boardings_reach_variable2(view) -> None:
+    craft = view(**GIVING, order_progress=(1, 0, 0, 0))
+    assert progress.decide(craft) == progress.Progress(move=OrderMove(1, 2))
+    assert progress.decide(view(**GIVING)) == progress.STAY
+
+
+@pytest.mark.parametrize("code", sorted(board.ORDERS))
+def test_a_boarding_order_with_no_target_left_moves_on_marked_3(view, code) -> None:
+    craft = view(**GIVING | {"order_code": code, "books": 0})
+    assert progress.decide(craft) == progress.Progress(move=OrderMove(1, 3))
+
+
+def test_the_last_boarding_order_with_no_target_left_goes_home(view) -> None:
+    craft = view(**GIVING | {"order_codes": (12, 0, 0, 0), "books": 0})
+    assert progress.decide(craft) == progress.Progress(home=True, move=OrderMove(0, 3))
+
+
+def test_a_slot_already_marked_3_moves_on(view) -> None:
+    craft = view(**GIVING, order_states=(3, 0, 0, 0))
+    assert progress.decide(craft) == progress.Progress(move=OrderMove(1, 0))
+
+
 def test_an_order_with_no_goal_test_is_never_done(view) -> None:
     craft = view(**DONE_ATTACK | {"order_code": OrderCode.RENDEZVOUS})
     assert progress.decide(craft) == progress.STAY
@@ -154,6 +186,8 @@ def test_an_order_with_no_goal_test_is_never_done(view) -> None:
         DONE_ATTACK | {"books": Books.SKIP_DUE},
         {"order_slot": 3, "order_codes": (7, 7, 7, 7), "books": Books.SKIPPED},
         DONE_ATTACK | {"full_speed": 0, "order_codes": (7, 0, 0, 0)},
+        GIVING | {"books": 0},
+        GIVING | {"order_codes": (12, 0, 0, 0), "books": 0},
     ],
 )
 def test_every_move_is_one_the_engines_reader_takes(view, changes) -> None:

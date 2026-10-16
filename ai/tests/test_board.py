@@ -18,6 +18,7 @@ from jedimaster_ai import geometry
 from jedimaster_ai import notebook
 from jedimaster_ai import progress
 from jedimaster_ai import wire
+from jedimaster_ai.behaviors import avoidance
 from jedimaster_ai.behaviors import board
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.orders import OrderCode
@@ -514,3 +515,20 @@ def test_a_lost_target_is_forgotten(boarder, craft, ask) -> None:
     decision = ask(boarder(notebook=holding()))
     assert decision.actions.target == NO_OBJECT
     assert memory_of(decision).held == 0
+
+
+def test_avoidance_leaves_its_target_alone_and_turns_it_round_others(
+    boarder, craft, contact, ask
+) -> None:
+    big = craft(size=0x8000)
+    me = boarder(notebook=holding(), books=BOARD_POINT, board_point=(0, 0x5000, 0))
+    question = Question(1000, (me,), (contact(object_index=ME, flags=0), big))
+    decision = board.think(me, question)
+    assert decision.actions.steer == Steer(0, LEVEL, 0)
+    assert avoidance.steer_clear(me, question, decision) == decision
+    freighter = craft(object_index=OTHER, y=0x3000, flags=0, size=0x2000)
+    question = Question(
+        1000, (me,), (contact(object_index=ME, flags=0), big, freighter)
+    )
+    turned = avoidance.steer_clear(me, question, board.think(me, question))
+    assert turned.actions.steer.yaw != 0

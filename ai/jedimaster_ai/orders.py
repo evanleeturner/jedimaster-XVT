@@ -12,7 +12,9 @@ Invariants:
       (``behaviors.hold``), Go Home and SS Go Home (``behaviors.home``),
       Circle, Circle and Evade, SS Patrol Loop and SS Patrol and Attack
       (``behaviors.patrol``), Kamikaze (``behaviors.kamikaze``), SS Launch
-      (``behaviors.starship``) and Self Destruct (``behaviors.selfdestruct``).
+      (``behaviors.starship``), Self Destruct (``behaviors.selfdestruct``),
+      and the eight boarding orders, Give, Take, Exchange, Capture, Destroy,
+      Pick Up, SS Board and Board to Repair (``behaviors.board``).
     - Disable, Protect, Escort, Wait, Wait 2, SS Await Return, SS Protect,
       SS Protect 2 and SS Patrol and Disable map to their own behavior files
       (``behaviors.disable``, ``protect``, ``escort``, ``waiting``,
@@ -30,6 +32,7 @@ import typing as t
 
 from .behaviors import attack
 from .behaviors import Behavior
+from .behaviors import board
 from .behaviors import disable
 from .behaviors import drift
 from .behaviors import escort
@@ -128,6 +131,7 @@ BEHAVIORS: t.Mapping[int, Behavior] = types.MappingProxyType(
         OrderCode.SELF_DESTRUCT: selfdestruct.think,
         OrderCode.KAMIKAZE: kamikaze.think,
     }
+    | {code: board.think for code in board.ORDERS}
 )
 
 

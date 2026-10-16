@@ -9,12 +9,13 @@ Purpose:
     order:
 
     - home once its books say aborted, departure due or orders done
-    - an order whose goal is met (GOALS) marks its slot done, state 2; then
+    - an order whose goal is met (GOALS) marks its slot done, state 2; a
+      boarding order marks it 2 or 3 by ``board.goal_state``; then
       home, when the craft can move, once every order its group has in slots
       0 to 2 is done (2 or 3), or once it skipped to order 4
     - else to slot 3 while its skip-to-order-4 trigger holds
-    - else to the next slot, when its done slot is below 2 and the next slot
-      holds an order
+    - else to the next slot, when its slot is done (2 or 3) and below 2 and
+      the next slot holds an order
 
 Invariants:
     - Only a craft that leads or flies alone moves its slot: a follower takes
@@ -22,7 +23,8 @@ Invariants:
     - Every move is one the engine's reader allows: the slot the craft is on,
       a slot 0 to 2 holding an order when it has not skipped, or slot 3 while
       the skip is due (``wire.check_shown``).
-    - Only an order with a goal test in GOALS is ever done. Which orders keep
+    - Only an order with a goal test in GOALS, or a boarding order, is ever
+      done. Which orders keep
       the departure, abort and skip books at all is the engine's to say.
     - Pure: the decision depends only on the view. A move is logged at DEBUG
       when it is decided; going home is logged by ``behaviors.home``.
@@ -35,6 +37,7 @@ import logging
 import types
 import typing as t
 
+from .behaviors import board
 from .behaviors import Decision
 from .behaviors import patrol
 from .behaviors import waiting
@@ -119,10 +122,9 @@ def decide(view: CraftView) -> Progress:
         return STAY
     slot = view.order_slot
     state = view.order_states[slot]
-    mark = 0
-    goal = GOALS.get(view.order_code)
-    if state not in DONE_STATES and goal is not None and goal(view):
-        state = mark = DONE
+    mark = 0 if state in DONE_STATES else _goal_state(view)
+    if mark:
+        state = mark
     if (
         state in DONE_STATES
         and view.full_speed != 0
@@ -132,7 +134,7 @@ def decide(view: CraftView) -> Progress:
         return _logged(view, Progress(home=True, move=move), "home")
     if view.books & Books.SKIP_DUE:
         return _logged(view, Progress(move=OrderMove(SKIP_SLOT, mark)), "skip")
-    if state == DONE and slot < ORDER_SLOTS - 1 and view.order_codes[slot + 1]:
+    if state in DONE_STATES and slot < ORDER_SLOTS - 1 and view.order_codes[slot + 1]:
         return _logged(view, Progress(move=OrderMove(slot + 1, mark)), "next")
     if mark:
         return _logged(view, Progress(move=OrderMove(slot, mark)), "done")
@@ -145,6 +147,16 @@ def with_move(decision: Decision, move: OrderMove | None) -> Decision:
         return decision
     actions = dataclasses.replace(decision.actions, order=move)
     return dataclasses.replace(decision, actions=actions)
+
+
+def _goal_state(view: CraftView) -> int:
+    """Return the state the craft's order goal gives its slot, 0 while
+    unmet: a boarding order's by ``board.goal_state`` (2, or 3 with no
+    target left), any other's DONE once its GOALS test holds."""
+    if view.order_code in board.ORDERS:
+        return board.goal_state(view)
+    goal = GOALS.get(view.order_code)
+    return DONE if goal is not None and goal(view) else 0
 
 
 def _all_done(view: CraftView, slot: int, state: int) -> bool:
