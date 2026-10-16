@@ -1,4 +1,5 @@
-"""Fence for the starship orders: SS Await Return stops, SS Protect guards."""
+"""Fence for the starship orders: SS Await Return and SS Launch stop, SS Protect
+guards."""
 
 from __future__ import annotations
 
@@ -50,6 +51,13 @@ def other(contact):
 def test_ss_await_return_stops_and_keeps_its_notebook(ship) -> None:
     me = ship(order_code=OrderCode.SS_AWAIT_RETURN, notebook=bytes(range(64)))
     decision = starship.await_return(me, Question(1000, (me,), ()))
+    assert decision.notebook == bytes(range(64))
+    assert decision.actions == Actions(throttle=0)
+
+
+def test_ss_launch_stops_and_keeps_its_notebook(ship) -> None:
+    me = ship(order_code=OrderCode.SS_LAUNCH, notebook=bytes(range(64)))
+    decision = starship.await_launch(me, Question(1000, (me,), ()))
     assert decision.notebook == bytes(range(64))
     assert decision.actions == Actions(throttle=0)
 
