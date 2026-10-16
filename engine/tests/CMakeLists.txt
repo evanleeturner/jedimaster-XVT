@@ -412,7 +412,6 @@ add_test(NAME flight_input COMMAND test_flight_input)
 xvt_add_engine_test(test_player test_player.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/player/player.c")
 add_test(NAME player COMMAND test_player)
 xvt_add_known_failure(test_player nearest_enemy_none_minus_one)
-xvt_add_known_failure(test_player unbind_order_slot_to_released_craft)
 xvt_add_known_failure(test_player objective_second_pair_first_trigger)
 
 # Shield banks, the Tech Library's ratings, warhead kinds and the damage a hit

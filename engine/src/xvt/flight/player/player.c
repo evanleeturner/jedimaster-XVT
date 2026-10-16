@@ -412,9 +412,8 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
  * order: plan, throttle (0 for nullpln, the stationary plans and disabledpln,
  * 0x8000 for escortldr1pln) and speed, and the player's target as candidate
  * target when an order aims at it; otherwise plan nullpln and no steering.
- * current_order_slot and the plan ids are written to the craft g_cur_craft points
- * at on entry, which is this craft only when the caller left it there;
- * g_cur_craft ends at this craft. */
+ * current_order_slot and the activity are written to this craft, whichever
+ * craft g_cur_craft points at on entry; g_cur_craft ends at this craft. */
 // FUNCTION: XVT 0x45A850
 int player_unbind_from_current_craft(int player_index,
 				     int require_multiple_craft,
@@ -510,7 +509,7 @@ int player_unbind_from_current_craft(int player_index,
 		"player.release_plan_craft slot=%d object=%d same=%d predicted=%d",
 		player_index, object_idx, g_cur_craft == craft,
 		g_flight_sim_side_effects_suppressed);
-	g_cur_craft->ai_controller.current_order_slot = 0;
+	craft->ai_controller.current_order_slot = 0;
 
 	if (assign_ai_plan != 0) {
 		int order = g_mission_flight_groups[g_object_table[object_idx]
@@ -568,7 +567,7 @@ int player_unbind_from_current_craft(int player_index,
 			}
 		}
 	} else {
-		g_cur_craft->ai_controller.activity = AI_ACTIVITY_NONE;
+		craft->ai_controller.activity = AI_ACTIVITY_NONE;
 		g_cur_craft = craft;
 		craft->ai_flight.roll_state = 0;
 		craft->ai_flight.pitch_state = 0;

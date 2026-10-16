@@ -433,13 +433,9 @@ static void check_unbind_takes_first_order(void)
 	XVT_ASSERT_INT_EQ(craft->throttle_speed, 0x8000);
 }
 
-/* Known failure unbind_order_slot_to_released_craft, issue #170: a craft
- * handed back to the computer pilot with orders starts at order slot 0,
- * whichever craft g_cur_craft names when the call is made; no other craft's
- * order slot changes. The function's comment describes the writes through
- * g_cur_craft as intended, so the check rests on the issue. The throwaway
- * fix writes the order slot through the released craft, as the rest of the
- * function does; the comment changes with it. */
+/* A craft handed back to the computer pilot with orders starts at order slot
+ * 0, whichever craft g_cur_craft names when the call is made; no other
+ * craft's order slot changes (issue #170). */
 static void check_unbind_order_slot_to_released_craft(void)
 {
 	struct craft_data *craft = fresh_world();
@@ -452,6 +448,22 @@ static void check_unbind_order_slot_to_released_craft(void)
 	XVT_ASSERT_INT_EQ(player_unbind_from_current_craft(PLAYER, 0, 1), 1);
 	XVT_ASSERT_INT_EQ(other->ai_controller.current_order_slot, 2);
 	XVT_ASSERT_INT_EQ(craft->ai_controller.current_order_slot, 0);
+}
+
+/* A craft handed back without orders has no activity, whichever craft
+ * g_cur_craft names when the call is made; no other craft's activity
+ * changes (issue #170). */
+static void check_unbind_activity_to_released_craft(void)
+{
+	struct craft_data *craft = fresh_world();
+	struct craft_data *other = place_craft(5, ENEMY_FG, 4000, 0, 0);
+	other->ai_controller.activity = AI_ACTIVITY_WAITING;
+	craft->ai_controller.activity = AI_ACTIVITY_WAITING;
+	g_cur_craft = other;
+	XVT_ASSERT_INT_EQ(player_unbind_from_current_craft(PLAYER, 0, 0), 1);
+	XVT_ASSERT_INT_EQ(other->ai_controller.activity, AI_ACTIVITY_WAITING);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.activity, AI_ACTIVITY_NONE);
+	XVT_ASSERT_TRUE(g_cur_craft == craft);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -789,8 +801,6 @@ int main(int argc, char **argv)
 		} known_failures[] = {
 			{"nearest_enemy_none_minus_one",
 			 check_nearest_enemy_none},
-			{"unbind_order_slot_to_released_craft",
-			 check_unbind_order_slot_to_released_craft},
 			{"objective_second_pair_first_trigger",
 			 check_objective_second_pair_first_trigger},
 		};
@@ -809,6 +819,8 @@ int main(int argc, char **argv)
 	check_unbind_keeps_last_craft();
 	check_unbind_without_orders();
 	check_unbind_takes_first_order();
+	check_unbind_order_slot_to_released_craft();
+	check_unbind_activity_to_released_craft();
 	check_objective_group_goal();
 	check_objective_skips();
 	check_objective_global_triggers();
