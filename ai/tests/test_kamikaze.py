@@ -318,10 +318,12 @@ def test_the_aim_cone_narrows_with_skill_as_attacks_does(craft, foe, ask) -> Non
         assert ask(craft(), off).actions.lasers == (HOLD_FIRE, HOLD_FIRE)
 
 
-def test_it_fires_inside_40960_units_at_tier_2(craft, foe, ask) -> None:
-    within = ask(craft(), foe(y=40959)).actions.lasers
+def test_it_fires_inside_its_shots_reach_at_tier_2(craft, foe, ask) -> None:
+    # Its laser's shots fly 34,415 from a craft at speed 40, short of tier
+    # 2's 40,960 (#308).
+    within = ask(craft(), foe(y=34414)).actions.lasers
     assert within == (HOLD_FIRE, CannonGroup(LinkMode.ONE_AT_A_TIME, 5))
-    assert ask(craft(), foe(y=40960)).actions.lasers == (HOLD_FIRE, HOLD_FIRE)
+    assert ask(craft(), foe(y=34415)).actions.lasers == (HOLD_FIRE, HOLD_FIRE)
 
 
 def test_at_a_star_destroyer_it_fires_by_the_distance_to_its_hull(

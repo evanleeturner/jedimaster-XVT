@@ -124,19 +124,36 @@ def test_the_sith_tiers_burst_as_a_jedi(craft, tier) -> None:
     ],
     ids=["imperial", "imperial-fast", "rebel", "ion", "shorter", "jedi-cap"],
 )
-def test_a_sith_fires_no_farther_than_its_shots_fly(
+def test_no_tier_fires_farther_than_its_shots_fly(
     craft, foe, kinds, speed, reach
 ) -> None:
+    """#308: a Jedi TIE fired from 40,960 in 1997, where its shots stop at
+    33,687, and the Sith tiers already stopped there."""
     me = craft(cannon_type=kinds, cannon_group_count=2, speed=speed)
-    for tier in (3, 4):
+    for tier in (2, 3, 4):
         assert cannons.aim(me, foe(x=0, y=reach - 1, z=0), tier).lined_up
         assert not cannons.aim(me, foe(x=0, y=reach, z=0), tier).lined_up
 
 
-def test_a_jedi_fires_past_its_shots_as_in_1997(craft, foe) -> None:
-    """A Jedi TIE fires from 0xA000, though its shots stop at 33,687."""
-    me = craft(cannon_type=(LASER, 0), cannon_group_count=1)
-    assert cannons.aim(me, foe(x=0, y=0x9FFF, z=0), 2).lined_up
+@pytest.mark.parametrize(("tier", "reach"), [(0, 0x6000), (1, 0x8000)])
+def test_tiers_0_and_1_keep_their_1997_range(craft, foe, tier, reach) -> None:
+    """Both lie inside every cannon shot's reach: the shortest, an
+    Imperial laser's from a craft at rest, is 33,687."""
+    me = craft(cannon_type=(LASER, 0), cannon_group_count=1, speed=0)
+    assert cannons.fire_range(me, foe(), tier) == reach
+
+
+def test_a_shot_short_of_tier_0s_range_stops_tier_0_too(
+    craft, foe, monkeypatch
+) -> None:
+    """No tier fires past its shots, though no shot in the engine's table
+    flies short of tier 0's range: a made-up one at 1,000 for 236 ticks
+    reaches 921 + 18,203."""
+    monkeypatch.setitem(cannons._CANNON_SHOTS, 1, (1000, 1, 0, 921))
+    me = craft(cannon_type=(1, 0), cannon_group_count=1, speed=0)
+    for tier in (0, 1):
+        assert cannons.aim(me, foe(x=0, y=19123, z=0), tier).lined_up
+        assert not cannons.aim(me, foe(x=0, y=19124, z=0), tier).lined_up
 
 
 def test_a_group_the_craft_lacks_sets_no_reach(craft, foe) -> None:
@@ -176,6 +193,13 @@ def test_the_1997_range_changes_apply(craft, foe) -> None:
     # 1997 added 0x6000 for a starship, measured from its position; the
     # range now runs to its hull, without it.
     assert cannons.fire_range(me, foe(genus=4), 2) == 0xA000
+
+
+def test_a_fast_targets_cut_comes_off_the_shots_reach(craft, foe) -> None:
+    """A Jedi TIE's shots fly 33,687; a fast target flying its way takes
+    16,384 off that, not off 1997's 40,960."""
+    me = craft(cannon_type=(LASER, 0), cannon_group_count=1, speed=0)
+    assert cannons.fire_range(me, foe(speed=40, yaw=0x1000), 2) == 17303
 
 
 @pytest.mark.parametrize(

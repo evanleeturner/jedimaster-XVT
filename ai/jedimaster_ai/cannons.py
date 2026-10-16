@@ -7,8 +7,8 @@ Purpose:
     the cannons are lined up on a target (``aim``), and, by range, whether
     all cannons fire together, in pairs or one at a time (``bursts``). The
     range runs to a starship's or platform's hull, to any other target's
-    position (``hull.nearest``, rulings 98 and 99). A Sith craft fires no
-    farther than its cannons' shots fly (``bolt_reach``). Its ion cannons hold,
+    position (``hull.nearest``, rulings 98 and 99). No craft fires farther
+    than its cannons' shots fly (``bolt_reach``). Its ion cannons hold,
     as in 1997: only the Disable order fires them, at its target, where
     every other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
     ``behaviors.kamikaze`` fire by these rules.
@@ -36,9 +36,9 @@ from .world import LinkMode
 
 # By skill tier, 0 to 4; 3 and 4 are the Sith ranks'. The cone narrows with
 # skill: a better pilot holds fire until the shot is good. The Sith tiers
-# fire from no farther than a Jedi, nor than their shots fly (``fire_range``).
-# Their bursts stay a Jedi's: each answer sets the burst again, 16 or 8 ticks
-# on.
+# fire from no farther than a Jedi, and no tier farther than its shots fly
+# (``fire_range``). Their bursts stay a Jedi's: each answer sets the burst
+# again, 16 or 8 ticks on.
 AIM_CONE = (0x800, 0x600, 0x400, 0x300, 0x200)
 FIRE_RANGE = (0x6000, 0x8000, 0xA000, 0xA000, 0xA000)
 BURST = (3, 4, 5, 5, 5)
@@ -118,13 +118,12 @@ def aim(view: CraftView, target: Contact, tier: int) -> Aim:
 
 def fire_range(view: CraftView, target: Contact, tier: int) -> int:
     """Return how far from a target's nearest part (``hull.nearest``) the
-    craft fires, by the 1997 pilot's rules; at a Sith tier no farther than
-    the shortest reach of its cannon groups' shots (``bolt_reach``)."""
-    reach = FIRE_RANGE[tier]
-    if tier >= tactics.SITH_APPRENTICE_TIER:
-        groups = view.cannon_type[: view.cannon_group_count]
-        reaches = [bolt_reach(view, kind) for kind in groups]
-        reach = min([reach, *(each for each in reaches if each is not None)])
+    craft fires, by the 1997 pilot's rules, but never farther than the
+    shortest reach of its cannon groups' shots (``bolt_reach``): 1997's
+    Jedi range, 40,960, outran an Imperial laser by over 7,000 units."""
+    groups = view.cannon_type[: view.cannon_group_count]
+    reaches = [bolt_reach(view, kind) for kind in groups]
+    reach = min([FIRE_RANGE[tier], *(each for each in reaches if each is not None)])
     if target.speed > FAST_SPEED:
         apart = geometry.angle_between(view.yaw, target.yaw)
         if apart < SAME_HEADING:
