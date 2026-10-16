@@ -753,6 +753,10 @@ if(NOT MSVC)
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_description.c")
     target_link_libraries(test_door_admission PRIVATE aeron_cjson)
     add_test(NAME door_admission COMMAND test_door_admission)
+    # The network door's battle setup from the host's start: roster, teams and flight groups.
+    xvt_add_engine_test(test_door_battle test_door_battle.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/door_battle.c")
+    add_test(NAME door_battle COMMAND test_door_battle)
     # The options a battle started from a description flies with, the network one from the shipped file.
     xvt_add_engine_test(test_launch_options test_launch_options.c
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_options.c"

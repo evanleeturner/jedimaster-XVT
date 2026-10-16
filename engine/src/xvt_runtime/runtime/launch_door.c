@@ -24,6 +24,7 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/door_admission.h"
+#include "xvt_runtime/runtime/door_battle.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 #include "xvt_runtime/runtime/launch_description.h"
 #include "xvt_runtime/runtime/launch_options.h"
@@ -59,6 +60,8 @@ enum {
 	PHASE_FIND_ROOM,
 	PHASE_JOINING,
 	PHASE_ASKED,
+	PHASE_SEATED,
+	PHASE_STARTING,
 	PHASE_LAUNCHING,
 	PHASE_FINISHED
 };
@@ -67,6 +70,9 @@ static struct xvt_launch_description g_description;
 /* A network host's seats and the player id that holds each (0 while free). */
 static struct xvt_door_seats g_seats;
 static DPID g_seat_players[XVT_LAUNCH_SEAT_CAPACITY];
+/* The battle's seats as the host started it, and a joiner's seat. */
+static struct xvt_door_start g_start;
+static int g_joiner_seat;
 /* A network joiner's copy of the matchmaker's rooms, whether a refresh of it
  * is under way, when the next one may start, and the last refresh's error. */
 static AeronDplayDirectorySnapshot g_rooms;
@@ -402,6 +408,27 @@ static void start_battle(void)
 		     g_description.mission_file);
 }
 
+/* Refuses, as the 1997 host's Begin did, a battle with more seats than the
+ * chosen mission takes: the digit its file name starts with. Runs on every
+ * machine, before any network work. Returns 1, or 0 after failing. */
+static int mission_takes_seats(void)
+{
+	int seats = g_description.network.player_count;
+	int most = (int)(uint8_t)g_mission_list[g_selected_mission_list_index]
+			   .file_name[0] -
+		   '0';
+	if (most >= seats) {
+		return 1;
+	}
+	char why[XVT_LAUNCH_WHY_CAPACITY];
+	snprintf(
+		why, sizeof(why),
+		"The mission takes at most %d players, and the battle has %d seats.",
+		most < 0 ? 0 : most, seats);
+	fail(XVT_LAUNCH_EXIT_REFUSED, why);
+	return 0;
+}
+
 /* Sets up a network battle as far as each machine can alone, without the
  * mission setup screen the 1997 lobby ran: the session mode, the combat
  * simulator's record as the screen's first frame reads it in a network game,
@@ -451,7 +478,61 @@ static int set_up_network_battle(void)
 		(unsigned)g_game_config.combat_balance,
 		(unsigned)g_game_config.continue_battle_or_campaign,
 		xvt_sith_get_setting());
-	return choose_mission();
+	return choose_mission() && mission_takes_seats();
+}
+
+/* Sets the battle up from g_start on this machine and goes to the launch
+ * screen, as the 1997 lobby's screens did from the host's packets: the roster;
+ * what the host's Begin did (a sequence's first mission, the roster made
+ * final, the mission setup screen's record saved by its exit); the first
+ * frames of the team and flight screens; the craft screen's with nothing
+ * chosen; then the players' state. The team screen's offer to continue a saved
+ * campaign or battle is not made: a door battle starts its sequence anew. */
+static void start_network_battle(void)
+{
+	if (!xvt_door_battle_fill_roster(&g_start)) {
+		fail(XVT_LAUNCH_EXIT_NOT_REACHED,
+		     "A player of the battle left before it started.");
+		return;
+	}
+	int directory = g_description.directory_id;
+	if ((directory == MISSION_DIRECTORY_TOURNAMENTS ||
+	     directory == MISSION_DIRECTORY_BATTLES ||
+	     directory == MISSION_DIRECTORY_CAMPAIGNS) &&
+	    mission_setup_select_first_sequence_mission() == 0) {
+		fail(XVT_LAUNCH_EXIT_REFUSED,
+		     "The sequence file could not be read.");
+		return;
+	}
+	g_mission_setup_roster_authoritative = 1;
+	g_frontend_quick_start_launch_flag = 0;
+	(void)mission_setup_exit(-1);
+	mission_setup_load_mission_list(directory);
+	for (g_selected_mission_list_index = 0;
+	     g_mission_list &&
+	     (unsigned int)g_selected_mission_list_index < g_mission_count &&
+	     g_mission_list[g_selected_mission_list_index].mission_idx !=
+		     g_pilot_data.mission_description_ids[directory];
+	     ++g_selected_mission_list_index) {
+	}
+	frontend_mission_load_current();
+	mission_setup_update_team_counts();
+	if (xvt_door_battle_deal_teams(g_start.count) < g_start.count) {
+		fail(XVT_LAUNCH_EXIT_REFUSED,
+		     "The mission has fewer player places than the battle has seats.");
+		return;
+	}
+	xvt_door_battle_assign_flights();
+	mission_setup_init_craft_loadout();
+	frontend_mission_init_player_state();
+	switch_screen(flight_loading_update_ready_screen, NULL, concourse_exit);
+	g_phase = PHASE_LAUNCHING;
+	XVT_LOG_INFO(
+		"launch.network_started seats=%d team=%d local=%d fg=%d mission=%d",
+		g_start.count, g_pilot_data.team,
+		g_local_pilot_network_player_index,
+		g_mission_setup_selected_flight_group_index,
+		(int)g_pilot_data.mission_description_ids[directory]);
 }
 
 /* Lists and finds rooms at the description's matchmaker under the battle's
@@ -543,11 +624,62 @@ static void answer_asking(DPID sender, int protocol, uint32_t setup)
 		     (unsigned)sender, seat, player->player_name);
 }
 
-/* The host's step while it gathers: answers the askings that came, and once
- * every seat is in, closes the room. A packet other than an asking is
- * dropped: no lobby runs to read it. */
+/* Frees the seat of each admitted game the session no longer lists: it left
+ * before the start, and another game of that pilot may take it. */
+static void free_left_seats(void)
+{
+	for (int seat = 1; seat < g_seats.count; ++seat) {
+		if (g_seat_players[seat] &&
+		    !net_find_player((int)g_seat_players[seat])) {
+			XVT_LOG_INFO("launch.door_seat_freed player=%u seat=%d",
+				     (unsigned)g_seat_players[seat], seat);
+			xvt_door_seat_free(&g_seats, seat);
+			g_seat_players[seat] = 0;
+		}
+	}
+}
+
+/* The host's start once every seat is in: tells each joiner the seats'
+ * player ids and ratings, a rating read as the 1997 lobby state read it (the
+ * first byte of the player's long name, less 1), and sets the battle up. */
+static void send_start(void)
+{
+	memset(&g_start, 0, sizeof(g_start));
+	g_start.count = g_seats.count;
+	for (int seat = 0; seat < g_start.count; ++seat) {
+		const struct net_player_info *player =
+			net_find_player((int)g_seat_players[seat]);
+		g_start.players[seat] = (uint32_t)g_seat_players[seat];
+		g_start.ratings[seat] =
+			player ? (int32_t)(uint8_t)player->long_name[0] - 1 : 0;
+	}
+	int32_t packet[XVT_DOOR_START_WORDS];
+	xvt_door_make_start(packet, &g_start);
+	for (int seat = 1; seat < g_start.count; ++seat) {
+		net_send_packet_and_flush((int)g_seat_players[seat], packet,
+					  sizeof(packet));
+	}
+	XVT_LOG_INFO("launch.door_start_sent seats=%d", g_start.count);
+	start_network_battle();
+}
+
+/* The host's step while it gathers: answers the askings that came, frees the
+ * seats of games that left, and once every seat is in, closes the room and
+ * starts the battle. A packet other than an asking is dropped: no lobby runs
+ * to read it. A session that fails ends the door. */
 static void gather_seats(void)
 {
+	struct xvt_network_session_status status =
+		xvt_network_session_get_status();
+	if (status.state == XVT_NETWORK_SESSION_FAILED) {
+		char why[XVT_LAUNCH_WHY_CAPACITY];
+		snprintf(
+			why, sizeof(why),
+			"The battle's room closed before every seat was in (directory error %u).",
+			(unsigned)status.error);
+		fail(XVT_LAUNCH_EXIT_NOT_REACHED, why);
+		return;
+	}
 	for (int count = 0; count < PACKETS_PER_STEP; ++count) {
 		DPID sender;
 		uint32_t size;
@@ -566,13 +698,13 @@ static void gather_seats(void)
 				(unsigned)size);
 		}
 	}
+	free_left_seats();
 	if (!xvt_door_seats_full(&g_seats)) {
 		return;
 	}
 	xvt_network_session_set_door_accepting(0);
 	XVT_LOG_INFO("launch.door_seated seats=%d", g_seats.count);
-	fail(XVT_LAUNCH_EXIT_NOT_REACHED,
-	     "Every seat is in, but this game build cannot start a network flight yet.");
+	send_start();
 }
 
 /* The concourse step of a network joiner: loads the pilot, sets up the battle
@@ -688,8 +820,9 @@ static void join(void)
 		     (unsigned)setup);
 }
 
-/* Takes the host's answer: an admission finishes the join; a refusal leaves
- * the session and ends the door with the host's reason. */
+/* Takes the host's answer: an admission finishes the join, and the joiner
+ * waits for the start; a refusal leaves the session and ends the door with the
+ * host's reason. */
 static void take_answer(int verdict, int seat)
 {
 	DPID host = g_front_state.net_host_player_id;
@@ -708,8 +841,8 @@ static void take_answer(int verdict, int seat)
 	}
 	XVT_LOG_INFO("launch.door_seat_taken seat=%d described=%d", seat,
 		     g_description.network.seat);
-	fail(XVT_LAUNCH_EXIT_NOT_REACHED,
-	     "This pilot has its seat in the battle, but this game build cannot start a network flight yet.");
+	g_joiner_seat = seat;
+	g_phase = PHASE_SEATED;
 }
 
 /* The joiner's step while it waits for the host's answer: reads the packets
@@ -734,6 +867,71 @@ static void wait_for_answer(void)
 		if (sender == host &&
 		    xvt_door_read_answer(packet, size, &verdict, &seat)) {
 			take_answer(verdict, seat);
+			return;
+		}
+		XVT_LOG_DEBUG(
+			"launch.door_packet_dropped player=%u type=%d bytes=%u",
+			(unsigned)sender, size >= 4 ? packet[0] : -1,
+			(unsigned)size);
+	}
+}
+
+/* The joiner's step once the start came: sets the battle up as soon as the
+ * session lists every seat's player. */
+static void wait_for_players(void)
+{
+	if (join_failed()) {
+		return;
+	}
+	if (xvt_door_battle_players_known(&g_start)) {
+		start_network_battle();
+	}
+}
+
+/* Takes the host's start: the seats must be the description's count with
+ * this game at the seat the host answered; then the battle starts as soon as
+ * the session lists every player. */
+static void take_start(void)
+{
+	uint32_t seated = g_joiner_seat >= 0 && g_joiner_seat < g_start.count
+				  ? g_start.players[g_joiner_seat]
+				  : 0;
+	if (g_start.count != g_description.network.player_count ||
+	    seated != (uint32_t)net_get_local_player_id()) {
+		XVT_LOG_WARN(
+			"launch.door_start_mismatch seats=%d described=%d seat=%d player=%u",
+			g_start.count, g_description.network.player_count,
+			g_joiner_seat, (unsigned)seated);
+		fail(XVT_LAUNCH_EXIT_REFUSED,
+		     "The host started the battle with seats this pilot's description does not hold.");
+		return;
+	}
+	XVT_LOG_INFO("launch.door_start_taken seats=%d seat=%d", g_start.count,
+		     g_joiner_seat);
+	g_phase = PHASE_STARTING;
+	wait_for_players();
+}
+
+/* The joiner's step while it waits in its seat: reads the packets that came
+ * and takes the host's start. Any other packet is dropped: no lobby runs to
+ * read it. The session is kept by the frame loop's service, which ends it if
+ * the host is lost. */
+static void wait_for_start(void)
+{
+	if (join_failed()) {
+		return;
+	}
+	DPID host = g_front_state.net_host_player_id;
+	for (int count = 0; count < PACKETS_PER_STEP; ++count) {
+		DPID sender;
+		uint32_t size;
+		const int32_t *packet = net_get_next_app_packet(&sender, &size);
+		if (!packet) {
+			break;
+		}
+		if (sender == host &&
+		    xvt_door_read_start(packet, size, &g_start)) {
+			take_start();
 			return;
 		}
 		XVT_LOG_DEBUG(
@@ -788,6 +986,10 @@ void xvt_launch_door_step(void)
 		join();
 	} else if (g_phase == PHASE_ASKED) {
 		wait_for_answer();
+	} else if (g_phase == PHASE_SEATED) {
+		wait_for_start();
+	} else if (g_phase == PHASE_STARTING) {
+		wait_for_players();
 	}
 }
 

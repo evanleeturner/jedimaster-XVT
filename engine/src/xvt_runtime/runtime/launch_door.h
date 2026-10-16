@@ -20,21 +20,26 @@ extern "C" {
  * A network description, on the first frame of the concourse, first sets up
  * the battle as far as one machine can alone, before any network work: the
  * options every machine computes alike (launch_options.h), the Sith setting
- * and the mission, any the game's list holds, opened by the pilot or not. A
- * host then opens the battle's room at the description's matchmaker under its
- * own application id (network_session.h), as the Host button does with the
- * game's fixed id; once the room is listed it takes joiners and answers each
- * asking by the description's seats (door_admission.h), and closes the room
- * when every seat is in. A joiner asks the matchmaker for its rooms until the
- * battle's room lists the host, joins it as the Join button does, sends the
- * door's asking once the host's sequence status has come, and takes the
- * answer: a refusal ends the program with XVT_LAUNCH_EXIT_REFUSED and the
- * host's reason. No 1997 lobby screen runs. This build stops there: a seated
- * room, and a joiner given its seat, end the program with
- * XVT_LAUNCH_EXIT_NOT_REACHED, saying the build cannot start a network flight
- * yet. State: the description, the result path, the phase; on a host the
- * seats and the player id in each; on a joiner its copy of the matchmaker's
- * rooms. */
+ * and the mission, any the game's list holds, opened by the pilot or not; a
+ * mission whose file name's first digit is under the seat count is refused,
+ * as the 1997 host's Begin refused it. A host then opens the battle's room at
+ * the description's matchmaker under its own application id
+ * (network_session.h), as the Host button does with the game's fixed id; once
+ * the room is listed it takes joiners and answers each asking by the
+ * description's seats (door_admission.h), frees the seat of a game that left,
+ * and when every seat is in closes the room and sends each joiner the start:
+ * the seats' player ids and ratings. A joiner asks the matchmaker for its
+ * rooms until the battle's room lists the host, joins it as the Join button
+ * does, sends the door's asking once the host's sequence status has come, and
+ * takes the answer: a refusal ends the program with XVT_LAUNCH_EXIT_REFUSED
+ * and the host's reason; an admission waits in its seat for the start. From
+ * the start each machine sets the battle up alone, alike on every machine
+ * (door_battle.h): the roster in seat order, the sequence's first mission,
+ * the teams, the flight groups and the mission's own loadouts, the players'
+ * state; then the launch screen runs, and the flight, as they do for a menu
+ * battle. No 1997 lobby screen runs. State: the description, the result path,
+ * the phase; on a host the seats and the player id in each; on a joiner its
+ * copy of the matchmaker's rooms and its seat; on both the start. */
 
 /* Reads and checks the description in the file at path. On success keeps it
  * and returns 1. Otherwise writes a result file that says why (beside the

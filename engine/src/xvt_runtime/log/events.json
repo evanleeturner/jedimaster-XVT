@@ -2418,6 +2418,11 @@
       "fields": ["player", "name", "verdict", "protocol", "setup"],
       "text": "The host refused player {player} playing as {name}: verdict {verdict}, its protocol {protocol} and setup fingerprint {setup}"
     },
+    "launch.door_seat_freed": {
+      "level": "I",
+      "fields": ["player", "seat"],
+      "text": "Player {player} left before the start; seat {seat} is free again"
+    },
     "launch.door_seat_taken": {
       "level": "I",
       "fields": ["seat", "described"],
@@ -2428,6 +2433,21 @@
       "fields": ["seats"],
       "text": "Every one of the {seats} seats is in; the host's room takes no more joiners"
     },
+    "launch.door_start_mismatch": {
+      "level": "W",
+      "fields": ["seats", "described", "seat", "player"],
+      "text": "The host's start does not match this pilot's description: {seats} seats against {described} described, player {player} in this pilot's seat {seat}"
+    },
+    "launch.door_start_sent": {
+      "level": "I",
+      "fields": ["seats"],
+      "text": "The host sent the start with the {seats} seats' players to every joiner"
+    },
+    "launch.door_start_taken": {
+      "level": "I",
+      "fields": ["seats", "seat"],
+      "text": "The host started the battle: {seats} seats, this pilot in seat {seat}"
+    },
     "launch.door_turned_away": {
       "level": "W",
       "fields": ["verdict"],
@@ -2437,6 +2457,11 @@
       "level": "D",
       "fields": ["faction", "team", "directory"],
       "text": "The launch door picked faction {faction} as the pilot list and the faction buttons do: team {team}, mission folder number {directory}"
+    },
+    "launch.flight_given": {
+      "level": "D",
+      "fields": ["team", "place", "fg"],
+      "text": "Place {place} of team {team} flies flight group {fg}"
     },
     "launch.mission_chosen": {
       "level": "D",
@@ -2453,10 +2478,20 @@
       "fields": ["difficulty", "collisions", "jumping", "random", "length", "join", "craft", "locate", "waves", "time_limit", "team_limit", "seed", "internet", "ai", "rate", "balance", "continue", "sith"],
       "text": "The network battle's options, alike on every machine: difficulty {difficulty}, collisions {collisions}, jumping {jumping}, random setup {random}, length {length}, joining in progress {join}, craft selection {craft}, locate players {locate}, waves {waves}, time limit {time_limit}, last team's limit {team_limit}, seed {seed}, internet play {internet}, AI opponents {ai}, update rate {rate}, balance {balance}, continue {continue}, Sith {sith}"
     },
+    "launch.network_started": {
+      "level": "I",
+      "fields": ["seats", "team", "local", "fg", "mission"],
+      "text": "The network battle is set up on this machine: {seats} seats, mission {mission}; this pilot is roster entry {local}, team {team}, flight group {fg}; going to the launch screen"
+    },
     "launch.opened": {
       "level": "I",
       "fields": ["path"],
       "text": "The launch door opened the description file {path}"
+    },
+    "launch.player_placed": {
+      "level": "D",
+      "fields": ["player", "team", "place"],
+      "text": "The deal put player {player} in place {place} of team {team}"
     },
     "launch.queued": {
       "level": "I",
@@ -2528,6 +2563,11 @@
       "fields": ["error"],
       "text": "The matchmaker's rooms could not be read (directory error {error}); the door asks again"
     },
+    "launch.roster_seat": {
+      "level": "D",
+      "fields": ["seat", "player", "rating", "name"],
+      "text": "Seat {seat} of the battle's roster: player {player}, {name}, rating {rating}, flying the mission's own craft and loadout"
+    },
     "launch.settings": {
       "level": "D",
       "fields": ["difficulty", "collisions", "craft_jumping", "random_setup", "battle_length", "time_limit", "continue", "sith", "seed", "has_seed"],
@@ -2547,6 +2587,11 @@
       "level": "I",
       "fields": ["directory", "mission"],
       "text": "The launch door pressed Quick Start for the mission {mission} in mission folder number {directory}"
+    },
+    "launch.teams_dealt": {
+      "level": "D",
+      "fields": ["team", "teams", "placed", "count"],
+      "text": "The deal placed {placed} of {count} players over {teams} teams; this pilot flies for team {team}"
     },
     "map.object_picked": {
       "level": "D",
