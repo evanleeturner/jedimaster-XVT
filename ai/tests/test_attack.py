@@ -13,7 +13,9 @@ import pytest
 
 from jedimaster_ai import cannons
 from jedimaster_ai import geometry
+from jedimaster_ai import hull
 from jedimaster_ai import notebook
+from jedimaster_ai import tactics
 from jedimaster_ai import warheads
 from jedimaster_ai import weave
 from jedimaster_ai import wire
@@ -41,6 +43,15 @@ ALL_BUT_OWN = 0xFFFFFFFE
 FREIGHTER = 3
 BULK_FREIGHTER_SIZE = 4960
 TIER_SKILL = (0x0000, 0x8000, 0xFFFF)
+STARSHIP = 4
+# Retail models' boxes, smallest and largest corners in the model's axes
+# (test_hull.py's source). Level at yaw 0, a ship's stern lies its box's
+# largest y behind its position; at yaw 0x4000 its flank, its largest x,
+# faces a craft at the origin from ahead.
+CRUISER = {"genus": STARSHIP, "size": 18449, "pitch": LEVEL}
+CRUISER_BOX = {"box_min": (-2846, -9106, -1076), "box_max": (2845, 9343, 2030)}
+ISD_BOX = {"box_min": (-19140, -40940, -7132), "box_max": (19140, 24456, 12570)}
+SSD_BOX = {"box_min": (-52487, -162468, -11526), "box_max": (52487, 165215, 13158)}
 
 
 @pytest.fixture
@@ -282,12 +293,81 @@ def test_a_break_ends_when_its_target_is_gone(craft, foe, ask, caplog) -> None:
     assert f"attack.break_lost object={ME} target={FOE} ticks=100" in caplog.text
 
 
-def test_it_breaks_off_from_a_cruiser_at_its_clearance(craft, foe, ask) -> None:
-    # The retail cruiser model's longest side (test_tactics.py).
-    cruiser = {"genus": 4, "size": 18449}
-    keep = 18449 * 3 // 4 + 0x1000
-    assert phase_of(ask(craft(), foe(y=keep - 1, **cruiser))) == attack.BREAK
-    assert phase_of(ask(craft(), foe(y=keep, **cruiser))) == attack.ATTACK
+def test_it_breaks_off_from_a_cruiser_4096_off_its_hull(craft, foe, ask) -> None:
+    """Its stern, 9,343 behind its position, faces the craft: the break
+    comes 4,096 off it (ruling A12), well inside the 17,932 a clearance
+    from its position kept."""
+    edge = 9343 + 0x1000
+    cruiser = CRUISER | CRUISER_BOX
+    assert phase_of(ask(craft(), foe(y=edge - 1, **cruiser))) == attack.BREAK
+    assert phase_of(ask(craft(), foe(y=edge, **cruiser))) == attack.ATTACK
+
+
+def test_a_break_from_a_cruiser_holds_until_4096_off_its_hull(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    cruiser = CRUISER | CRUISER_BOX
+    first = ask(craft(), foe(y=9343 + 3000, **cruiser), tick=1000)
+    assert phase_of(first) == attack.BREAK
+    near = foe(y=9343 + 0x1000 - 1, **cruiser)
+    held = ask(craft(notebook=first.notebook), near, tick=1016)
+    assert held.notebook == first.notebook
+    caplog.clear()
+    out = ask(craft(notebook=held.notebook), foe(y=9343 + 0x1000, **cruiser), tick=1032)
+    assert phase_of(out) == attack.ATTACK
+    assert (
+        f'attack.break_end object={ME} target={FOE} reason="outside" ticks=32 '
+        "distance=4096 clearance=4096"
+    ) in caplog.text
+
+
+def test_a_blocked_break_heads_away_from_the_hull_and_the_other_craft(
+    craft, foe, ask, caplog
+) -> None:
+    """The cruiser's flank lies 3,155 off to the left, its position behind
+    on the left; the usual break to +x meets the second freighter. Away
+    from the flank and the freighter alike is yaw 5,734; away from the
+    position and the freighter it would be 434, nearly straight on."""
+    caplog.set_level("DEBUG")
+    cruiser = foe(x=-6000, y=-9000, **CRUISER, **CRUISER_BOX)
+    other_at = (3000, -5196, 1500)
+    other = foe(
+        object_index=FOE + 1,
+        **dict(zip("xyz", other_at, strict=True)),
+        genus=FREIGHTER,
+        size=BULK_FREIGHTER_SIZE,
+    )
+    decision = ask(craft(), cruiser, other)
+    assert phase_of(decision) == attack.BREAK
+    away = attack.escape((-3155, 0, 0), other_at)
+    assert decision.actions.steer == Steer(*away, 0)
+    assert away[0] == 5734
+    assert f"blocked={FOE + 1}" in caplog.text
+
+
+def test_a_break_turns_away_from_the_hulls_nearest_corner_not_its_position(
+    craft, foe, ask
+) -> None:
+    """A Star Destroyer at yaw 0x6000, its position 0x9FC off the nose to
+    the left and its nearest corner 2,075 off to the right: the break turns
+    left, away from the corner; away from the position it would turn into
+    it."""
+    destroyer = foe(
+        x=-10000,
+        y=40000,
+        yaw=0x6000,
+        pitch=LEVEL,
+        genus=STARSHIP,
+        size=65396,
+        **ISD_BOX,
+    )
+    near = hull.nearest(craft(), destroyer)
+    assert near.distance == 2075
+    assert geometry.bearing(near.dx, near.dy, near.dz)[0] == 0x1FFE
+    decision = ask(craft(), destroyer)
+    assert phase_of(decision) == attack.BREAK
+    assert decision.actions.steer == Steer(0xC000, LEVEL, 0)
 
 
 @pytest.mark.parametrize(
@@ -325,7 +405,7 @@ def test_a_break_another_freighters_clearance_blocks_heads_away_from_both(
     caplog.set_level("DEBUG")
     decision = ask(me, target, other)
     assert phase_of(decision) == attack.BREAK
-    yaw, pitch = attack.escape(me, target, other)
+    yaw, pitch = attack.escape(tactics.offset(me, target), tactics.offset(me, other))
     assert decision.actions.steer == Steer(yaw, pitch, 0)
     assert pitch > LEVEL
     for contact in (target, other):
@@ -361,7 +441,7 @@ def test_an_escape_that_swings_the_nose_across_either_keeps_the_quarter_turn(
         object_index=FOE + 1, **dict(zip("xyz", other_at, strict=True)), **shape
     )
     me = craft()
-    yaw, _ = attack.escape(me, target, other)
+    yaw, _ = attack.escape(tactics.offset(me, target), tactics.offset(me, other))
     swept = {"target": target_at, "other": other_at}[crossed]
     assert geometry.sweeps(0, yaw, geometry.bearing(*swept)[0])
     caplog.set_level("DEBUG")
@@ -371,24 +451,28 @@ def test_an_escape_that_swings_the_nose_across_either_keeps_the_quarter_turn(
     assert "blocked=65535" in caplog.text
 
 
-def test_escape_points_away_from_both_unless_nearly_in_line(craft, foe) -> None:
-    me = craft()
-    north, south = foe(x=0, y=3000), foe(x=0, y=-3000)
-    assert attack.escape(me, north, south) is None
-    east = foe(x=3000, y=0)
-    yaw, pitch = attack.escape(me, north, east)
+def test_escape_points_away_from_both_unless_nearly_in_line() -> None:
+    north, south = (0, 3000, 0), (0, -3000, 0)
+    assert attack.escape(north, south) is None
+    yaw, pitch = attack.escape(north, (3000, 0, 0))
     assert geometry.angle_between(yaw, 0xA000) <= 4
     assert pitch == LEVEL
-    above = foe(x=0, y=0, z=3000)
-    assert attack.escape(me, north, above)[1] > LEVEL
+    assert attack.escape(north, (0, 0, 3000))[1] > LEVEL
 
 
 @pytest.mark.parametrize("tier", range(3))
-def test_every_tier_fires_on_a_mon_cal_from_outside_its_clearance(
-    craft, foe, ask, tier
+@pytest.mark.parametrize(("box", "size"), [(ISD_BOX, 65396), (SSD_BOX, 327683)])
+def test_every_tier_fires_on_a_star_destroyers_flank_20000_off(
+    craft, foe, ask, tier, box, size
 ) -> None:
-    keep = 53188 * 3 // 4 + 0x1000
-    decision = ask(craft(skill=TIER_SKILL[tier]), foe(y=keep, genus=4, size=53188))
+    """Issue #302: measured from its position, the lowest tier never fired
+    at a Star Destroyer and no tier at a Super Star Destroyer; 20,000 off
+    the flank lies inside even the lowest tier's 24,576."""
+    flank = box["box_max"][0]
+    ship = foe(
+        y=flank + 20000, yaw=0x4000, pitch=LEVEL, genus=STARSHIP, size=size, **box
+    )
+    decision = ask(craft(skill=TIER_SKILL[tier]), ship)
     assert phase_of(decision) == attack.ATTACK
     assert decision.actions.lasers != (HOLD_FIRE, HOLD_FIRE)
 

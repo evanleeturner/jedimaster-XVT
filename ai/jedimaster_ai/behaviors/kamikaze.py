@@ -63,6 +63,7 @@ import struct
 
 from .. import cannons
 from .. import geometry
+from .. import hull
 from .. import notebook
 from .. import tactics
 from .. import warheads
@@ -163,6 +164,7 @@ def _dive(
     target = _kept(targets, memory) or _nearest(view, targets)
     dx, dy, dz = tactics.offset(view, target)
     reach = geometry.distance(dx, dy, dz)
+    near = hull.nearest(view, target).distance
     dived = (memory.target, memory.signature)
     if book.phase != DIVE or (target.object_index, target.object_signature) != dived:
         book = book.in_phase(DIVE, tick)
@@ -190,7 +192,7 @@ def _dive(
     lined_up = (
         off_nose < cannons.AIM_CONE[tier]
         and off_level < cannons.AIM_CONE[tier]
-        and reach < cannons.fire_range(view, target, tier)
+        and near < cannons.fire_range(view, target, tier)
     )
     shot, memory, held = _warhead(view, question, target, memory)
     logger.debug(
@@ -212,7 +214,7 @@ def _dive(
         think_interval=interval,
         target=target.object_index,
         lasers=(
-            cannons.bursts(view, reach, tier) if lined_up else (HOLD_FIRE, HOLD_FIRE)
+            cannons.bursts(view, near, tier) if lined_up else (HOLD_FIRE, HOLD_FIRE)
         ),
         warhead=shot,
     )

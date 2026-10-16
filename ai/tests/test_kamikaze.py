@@ -51,6 +51,9 @@ FREIGHTER = 3
 # clearance it gives: three quarters of it, plus 4,096.
 CRUISER_SIZE = 18449
 CRUISER_KEEP = 18449 * 3 // 4 + 0x1000
+# The same model's box (test_hull.py's source): level at yaw 0, its stern
+# lies 9,343 behind its position.
+CRUISER_BOX = {"box_min": (-2846, -9106, -1076), "box_max": (2845, 9343, 2030)}
 # Tier 2's burst at the target's 0x3000 units: pairs, five shots.
 BURST = CannonGroup(LinkMode.PAIRS, 5)
 HALF = 0x8000
@@ -207,7 +210,13 @@ def test_a_dive_asks_for_attacks_think_interval(craft, foe, ask) -> None:
 def test_it_never_breaks_off_inside_a_bulky_targets_clearance(
     craft, foe, ask, shown
 ) -> None:
-    cruiser = foe(y=CRUISER_KEEP - 1, genus=STARSHIP, size=CRUISER_SIZE)
+    cruiser = foe(
+        y=9343 + 0x1000 - 1,
+        pitch=LEVEL,
+        genus=STARSHIP,
+        size=CRUISER_SIZE,
+        **CRUISER_BOX,
+    )
     me = craft(order_code=OrderCode.ATTACK)
     broke = attack.think(me, shown(me, cruiser))
     assert notebook.decode(broke.notebook).phase == attack.BREAK
@@ -305,6 +314,25 @@ def test_it_fires_inside_40960_units_at_tier_2(craft, foe, ask) -> None:
     within = ask(craft(), foe(y=40959)).actions.lasers
     assert within == (HOLD_FIRE, CannonGroup(LinkMode.ONE_AT_A_TIME, 5))
     assert ask(craft(), foe(y=40960)).actions.lasers == (HOLD_FIRE, HOLD_FIRE)
+
+
+def test_at_a_star_destroyer_it_fires_by_the_distance_to_its_hull(
+    craft, foe, ask
+) -> None:
+    """Its flank, 19,140 off its position, lies 6,000 ahead: inside tier 0's
+    24,576 and the 8,192 that fires all cannons at once; its position,
+    25,140 ahead, lies outside both."""
+    destroyer = foe(
+        y=25140,
+        yaw=0x4000,
+        pitch=LEVEL,
+        genus=STARSHIP,
+        size=65396,
+        box_min=(-19140, -40940, -7132),
+        box_max=(19140, 24456, 12570),
+    )
+    lasers = ask(craft(skill=0), destroyer).actions.lasers
+    assert lasers == (HOLD_FIRE, CannonGroup(LinkMode.ALL, 3))
 
 
 def test_it_fires_a_space_bomb_at_a_starship_as_it_dives(

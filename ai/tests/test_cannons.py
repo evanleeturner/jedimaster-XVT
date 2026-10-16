@@ -111,4 +111,30 @@ def test_the_1997_range_changes_apply(craft, foe) -> None:
     assert cannons.fire_range(me, foe(speed=40, yaw=0x1000), 2) == 0x6000
     assert cannons.fire_range(me, foe(speed=40, yaw=0x4800), 2) == 0x8000
     assert cannons.fire_range(me, foe(speed=40, yaw=0x8000), 2) == 0xA000
-    assert cannons.fire_range(me, foe(genus=4), 2) == 0x10000
+    # 1997 added 0x6000 for a starship, measured from its position; the
+    # range now runs to its hull, without it.
+    assert cannons.fire_range(me, foe(genus=4), 2) == 0xA000
+
+
+@pytest.mark.parametrize(
+    ("genus", "reach", "lined_up"), [(4, 20000, True), (3, 39140, False)]
+)
+def test_a_starships_reach_runs_to_its_hull_any_other_targets_to_its_position(
+    craft, foe, genus, reach, lined_up
+) -> None:
+    """A Star Destroyer's box beam-on, its flank 20,000 ahead and its
+    position 39,140: tier 0 fires at it within 24,576 of the hull; a
+    freighter with the same box is measured from its position."""
+    ship = foe(
+        x=0,
+        y=39140,
+        z=0,
+        yaw=0x4000,
+        pitch=LEVEL,
+        genus=genus,
+        box_min=(-19140, -40940, -7132),
+        box_max=(19140, 24456, 12570),
+    )
+    aim = cannons.aim(craft(skill=0), ship, 0)
+    assert (aim.reach, aim.lined_up) == (reach, lined_up)
+    assert (aim.yaw, aim.off_nose) == (0, 0)

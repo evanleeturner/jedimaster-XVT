@@ -3,13 +3,15 @@
 Purpose:
     A craft with the Attack order picks the nearest craft or static its order names,
     turns toward it, closes, and fires its cannons while the target sits
-    inside its aim cone and firing range. Inside the target's clearance
-    (``tactics.clearance``, which grows with the target's size), with the
-    target ahead, or anywhere when the target is a freighter, starship or
-    platform, it breaks off a quarter turn to the side away from the
-    target, or, when another bulky craft lies in that heading's way
+    inside its aim cone and firing range. Inside the target's keep
+    (``hull.keep``: within KEEP of a starship's or platform's hull, else
+    inside the target's clearance, ``tactics.clearance``, which grows with
+    its size), with the target ahead, or anywhere when the target is a
+    freighter, starship or platform, it breaks off a quarter turn to the
+    side away from the target's nearest part (``hull.nearest``), or, when
+    another bulky craft lies in that heading's way
     (``avoidance.in_the_way``), away from the two of them alike; it holds
-    that heading until it is outside the clearance, and comes round again; with
+    that heading until it is outside the keep, and comes round again; with
     an enemy on its tail that targets it, it weaves (``weave``) until the
     tail is clear or the weave's swerves are flown, steering clear of every
     bulky craft its own target among them, then fights again. Skill
@@ -53,10 +55,10 @@ Phases, the notebook's phase byte:
             starts a weave
     ATTACK  steer at the target, fire when lined up; each entry to ATTACK,
             and each new target, starts an attack run
-    BREAK   inside the target's clearance, ahead, or anywhere for a bulky
-            target: hold a heading a quarter turn away from the target's
-            side, or away from it and the bulky craft in that way, until
-            outside the clearance, for BREAK_LIMIT_TICKS at most
+    BREAK   inside the target's keep, ahead, or anywhere for a bulky
+            target: hold a heading a quarter turn away from the side of the
+            target's nearest part, or away from it and the bulky craft in
+            that way, until outside the keep, for BREAK_LIMIT_TICKS at most
     EVADE   an enemy on the tail: weave
 
 The scratch bytes, little-endian: u16 target index, u16 its signature,
@@ -89,7 +91,7 @@ Invariants:
       line between them (``escape``) or the turn there swings the nose
       across either; then it keeps the quarter turn, and avoidance turns it
       round the other.
-    - Unless it weaves, a craft inside a bulky target's clearance breaks
+    - Unless it weaves, a craft inside a bulky target's keep breaks
       off from it rather than steer at it; a weave steers clear of it, and
       avoidance turns a break clear of it as of any bulky craft.
     - A fighting craft thinks every FIGHT_INTERVAL ticks, whatever its skill.
@@ -105,6 +107,7 @@ import typing as t
 from .. import cannons
 from .. import dice
 from .. import geometry
+from .. import hull
 from .. import notebook
 from .. import tactics
 from .. import warheads
@@ -273,10 +276,10 @@ def fight(
         return _seek(view, question, book, memory, interval, cruising)
 
     aim = cannons.aim(view, target, tier)
-    keep = tactics.clearance(target)
+    keep = hull.keep(target)
     if aim.reach < keep and (aim.off_nose < BREAK_CONE or tactics.is_bulky(target)):
         held_yaw, held_pitch, blocked, state = _break_course(
-            view, question, target, aim.yaw, book.dice
+            view, question, target, hull.nearest(view, target), book.dice
         )
         logger.debug(
             "attack.break object=%d target=%d distance=%d clearance=%d yaw=%d "
@@ -398,22 +401,30 @@ def _warhead(
 
 
 def _break_course(
-    view: CraftView, question: Question, target: Contact, toward: int, state: int
+    view: CraftView,
+    question: Question,
+    target: Contact,
+    near: hull.Nearest,
+    state: int,
 ) -> tuple[int, int, int, int]:
     """Return the yaw and pitch a break from the target holds, the object
     index of the bulky craft that turned it (NO_OBJECT when none did), and
-    the dice state after it: a quarter turn away from the target's side
-    (``break_heading``), or, with a bulky craft in that turn's way, away
-    from the two alike (``escape``), unless the craft lies nearly in line
-    between them or that heading swings its nose across either.
-
-    ``toward`` is the yaw that points at the target.
+    the dice state after it: a quarter turn away from the side of the
+    target's nearest part, ``near`` (``break_heading``), or, with a bulky
+    craft in that turn's way, away from the two alike (``escape``), unless
+    the craft lies nearly in line between them or that heading swings its
+    nose across either.
     """
+    toward = geometry.bearing(near.dx, near.dy, near.dz)[0]
     held_yaw, state = break_heading(view.yaw, toward, state)
     obstacle = avoidance.in_the_way(
         view, question, held_yaw, geometry.LEVEL, target.object_index
     )
-    away = None if obstacle is None else escape(view, target, obstacle.contact)
+    away = (
+        None
+        if obstacle is None
+        else escape((near.dx, near.dy, near.dz), tactics.offset(view, obstacle.contact))
+    )
     if away is None or any(
         geometry.sweeps(view.yaw, away[0], across) for across in (toward, obstacle.yaw)
     ):
@@ -439,14 +450,15 @@ def break_heading(heading: int, toward: int, state: int) -> tuple[int, int]:
     return (heading + turn) % geometry.TURN, state
 
 
-def escape(view: CraftView, first: Contact, second: Contact) -> tuple[int, int] | None:
-    """Return the yaw and pitch that point away from two contacts alike,
-    opposite the sum of the directions to them, each scaled to UNIT; None
-    when that sum is under an eighth of UNIT, the craft nearly in line
-    between them."""
+def escape(
+    first: tuple[int, int, int], second: tuple[int, int, int]
+) -> tuple[int, int] | None:
+    """Return the yaw and pitch that point away from two things alike, each
+    given by its offset from the craft: opposite the sum of the directions
+    to them, each scaled to UNIT; None when that sum is under an eighth of
+    UNIT, the craft nearly in line between them."""
     away = [0, 0, 0]
-    for contact in (first, second):
-        offset = tactics.offset(view, contact)
+    for offset in (first, second):
         reach = max(geometry.distance(*offset), 1)
         for axis in range(3):
             away[axis] -= offset[axis] * UNIT // reach
@@ -459,7 +471,7 @@ def break_holds(
     view: CraftView, question: Question, book: notebook.Notebook, memory: Memory
 ) -> bool:
     """Return whether a break goes on: its target still shown, the craft still
-    inside the target's clearance, for less than BREAK_LIMIT_TICKS."""
+    inside the target's keep (``hull.keep``), for less than BREAK_LIMIT_TICKS."""
     held = question.tick - book.phase_tick
     target = _remembered(question.contacts, memory)
     if target is None:
@@ -470,8 +482,8 @@ def break_holds(
             held,
         )
         return False
-    reach = geometry.distance(*tactics.offset(view, target))
-    keep = tactics.clearance(target)
+    reach = hull.nearest(view, target).distance
+    keep = hull.keep(target)
     if reach < keep and held < BREAK_LIMIT_TICKS:
         return True
     logger.debug(

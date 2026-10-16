@@ -3,12 +3,13 @@
 Purpose:
     The fire control of a craft's cannon groups in a dogfight, by the 1997
     pilot's numbers: the aim cone, the firing range and the burst by skill
-    tier, the range's changes for a fast target and a big one
-    (``fire_range``), whether the cannons are lined up on a target
-    (``aim``), and, by range, whether all cannons fire together, in pairs
-    or one at a time (``bursts``). Its ion cannons hold, as in
-    1997: only the Disable order fires them, at its target, where every
-    other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
+    tier, the range's changes for a fast target (``fire_range``), whether
+    the cannons are lined up on a target (``aim``), and, by range, whether
+    all cannons fire together, in pairs or one at a time (``bursts``). The
+    range runs to a starship's or platform's hull, to any other target's
+    position (``hull.nearest``, rulings A10 and A11). Its ion cannons hold,
+    as in 1997: only the Disable order fires them, at its target, where
+    every other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
     ``behaviors.kamikaze`` fire by these rules.
 
 Invariants:
@@ -23,6 +24,7 @@ from __future__ import annotations
 import dataclasses
 
 from . import geometry
+from . import hull
 from . import tactics
 from .world import CANNON_GROUPS
 from .world import CannonGroup
@@ -38,13 +40,14 @@ FIRE_RANGE = (0x6000, 0x8000, 0xA000)
 BURST = (3, 4, 5)
 
 # The 1997 pilot's range changes: a fast target flying the same way, or
-# across, is harder to hit; a starship or platform is easier.
+# across, is harder to hit. 1997 also added 0x6000 for a starship or
+# platform, measured from its position; the range now runs to the hull
+# instead, without it (ruling A11).
 FAST_SPEED = 25
 SAME_HEADING = 0x2000
 SAME_HEADING_CUT = 0x4000
 OBLIQUE_HEADING = 0x5000
 OBLIQUE_CUT = 0x2000
-LARGE_TARGET_BONUS = 0x6000
 # Closer than these, all cannons fire together, then in pairs; farther, one
 # at a time.
 ALL_CANNONS_RANGE = 0x2000
@@ -61,6 +64,7 @@ class Aim:
     """Where a target lies from a craft, and whether its cannons are lined
     up on it."""
 
+    # How far the target is: from its hull for a starship or platform.
     reach: int
     yaw: int
     pitch: int
@@ -70,12 +74,14 @@ class Aim:
 
 
 def aim(view: CraftView, target: Contact, tier: int) -> Aim:
-    """Return how far the target lies, the yaw and pitch that point at it,
-    how far that yaw lies off the craft's nose, and whether the cannons are
-    lined up: the target inside the aim cone in yaw and in pitch alike, and
-    nearer than the firing range (``fire_range``)."""
+    """Return how far the target lies (``hull.nearest``), the yaw and pitch
+    that point at its position, how far that yaw lies off the craft's nose,
+    and whether the cannons are lined up: the target inside the aim cone in
+    yaw and in pitch alike, and nearer than the firing range
+    (``fire_range``). A bolt aimed at a big ship's position meets its hull
+    first."""
     dx, dy, dz = tactics.offset(view, target)
-    reach = geometry.distance(dx, dy, dz)
+    reach = hull.nearest(view, target).distance
     yaw, pitch = geometry.bearing(dx, dy, dz)
     off_nose = geometry.angle_between(yaw, view.yaw)
     off_level = geometry.angle_between(pitch, view.pitch)
@@ -88,7 +94,8 @@ def aim(view: CraftView, target: Contact, tier: int) -> Aim:
 
 
 def fire_range(view: CraftView, target: Contact, tier: int) -> int:
-    """Return how far the craft fires at a target, by the 1997 pilot's rules."""
+    """Return how far from a target's nearest part (``hull.nearest``) the
+    craft fires, by the 1997 pilot's rules."""
     reach = FIRE_RANGE[tier]
     if target.speed > FAST_SPEED:
         apart = geometry.angle_between(view.yaw, target.yaw)
@@ -96,8 +103,6 @@ def fire_range(view: CraftView, target: Contact, tier: int) -> int:
             reach -= SAME_HEADING_CUT
         elif apart < OBLIQUE_HEADING:
             reach -= OBLIQUE_CUT
-    if tactics.is_large(target):
-        reach += LARGE_TARGET_BONUS
     return reach
 
 
