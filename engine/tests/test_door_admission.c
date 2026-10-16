@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "test_assert.h"
+#include "xvt/net/net.h"
 #include "xvt_runtime/runtime/door_admission.h"
 
 /* The host's description of the made-up melee; seed is its seed. */
@@ -146,11 +147,11 @@ static void check_packets(void)
 {
 	int32_t packet[XVT_DOOR_PACKET_WORDS];
 	xvt_door_make_ask(packet, 0xfedcba98u);
-	XVT_ASSERT_INT_EQ(packet[0], 200);
+	XVT_ASSERT_INT_EQ(packet[0], 67);
 	int protocol = 0;
 	uint32_t setup = 0;
 	XVT_ASSERT_INT_EQ(xvt_door_read_ask(packet, 12, &protocol, &setup), 1);
-	XVT_ASSERT_INT_EQ(protocol, 2);
+	XVT_ASSERT_INT_EQ(protocol, 3);
 	XVT_ASSERT_INT_EQ(setup, 0xfedcba98u);
 	/* A packet one word short or long, or of the other type, is no
 	 * asking. */
@@ -163,7 +164,7 @@ static void check_packets(void)
 	XVT_ASSERT_INT_EQ(verdict, 99);
 
 	xvt_door_make_answer(packet, XVT_DOOR_ADMIT, 2);
-	XVT_ASSERT_INT_EQ(packet[0], 201);
+	XVT_ASSERT_INT_EQ(packet[0], 78);
 	XVT_ASSERT_INT_EQ(xvt_door_read_answer(packet, 12, &verdict, &seat), 1);
 	XVT_ASSERT_INT_EQ(verdict, XVT_DOOR_ADMIT);
 	XVT_ASSERT_INT_EQ(seat, 2);
@@ -174,6 +175,95 @@ static void check_packets(void)
 	XVT_ASSERT_INT_EQ(seat, -1);
 	XVT_ASSERT_INT_EQ(xvt_door_read_answer(packet, 13, &verdict, &seat), 0);
 	XVT_ASSERT_INT_EQ(xvt_door_read_ask(packet, 12, &protocol, &setup), 0);
+}
+
+/* 1 for a door packet's type, 0 for a type the game's own packets use past
+ * the resync types (xvt/net/net.h). Its cases are the check that each door
+ * type is a number of its own: a switch takes a number once, so this does
+ * not compile while a door type repeats one of the game's. */
+static int is_door_type(int type)
+{
+	switch (type) {
+	case XVT_DOOR_PACKET_ASK:
+	case XVT_DOOR_PACKET_ANSWER:
+	case XVT_DOOR_PACKET_START:
+		return 1;
+	case NET_PACKET_PROBE_REQUEST:
+	case NET_PACKET_STATE:
+	case NET_PACKET_JOIN_REQUEST:
+	case NET_PACKET_GAME_FULL:
+	case NET_PACKET_PLAYER_ADMITTED:
+	case NET_PACKET_HOST_CANCELLED:
+	case NET_PACKET_PLAYER_LEFT:
+	case NET_PACKET_TEAM_ASSIGNMENTS_READY:
+	case NET_PACKET_FRONTEND_MISSION_START:
+	case NET_PACKET_FRONTEND_OPCODE_74:
+	case NET_PACKET_NEXT_TOURNAMENT_MISSION:
+	case NET_PACKET_NEXT_BATTLE_MISSION:
+	case NET_PACKET_CHAT:
+	case NET_PACKET_TEAM_ASSIGNMENT:
+	case NET_PACKET_FLIGHT_ASSIGNMENT_NOTIFY:
+	case NET_PACKET_PLAYER_READY:
+	case NET_PACKET_PLAYER_UNREADY:
+	case NET_PACKET_RETURN_TO_SETUP:
+	case NET_PACKET_CLEAR_TEAM_ASSIGNMENTS:
+	case NET_PACKET_TEAM_ASSIGNMENTS:
+	case NET_PACKET_CLEAR_FLIGHT_ASSIGNMENTS:
+	case NET_PACKET_FLIGHT_ASSIGNMENTS:
+	case NET_PACKET_MISSION_CHOICE:
+	case NET_PACKET_GAME_OPTIONS:
+	case NET_PACKET_REPLAY_MISSION:
+	case NET_PACKET_PLAYER_KICKED:
+	case NET_PACKET_SESSION_CANCELLED:
+	case NET_PACKET_VERSION_MISMATCH:
+	case NET_PACKET_PASSWORD_REQUIRED:
+	case NET_PACKET_ROSTER_LOCKED:
+	case NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS:
+	case NET_PACKET_CRAFT_LOADOUT:
+	case NET_PACKET_BRIEFING_ENTERED:
+	case NET_PACKET_BRIEFING_COUNTDOWN:
+	case NET_PACKET_ASSIGNMENT_COUNTDOWN:
+	case NET_PACKET_RETURN_TO_MISSION_SELECTION:
+	case NET_PACKET_RELEASE_TEAM_RESERVATION:
+	case NET_PACKET_TEAM_RESERVATION:
+	case NET_PACKET_PLAYER_UNAVAILABLE:
+	case NET_PACKET_RELEASE_FLIGHT_RESERVATION:
+	case NET_PACKET_FLIGHT_RESERVATION:
+	case NET_PACKET_CHAT_SYNC_REQUEST:
+	case NET_PACKET_CHAT_SYNC_CHUNK:
+	case NET_PACKET_FLIGHT_ASSIGNMENT:
+	case NET_PACKET_LOBBY_SELECTION:
+	case NET_PACKET_FLIGHT_ASSIGNMENTS_READY:
+	case NET_PACKET_LOADOUT_ROSTER:
+	case NET_PACKET_PROBE_RESPONSE:
+	case NET_PACKET_READY_ROSTER:
+	case NET_PACKET_PILOT_RATING:
+	case NET_PACKET_REPLAY_CURRENT_MISSION:
+	case NET_PACKET_BATTLE_CONTINUATION:
+	case NET_PACKET_BATTLE_PROGRESS:
+	case NET_PACKET_NEXT_CAMPAIGN_MISSION:
+	case NET_PACKET_REPLAY_CAMPAIGN_MISSION:
+	case NET_PACKET_CAMPAIGN_CONTINUATION:
+	case NET_PACKET_MOVIE_SYNC:
+	case NET_PACKET_SUBMIT_MISSION_CHOICE:
+	default:
+		return 0;
+	}
+}
+
+/* The door's packets reach the other game with their own types: each type is
+ * past the resync types, which travel without a length word, under 128,
+ * since the wire keeps a type's low 7 bits, and a number of its own. */
+static void check_packet_types(void)
+{
+	const int types[] = {XVT_DOOR_PACKET_ASK, XVT_DOOR_PACKET_ANSWER,
+			     XVT_DOOR_PACKET_START};
+	for (size_t i = 0; i < sizeof(types) / sizeof(types[0]); ++i) {
+		XVT_ASSERT_TRUE(types[i] > NET_PACKET_RESYNC_CHUNK);
+		XVT_ASSERT_TRUE(types[i] < 128);
+		XVT_ASSERT_INT_EQ(is_door_type(types[i]), 1);
+	}
+	XVT_ASSERT_INT_EQ(is_door_type(NET_PACKET_FRONTEND_OPCODE_74), 0);
 }
 
 /* A game that left frees its seat for another game of that pilot; the
@@ -219,7 +309,7 @@ static void check_start_packet(void)
 	xvt_door_make_start(packet, &start);
 	const uint32_t size = sizeof(packet);
 	XVT_ASSERT_INT_EQ(size, 72);
-	XVT_ASSERT_INT_EQ(packet[0], 202);
+	XVT_ASSERT_INT_EQ(packet[0], 93);
 	XVT_ASSERT_INT_EQ(packet[1], 3);
 	XVT_ASSERT_INT_EQ(packet[2], 0x10);
 	XVT_ASSERT_INT_EQ(packet[3], 4);
@@ -345,6 +435,7 @@ int main(void)
 	check_refusals();
 	check_sentences();
 	check_packets();
+	check_packet_types();
 	check_seat_free();
 	check_start_packet();
 	check_find_room();

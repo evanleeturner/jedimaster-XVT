@@ -60,6 +60,7 @@
 #include "xvt/net/net_system_messages.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
+#include "xvt_runtime/runtime/door_admission.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/timing/host_clock.h"
 
@@ -4599,6 +4600,44 @@ static void check_next_app_packet(void)
 	xvt_test_close_display();
 }
 
+/* The network door's asking, answer and start cross the wire whole: each,
+ * made by the door and sent to player 30 as the door sends it, comes out of
+ * the other game's pump and next-packet call with its sender, its size and
+ * every word, its type among them. */
+static void check_door_packets_cross_the_wire(void)
+{
+	int32_t ask[XVT_DOOR_PACKET_WORDS];
+	int32_t answer[XVT_DOOR_PACKET_WORDS];
+	int32_t start_packet[XVT_DOOR_START_WORDS];
+	struct xvt_door_start start = {2, {30, 40}, {5, 9}};
+	xvt_door_make_ask(ask, 0xfedcba98u);
+	xvt_door_make_answer(answer, XVT_DOOR_ADMIT, 1);
+	xvt_door_make_start(start_packet, &start);
+	const struct {
+		const int32_t *packet;
+		uint32_t size;
+	} rows[] = {{ask, sizeof ask},
+		    {answer, sizeof answer},
+		    {start_packet, sizeof start_packet}};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		fresh();
+		open_session();
+		XVT_ASSERT_INT_EQ(net_send_packet_and_flush(
+					  30, rows[row].packet, rows[row].size),
+				  1);
+		replay_send(0, 30);
+		net_pump_incoming_packets();
+		DPID sender = 0;
+		uint32_t size = 0;
+		const int *got = net_get_next_app_packet(&sender, &size);
+		XVT_ASSERT_TRUE(got != NULL);
+		XVT_ASSERT_INT_EQ(sender, 30);
+		XVT_ASSERT_INT_EQ(size, rows[row].size);
+		XVT_ASSERT_INT_EQ(got[0], rows[row].packet[0]);
+		XVT_ASSERT_INT_EQ(memcmp(got, rows[row].packet, size), 0);
+	}
+}
+
 /* The flight session's side of the hand-over, a copy of what the lobby
  * kept or gives back. */
 static struct net_queued_packet g_flight_queue[1024];
@@ -5488,6 +5527,7 @@ int main(int argc, char **argv)
 	check_shutdown_session();
 	check_polls();
 	check_next_app_packet();
+	check_door_packets_cross_the_wire();
 	check_hand_over_to_flight();
 	check_hand_back_from_flight();
 	check_ready_logs();

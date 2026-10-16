@@ -20,14 +20,17 @@ extern "C" {
  * receives or touches the game's state. */
 
 enum {
-	/* The door's packet types, past the 1997 lobby's last (125) and in
-	 * the range the network layer treats as lobby packets. */
-	XVT_DOOR_PACKET_ASK = 200,
-	XVT_DOOR_PACKET_ANSWER = 201,
-	XVT_DOOR_PACKET_START = 202,
+	/* The door's packet types: numbers no packet of the game uses, in
+	 * the range the network layer treats as lobby packets and past the
+	 * resync types (60 to 63), which travel without a length word. The
+	 * wire keeps a type's low 7 bits, so each is under 128. */
+	XVT_DOOR_PACKET_ASK = 67,
+	XVT_DOOR_PACKET_ANSWER = 78,
+	XVT_DOOR_PACKET_START = 93,
 	/* The version of the door's packets; a joiner of another is refused.
-	 * Version 1 had no start packet. */
-	XVT_DOOR_PROTOCOL = 2,
+	 * Version 1 had no start packet; version 2 numbered its packets 200
+	 * to 202, which reached the other game as 72 to 74. */
+	XVT_DOOR_PROTOCOL = 3,
 	/* The asking and the answer are three 32-bit words. */
 	XVT_DOOR_PACKET_WORDS = 3,
 	/* The start is its type, the seat count, and a player id and a rating
