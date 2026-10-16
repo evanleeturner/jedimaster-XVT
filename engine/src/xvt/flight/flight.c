@@ -12,6 +12,7 @@
 #include "xvt/audio/fsfx.h"
 #include "xvt/audio/music_cd.h"
 #include "xvt/audio/sound.h"
+#include "xvt/flight/ai_boarded.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
@@ -5264,6 +5265,7 @@ void flight_process_player_actions(int player_idx)
 						g_flight_sim_side_effects_suppressed);
 				}
 				g_cur_craft->ai_flight.mission_aborted_flag = 1;
+				ai_boarded_release((uint16_t)target_index);
 				XVT_LOG_DEBUG(
 					"flight.craft_ordered slot=%d command=\"home\" target=%d activity=%d predicted=%d",
 					player_idx, target_index,

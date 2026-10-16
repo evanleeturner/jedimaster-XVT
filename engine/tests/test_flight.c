@@ -3639,6 +3639,30 @@ static void check_order_home(void)
 	}
 }
 
+/* The pilot's "go home" command releases a switched-off Await Boarding craft
+ * once, as the 1997 abort order restored it, and leaves a Disabled one off. */
+static void check_order_home_releases_await_boarding(void)
+{
+	static const int orders[] = {MISSION_ORDER_AWAIT_BOARDING,
+				     MISSION_ORDER_DISABLED};
+	for (size_t row = 0; row < 2; ++row) {
+		order_world(&g_home_cases[0]);
+		g_mission_flight_groups[0].fg.orders[0].order =
+			(uint8_t)orders[row];
+		g_test_craft[WING].system_flags = 0x03FF;
+		g_test_craft[WING].working_subsystems =
+			CRAFT_SUBSYSTEM_FLAG_COMMUNICATIONS;
+		scene_open();
+		press(PILOT, FLIGHT_KEY_SHIFT_H);
+		XVT_ASSERT_INT_EQ(
+			g_test_craft[WING].ai_flight.mission_aborted_flag, 1);
+		XVT_ASSERT_INT_EQ(
+			g_test_craft[WING].working_subsystems,
+			row == 0 ? 0x03FF
+				 : CRAFT_SUBSYSTEM_FLAG_COMMUNICATIONS);
+	}
+}
+
 static const char *const k_go_waiting[] = {
 	/* recorded go_waiting */
 	"flight.action_key slot=0 key=71 object=2 map=0 hyper=0 request=0 predicted=0",
@@ -9421,6 +9445,7 @@ int main(int argc, char **argv)
 	check_order_ignore();
 	check_order_wait();
 	check_order_home();
+	check_order_home_releases_await_boarding();
 	check_order_go();
 	check_order_resupply();
 	check_order_wait_findings();

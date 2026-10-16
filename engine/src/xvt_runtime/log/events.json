@@ -13,10 +13,25 @@
       "fields": ["tick", "craft", "result", "answer_bytes", "predicted"],
       "text": "At tick {tick} the pilot program's {answer_bytes}-byte answer about {craft} craft was refused whole with ai_wire_result {result}; no craft took any of it ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.boarded_released": {
+      "level": "I",
+      "fields": ["object", "fg", "tick"],
+      "text": "Craft {object} of flight group {fg} on Await Boarding was released by its abort or departure mark and has its systems back, at tick {tick}"
+    },
+    "ai.boarded_restored": {
+      "level": "I",
+      "fields": ["object", "fg", "order", "boarded", "needed", "tick"],
+      "text": "Craft {object} of flight group {fg} on order {order} was boarded {boarded} times of the {needed} its order needs and has its systems back, at tick {tick}"
+    },
     "ai.boarding_abandoned": {
       "level": "D",
       "fields": ["object", "target", "phase", "working", "predicted"],
       "text": "Craft {object} abandoned its dock with object {target} in phase {phase}: the target is gone or changed, the craft has no working subsystem (mask {working}), or a player's target moves; the dock ends with no progress and the craft forgets its target ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.boarding_counted": {
+      "level": "D",
+      "fields": ["object", "order", "slot", "progress", "boarded", "needed", "state", "predicted"],
+      "text": "Craft {object} on order {order} counted a boarding done to it: slot {slot} progress {progress}, boarded {boarded} of {needed}, boarding state {state} ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.boarding_done": {
       "level": "D",
@@ -277,6 +292,11 @@
       "level": "D",
       "fields": ["object", "target", "slot", "reloaded", "timer", "predicted"],
       "text": "Craft {object} reloaded and repaired player {slot}'s craft {target} by a step: reloaded is {reloaded}, 1 when anything changed, which keeps the dock {timer} ticks more ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.self_disabled": {
+      "level": "D",
+      "fields": ["object", "working", "predicted"],
+      "text": "Craft {object} on Disabled or Await Boarding switched its systems off, which were {working} ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.target_sabotaged": {
       "level": "D",

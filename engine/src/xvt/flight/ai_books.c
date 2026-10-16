@@ -15,6 +15,7 @@
 
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
+#include "xvt/flight/ai_boarded.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/ai_dropoff.h"
 #include "xvt/flight/craft.h"
@@ -268,11 +269,15 @@ static void books_leave(uint16_t object_index, uint16_t outcome, int message)
 }
 
 /* The books the 1997 leader plan of order kept, BOOKS_KEEPS_ bits, read
- * from the retail plan file: none for Hold Steady and its copies, Go Home,
- * SS Go Home, Self Destruct and the null order; departure and abort for
- * Rendezvous; the skip test alone for Disabled and Await Boarding; departure
- * and the skip test for Kamikaze; all three for every other order. A code no
- * order has keeps none. The followers' plans kept the same abort. */
+ * from Balance of Power's plan file (BalanceOfPower/paiplan.plo): none for
+ * Hold Steady and its copies, Go Home, SS Go Home, Self Destruct and the null
+ * order; departure and abort for Rendezvous; departure and abort for Await
+ * Boarding too, since its waitforboardpln adds ABORTATK to flyhomepln and
+ * STOPGOHOME to flyhomeevadepln (every retail Await Boarding slot is in
+ * Balance of Power); the skip test alone for Disabled, whose disabledpln is
+ * the same in both files; departure and the skip test for Kamikaze; all three
+ * for every other order. A code no order has keeps none. The followers' plans
+ * kept the same abort. */
 static unsigned int books_kept_by_order(uint8_t order)
 {
 	switch (order) {
@@ -290,8 +295,10 @@ static unsigned int books_kept_by_order(uint8_t order)
 		return 0;
 	case MISSION_ORDER_RENDEZVOUS:
 		return BOOKS_KEEPS_DEPARTURE | BOOKS_KEEPS_ABORT;
-	case MISSION_ORDER_DISABLED:
 	case MISSION_ORDER_AWAIT_BOARDING:
+		return BOOKS_KEEPS_DEPARTURE | BOOKS_KEEPS_ABORT |
+		       BOOKS_KEEPS_SKIP;
+	case MISSION_ORDER_DISABLED:
 		return BOOKS_KEEPS_SKIP;
 	case MISSION_ORDER_KAMIKAZE:
 		return BOOKS_KEEPS_DEPARTURE | BOOKS_KEEPS_SKIP;
@@ -699,6 +706,7 @@ static void books_keep_departure(uint16_t object_index)
 		return;
 	}
 	flight->depart_timer_flag = BOOKS_DEPARTURE_DUE;
+	ai_boarded_release(object_index);
 	books_announce_withdrawal(object_index);
 	if (g_flight_sim_side_effects_suppressed == 0) {
 		XVT_LOG_INFO("ai.withdrew object=%d fg=%d tick=%d",
@@ -734,6 +742,9 @@ static void books_follow_leader(uint16_t object_index)
 				    FLIGHT_GROUP_OUTCOME_NOT_DEPARTED);
 		}
 		flight->depart_timer_flag = departing;
+		if (departing == BOOKS_DEPARTURE_DUE) {
+			ai_boarded_release(object_index);
+		}
 		flight->depart_clock_hours =
 			leader->ai_flight.depart_clock_hours;
 		flight->depart_clock_minutes =
@@ -909,6 +920,7 @@ static void books_keep_abort(uint16_t object_index)
 		(unsigned)craft->hull_max, special, (unsigned)reason,
 		g_flight_sim_side_effects_suppressed);
 	craft->ai_flight.mission_aborted_flag = 1;
+	ai_boarded_release(object_index);
 }
 
 /* Whether the craft may skip to order 4: it leads or flies alone, flies its

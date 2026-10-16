@@ -358,6 +358,16 @@ add_test(NAME ai_brain COMMAND test_ai_brain)
 # src/xvt/flight/ai_books.c.
 xvt_add_engine_test(test_ai_books test_ai_books.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_books.c")
 add_test(NAME ai_books COMMAND test_ai_books)
+# The boarded side of a boarding: the switch-off, the count of boardings, the restore and the release of an
+# Await Boarding craft: src/xvt/flight/ai_boarded.c.
+# The "has been repaired" message it gives cannot be read in a test, so the linker hands the test its own
+# msg_emit_craft_message, which counts it (not under MSVC).
+if(NOT MSVC)
+    xvt_add_engine_test(test_ai_boarded test_ai_boarded.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_boarded.c")
+    target_link_options(test_ai_boarded PRIVATE
+        "LINKER:--wrap=msg_emit_craft_message")
+    add_test(NAME ai_boarded COMMAND test_ai_boarded)
+endif()
 # The dock of a computer craft on a boarding order: align, transfer by order, separate and abort:
 # src/xvt/flight/ai_boarding.c.
 # The cockpit redraw it makes for a Give to the local player draws a screen no test has, and the voices,

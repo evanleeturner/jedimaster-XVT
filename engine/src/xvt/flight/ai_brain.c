@@ -13,6 +13,7 @@
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
+#include "xvt/flight/ai_boarded.h"
 #include "xvt/flight/ai_boarding.h"
 #include "xvt/flight/ai_books.h"
 #include "xvt/flight/ai_commands.h"
@@ -1041,6 +1042,7 @@ void ai_brain_think_due_craft(void)
 			continue;
 		}
 		ai_boarding_step(object_index);
+		ai_boarded_step(object_index);
 		ai_dropoff_step(object_index);
 		ai_brain_view_craft(object_index, &batch,
 				    &batch.views[batch.count]);

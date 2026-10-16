@@ -607,7 +607,8 @@ static unsigned int books_kept_for(uint8_t order, int aborting)
 
 /* The books each order's 1997 leader plan kept, read from the retail plan
  * file: Hold Steady and Go Home none; Attack all three; Rendezvous departure
- * and abort; Disabled the skip test alone; Kamikaze departure and the skip
+ * and abort; Await Boarding all three, as Balance of Power's plan file has it;
+ * Disabled the skip test alone; Kamikaze departure and the skip
  * test, never an abort; a code no order has none. */
 static void check_books_kept_by_order(void)
 {
@@ -623,6 +624,8 @@ static void check_books_kept_by_order(void)
 		 AI_WIRE_BOOKS_ABORTED},
 		{MISSION_ORDER_RENDEZVOUS, BOOKS_STARTED,
 		 AI_WIRE_BOOKS_ABORTED},
+		{MISSION_ORDER_AWAIT_BOARDING,
+		 BOOKS_STARTED | AI_WIRE_BOOKS_SKIP_DUE, AI_WIRE_BOOKS_ABORTED},
 		{MISSION_ORDER_DISABLED, AI_WIRE_BOOKS_SKIP_DUE,
 		 AI_WIRE_BOOKS_SKIP_DUE},
 		{MISSION_ORDER_KAMIKAZE, BOOKS_STARTED | AI_WIRE_BOOKS_SKIP_DUE,
