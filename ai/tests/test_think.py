@@ -295,6 +295,26 @@ def test_a_craft_waiting_to_be_boarded_stops_and_keeps_its_line(view) -> None:
     assert (said.throttle, said.activity) == (0, Activity.HOLDING_STATION)
 
 
+@pytest.mark.parametrize(
+    ("order", "line"),
+    [
+        (OrderCode.KAMIKAZE, Activity.KAMIKAZE_ATTACK),
+        (OrderCode.SELF_DESTRUCT, Activity.SELF_DESTRUCTING),
+    ],
+)
+def test_a_craft_given_a_new_order_stops_showing_its_old_line(
+    view, order, line
+) -> None:
+    """A craft that still shows its Kamikaze or Self Destruct line under a new
+    order whose behavior names no activity shows none; one still on that
+    order keeps it."""
+    moved_on = view(order_code=OrderCode.HOLD_STEADY, activity=line)
+    said = answered(Question(1, (moved_on,))).craft[0].actions
+    assert said.activity == Activity.NONE
+    kept = view(order_code=order, activity=line)
+    assert answered(Question(1, (kept,))).craft[0].actions.activity == line
+
+
 def test_debug_records_the_maneuver_timer(view, caplog) -> None:
     caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
     think(Question(1000, (view(maneuver_timer=1180),)))
