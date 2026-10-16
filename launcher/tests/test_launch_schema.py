@@ -80,8 +80,80 @@ SITH_LORD = {
     "lord_lost": 1,
     "why": "",
 }
-GOOD_RESULT = {**GOOD_RESULT_V2, "schema_version": 3, "sith": SITH_NONE}
+GOOD_RESULT_V3 = {**GOOD_RESULT_V2, "schema_version": 3, "sith": SITH_NONE}
 """A result of version 3: the same, with the closed ``sith`` block."""
+PLAYER = {
+    "entry": 0,
+    "slot": 0,
+    "name": "Kestrel",
+    "team": 0,
+    "flight_group": 0,
+    "rating": 14,
+    "score": 101,
+    "kills": 102,
+    "shared": 103,
+    "assists": 104,
+    "losses": 105,
+    "shots": 106,
+    "hits": 107,
+    "warheads": 108,
+    "warhead_hits": 109,
+    "has_left": False,
+}
+"""A player of a version 4 result; the numbers are made up."""
+NO_PLACE = {
+    **PLAYER,
+    "entry": 5,
+    "slot": -1,
+    "name": "Nightw1ng_42",
+    "team": -1,
+    "shots": 0,
+    "hits": 0,
+    "warheads": 0,
+    "warhead_hits": 0,
+    "has_left": True,
+}
+"""A player no place in the flight held, with the longest name."""
+TEAM = {
+    "team": 0,
+    "completed": True,
+    "score": 2601,
+    "kills": 31,
+    "shared": 7,
+    "losses": 3,
+    "seconds": 645,
+}
+DETAIL = {
+    "shots": 811,
+    "hits": 812,
+    "warheads": 813,
+    "warhead_hits": 814,
+    "losses": 815,
+    "losses_to_collisions": 816,
+    "losses_to_starships": 817,
+    "losses_to_mines": 818,
+    "friendlies_killed": 819,
+    "special_inspected": 820,
+    "by_craft": [{"craft_type": 99, "kills": 21, "shared": 0, "assists": 0}],
+    "on_pilot_ranks": [{"rank": 24, "kills": 31, "shared": 0, "assists": 0}],
+    "on_ai_ranks": [{"rank": 5, "kills": 41, "shared": 0, "assists": 0}],
+    "killed_by_pilot_ranks": [{"rank": 0, "times": 51}],
+    "killed_by_ai_ranks": [{"rank": 5, "times": 52}],
+    "on_players": [{"entry": 7, "kills": 61, "shared": 0}],
+    "from_players": [{"entry": 0, "kills": 63, "shared": 0}],
+    "on_flight_groups": [{"flight_group": 47, "kills": 0, "shared": 72}],
+    "from_flight_groups": [{"flight_group": 0, "kills": 73, "shared": 0}],
+}
+"""The local pilot's tables, each list holding its last or first row."""
+GOOD_RESULT = {
+    **GOOD_RESULT_V3,
+    "schema_version": 4,
+    "local_entry": 5,
+    "players": [PLAYER, NO_PLACE],
+    "teams": [TEAM, {**TEAM, "team": 7, "completed": False}],
+    "detail": DETAIL,
+}
+"""A result of version 4: the same, with every player and team and the pilot's tables."""
 
 
 def reference(schema_name: str) -> jsonschema.Draft202012Validator:
@@ -211,6 +283,45 @@ BAD_RESULTS = [
     changed(GOOD_RESULT, sith={**SITH_LORD, "apprentices_lost": -1}),
     changed(GOOD_RESULT, sith={**SITH_LORD, "flight_group": -2}),
     changed(GOOD_RESULT, sith={**SITH_LORD, "flight_name": 7}),
+    changed(GOOD_RESULT, schema_version=3),
+    GOOD_RESULT_V3,
+    changed(GOOD_RESULT, local_entry=8),
+    changed(GOOD_RESULT, local_entry=-2),
+    changed(GOOD_RESULT, players=None),
+    changed(GOOD_RESULT, players=PLAYER),
+    changed(GOOD_RESULT, players=[PLAYER] * 9),
+    changed(GOOD_RESULT, players=[{**PLAYER, "entry": 8}]),
+    changed(GOOD_RESULT, players=[{**PLAYER, "slot": -2}]),
+    changed(GOOD_RESULT, players=[{**PLAYER, "name": "Nightw1ng_423"}]),
+    changed(GOOD_RESULT, players=[{**PLAYER, "has_left": 0}]),
+    changed(GOOD_RESULT, players=[{**PLAYER, "kills": 1.5}]),
+    changed(GOOD_RESULT, players=[{**PLAYER, "extra": 1}]),
+    changed(GOOD_RESULT, players=[{k: v for k, v in PLAYER.items() if k != "hits"}]),
+    changed(GOOD_RESULT, teams=[TEAM] * 9),
+    changed(GOOD_RESULT, teams=[{**TEAM, "team": 8}]),
+    changed(GOOD_RESULT, teams=[{**TEAM, "completed": 1}]),
+    changed(GOOD_RESULT, detail=None),
+    changed(GOOD_RESULT, detail={**DETAIL, "extra": 1}),
+    changed(GOOD_RESULT, detail={k: v for k, v in DETAIL.items() if k != "by_craft"}),
+    changed(
+        GOOD_RESULT,
+        detail={
+            **DETAIL,
+            "by_craft": [{"craft_type": 100, "kills": 1, "shared": 0, "assists": 0}],
+        },
+    ),
+    changed(
+        GOOD_RESULT,
+        detail={
+            **DETAIL,
+            "on_ai_ranks": [{"rank": 6, "kills": 1, "shared": 0, "assists": 0}],
+        },
+    ),
+    changed(GOOD_RESULT, detail={**DETAIL, "killed_by_ai_ranks": [{"rank": 0}]}),
+    changed(
+        GOOD_RESULT,
+        detail={**DETAIL, "on_players": [{"entry": 0, "kills": 1, "shared": 0}] * 9},
+    ),
     [],
 ]
 
@@ -229,14 +340,43 @@ def test_good_results_fit_both_validators():
         assert valid(doc, result_schema())
 
 
-def test_both_result_versions_read_and_each_refuses_the_other_s_shape():
+def test_every_result_version_reads_and_each_refuses_the_others_shapes():
     assert valid(GOOD_RESULT_V2, result_schema(2))
-    assert valid(changed(GOOD_RESULT, sith=SITH_LORD), result_schema(3))
-    assert valid(changed(GOOD_RESULT, sith=SITH_LORD), result_schema())
+    assert valid(changed(GOOD_RESULT_V3, sith=SITH_LORD), result_schema(3))
+    assert valid(changed(GOOD_RESULT, sith=SITH_LORD), result_schema(4))
+    assert valid(GOOD_RESULT, result_schema())
     assert not valid(GOOD_RESULT_V2, result_schema(3))
-    assert not valid(GOOD_RESULT, result_schema(2))
+    assert not valid(GOOD_RESULT_V3, result_schema(2))
+    assert not valid(GOOD_RESULT_V3, result_schema(4))
+    assert not valid(GOOD_RESULT, result_schema(3))
     with pytest.raises(ValueError, match="no result schema"):
-        result_schema(4)
+        result_schema(5)
+
+
+def test_a_battle_not_flown_has_empty_lists():
+    doc = changed(
+        GOOD_RESULT,
+        status="refused",
+        exit_code=3,
+        why="The pilot is missing.",
+        local_entry=-1,
+        players=[],
+        teams=[],
+        detail={
+            **{name: 0 for name in DETAIL if not isinstance(DETAIL[name], list)},
+            **{name: [] for name in DETAIL if isinstance(DETAIL[name], list)},
+        },
+    )
+    assert list(reference("result.schema.json").iter_errors(doc)) == []
+    assert valid(doc, result_schema())
+
+
+def test_a_full_battle_of_eight_players_and_teams_fits():
+    players = [{**PLAYER, "entry": e, "slot": 7 - e} for e in range(8)]
+    teams = [{**TEAM, "team": n} for n in range(8)]
+    doc = changed(GOOD_RESULT, local_entry=7, players=players, teams=teams)
+    assert list(reference("result.schema.json").iter_errors(doc)) == []
+    assert valid(doc, result_schema())
 
 
 def test_a_flown_result_with_a_sith_flight_fits_the_reference_validator():
@@ -269,6 +409,19 @@ def test_every_object_is_closed():
 def test_the_checker_refuses_a_keyword_it_does_not_know():
     with pytest.raises(ValueError, match="not understood"):
         errors({}, {"type": "object", "dependentRequired": {}})
+
+
+def test_the_checker_reads_lists_item_by_item():
+    numbers = {"type": "array", "maxItems": 2, "items": {"type": "integer"}}
+    assert errors([1, 2], numbers) == []
+    assert errors([], numbers) == []
+    assert errors([1, 2, 3], numbers) == ["the document must hold at most 2 items"]
+    assert errors([1, "2"], numbers) == ["the document[1] must be a integer"]
+    assert errors({"0": 1}, numbers) == ["the document must be a array"]
+    assert errors([1, 2], {"type": "object"}) == ["the document must be a object"]
+    assert errors([[1, 2, 3]], {"type": "array", "items": numbers}) == [
+        "the document[0] must hold at most 2 items"
+    ]
 
 
 def test_the_checker_counts_a_bool_as_no_integer():

@@ -32,10 +32,15 @@ logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = 1
 # The result file's version: 2 since flight_seconds became goals_met_seconds;
-# 3 since the result carries the ``sith`` block. A game build from before
-# that writes 2, and both read.
-RESULT_SCHEMA_VERSIONS = (2, 3)
-RESULT_SCHEMA_VERSION = 3
+# 3 since the result carries the ``sith`` block; 4 since it carries every
+# player and team and the local pilot's own tables. A game build from before
+# writes 2 or 3, and all three read.
+RESULT_SCHEMA_VERSIONS = (2, 3, 4)
+RESULT_SCHEMA_VERSION = 4
+# The most players and teams a result lists: the pilot record keeps 8
+# players, and the game writes the results of teams 0 to 7 only.
+RESULT_PLAYERS = 8
+RESULT_TEAMS = 8
 MODE = "single_player"
 
 GAME_TYPES = ("training", "melee", "tournament", "combat", "battle", "campaign")

@@ -40,7 +40,12 @@ T_CMP = "tests/test_compare_launch.py::"
 GOOD = T_SCH + "test_good_descriptions_fit_both_validators"
 BAD = T_SCH + "test_bad_descriptions_are_refused_by_both_validators"
 BAD_RESULT = T_SCH + "test_bad_results_are_refused_by_both_validators"
+GOOD_RESULT_TEST = T_SCH + "test_good_results_fit_both_validators"
 CHECKER = T_SCH + "test_the_checker_counts_a_bool_as_no_integer"
+CHECKER_LISTS = T_SCH + "test_the_checker_reads_lists_item_by_item"
+VERSIONS = T_SCH + "test_every_result_version_reads_and_each_refuses_the_others_shapes"
+FULL = T_SCH + "test_a_full_battle_of_eight_players_and_teams_fits"
+EMPTY = T_SCH + "test_a_battle_not_flown_has_empty_lists"
 
 LAUNCH_PLANTS: list[Plant] = [
     Plant(
@@ -173,8 +178,80 @@ LAUNCH_PLANTS: list[Plant] = [
     Plant(
         "launch-schema-number-minimum",
         S,
-        'name: {"type": "integer", "minimum": 0}',
-        'name: {"type": "integer"}',
+        'name: {"type": "integer", "minimum": 0}\n        for name in ("kills", "losses",',
+        'name: {"type": "integer"}\n        for name in ("kills", "losses",',
+        (BAD_RESULT,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-players-max",
+        S,
+        "model.RESULT_PLAYERS,\n        player,",
+        "model.RESULT_PLAYERS + 1,\n        player,",
+        (BAD_RESULT,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-entry-max",
+        S,
+        '"entry": _index("The player\'s place in the pilot record.", 0, 7),',
+        '"entry": _index("The player\'s place in the pilot record.", 0, 8),',
+        (BAD_RESULT,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-slot-min",
+        S,
+        "        -1,\n                7,",
+        "        -2,\n                7,",
+        (BAD_RESULT,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-name-length",
+        S,
+        '"description": "The name the debriefing shows.",\n                "type": "string",\n                "maxLength": 12,',
+        '"description": "The name the debriefing shows.",\n                "type": "string",\n                "maxLength": 11,',
+        (GOOD_RESULT_TEST,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-team-max",
+        S,
+        "model.RESULT_TEAMS - 1",
+        "model.RESULT_TEAMS",
+        (BAD_RESULT,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-local-max",
+        S,
+        "model.RESULT_PLAYERS - 1,",
+        "model.RESULT_PLAYERS,",
+        (BAD_RESULT,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-row-index",
+        S,
+        '{key: _index(f"The row\'s {key}.", 0, size - 1)',
+        '{key: _index(f"The row\'s {key}.", 0, size)',
+        (BAD_RESULT,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-detail-required",
+        S,
+        '"local_entry", "players", "teams", "detail"',
+        '"local_entry", "players", "teams"',
+        (BAD_RESULT,),
+        True,
+    ),
+    Plant(
+        "launch-schema-v4-open-object",
+        S,
+        'every member required."""\n    return {\n        "description": description,\n        "type": "object",\n        "additionalProperties": False,',
+        'every member required."""\n    return {\n        "description": description,\n        "type": "object",\n        "additionalProperties": True,',
         (BAD_RESULT,),
         True,
     ),
@@ -254,6 +331,27 @@ LAUNCH_PLANTS: list[Plant] = [
         'document not in schema["enum"]',
         'document in schema["enum"]',
         (GOOD,),
+    ),
+    Plant(
+        "launch-check-items",
+        K,
+        'found += errors(item, schema["items"], f"{where}[{index}]")',
+        "pass",
+        (CHECKER_LISTS, BAD_RESULT),
+    ),
+    Plant(
+        "launch-check-max-items",
+        K,
+        'len(document) > schema["maxItems"]',
+        'len(document) >= schema["maxItems"]',
+        (CHECKER_LISTS, FULL),
+    ),
+    Plant(
+        "launch-check-array-type",
+        K,
+        '"array": list,',
+        '"array": tuple,',
+        (CHECKER_LISTS, GOOD_RESULT_TEST, EMPTY),
     ),
     Plant(
         "launch-run-extra",

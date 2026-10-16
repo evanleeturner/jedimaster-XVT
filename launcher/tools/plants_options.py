@@ -218,10 +218,17 @@ OPTIONS_PLANTS: list[Plant] = [
     plant(
         "result-version-3-refused",
         "jedimaster/launch/model.py",
-        "RESULT_SCHEMA_VERSIONS = (2, 3)",
-        "RESULT_SCHEMA_VERSIONS = (2,)",
-        "tests/test_launch_schema.py::test_both_result_versions_read_and_each_refuses_the_other_s_shape",
+        "RESULT_SCHEMA_VERSIONS = (2, 3, 4)",
+        "RESULT_SCHEMA_VERSIONS = (2, 4)",
+        "tests/test_launch_schema.py::test_every_result_version_reads_and_each_refuses_the_others_shapes",
         "tests/test_launch_command.py::test_a_version_3_result_prints_the_sith_clause_on_the_one_line",
+    ),
+    plant(
+        "result-version-4-refused",
+        "jedimaster/launch/model.py",
+        "RESULT_SCHEMA_VERSIONS = (2, 3, 4)",
+        "RESULT_SCHEMA_VERSIONS = (2, 3)",
+        "tests/test_launch_schema.py::test_every_result_version_reads_and_each_refuses_the_others_shapes",
     ),
     plant(
         "sith-clause-lost-count",

@@ -10,10 +10,11 @@ Flow:
     sentence per problem; ``valid`` is true when there are none.
 
 Invariants:
-    - Keywords understood: ``type`` (object, string, integer, boolean),
-      ``const``, ``enum``, ``oneOf``, ``required``, ``properties``,
-      ``additionalProperties`` false, ``minimum``, ``maximum``,
-      ``minLength``, ``maxLength``, ``pattern``.
+    - Keywords understood: ``type`` (object, array, string, integer,
+      boolean), ``const``, ``enum``, ``oneOf``, ``required``, ``properties``,
+      ``additionalProperties`` false, ``items`` (one schema for every
+      element), ``maxItems``, ``minimum``, ``maximum``, ``minLength``,
+      ``maxLength``, ``pattern``.
     - A keyword outside that list raises ValueError: a schema this checker
       cannot read is never passed silently.
 
@@ -32,10 +33,11 @@ logger = logging.getLogger(__name__)
 UNDERSTOOD = {
     "$schema", "$id", "title", "description", "type", "const", "enum", "oneOf",
     "required", "properties", "additionalProperties", "minimum", "maximum",
-    "minLength", "maxLength", "pattern",
+    "minLength", "maxLength", "pattern", "items", "maxItems",
 }  # fmt: skip
 TYPES = {
     "object": dict,
+    "array": list,
     "string": str,
     "integer": int,
     "boolean": bool,
@@ -87,6 +89,12 @@ def errors(
             found.append(f"{where} does not match the pattern {schema['pattern']}")
     if isinstance(document, dict):
         found += _members(document, schema, where)
+    if isinstance(document, list):
+        if "maxItems" in schema and len(document) > schema["maxItems"]:
+            found.append(f"{where} must hold at most {schema['maxItems']} items")
+        if "items" in schema:
+            for index, item in enumerate(document):
+                found += errors(item, schema["items"], f"{where}[{index}]")
     return found
 
 

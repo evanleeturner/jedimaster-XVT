@@ -185,15 +185,186 @@ def _sith_block() -> dict[str, Any]:
     }
 
 
+def _closed(description: str, members: dict[str, Any]) -> dict[str, Any]:
+    """Return a closed object of members, every member required."""
+    return {
+        "description": description,
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(members),
+        "properties": members,
+    }
+
+
+def _list(description: str, most: int, item: dict[str, Any]) -> dict[str, Any]:
+    """Return a list of at most ``most`` items of the schema ``item``."""
+    return {
+        "description": description,
+        "type": "array",
+        "maxItems": most,
+        "items": item,
+    }
+
+
+def _index(description: str, low: int, high: int) -> dict[str, Any]:
+    """Return an integer from low to high."""
+    return {
+        "description": description,
+        "type": "integer",
+        "minimum": low,
+        "maximum": high,
+    }
+
+
+def _counts(*names: str) -> dict[str, Any]:
+    """Return the game's own counts of names, written as it holds them."""
+    return {name: {"type": "integer"} for name in names}
+
+
+def _players() -> dict[str, Any]:
+    """Return the schema of the result's players list."""
+    player = _closed(
+        "One player as the game's end of battle counted it.",
+        {
+            "entry": _index("The player's place in the pilot record.", 0, 7),
+            "slot": _index(
+                "The player's place in the flight; -1 when no place holds the "
+                "player, and then team is -1 and the flight's counts are 0.",
+                -1,
+                7,
+            ),
+            "name": {
+                "description": "The name the debriefing shows.",
+                "type": "string",
+                "maxLength": 12,
+            },
+            "team": {"type": "integer", "minimum": -1},
+            "flight_group": {"type": "integer", "minimum": 0},
+            "rating": {
+                "description": "The rank at launch, as a number.",
+                "type": "integer",
+            },
+            "score": {
+                "description": "The player's score plus its team's bonus.",
+                "type": "integer",
+            },
+            **_counts("kills", "shared", "assists", "losses"),
+            "shots": {"description": "Laser and ion shots.", "type": "integer"},
+            "hits": {"description": "Laser and ion hits.", "type": "integer"},
+            **_counts("warheads", "warhead_hits"),
+            "has_left": {
+                "description": "True when the player left before the end.",
+                "type": "boolean",
+            },
+        },
+    )
+    return _list(
+        "Every filled entry of the pilot record's players, in entry order.",
+        model.RESULT_PLAYERS,
+        player,
+    )
+
+
+def _teams() -> dict[str, Any]:
+    """Return the schema of the result's teams list."""
+    team = _closed(
+        "One team of the battle.",
+        {
+            "team": _index("The team's number.", 0, model.RESULT_TEAMS - 1),
+            "completed": {
+                "description": "True when its primary goals were met and none prevented.",
+                "type": "boolean",
+            },
+            **_counts("score", "kills", "shared", "losses"),
+            "seconds": {
+                "description": "When the team met its goals; 0 when it never did.",
+                "type": "integer",
+            },
+        },
+    )
+    return _list(
+        "Each of teams 0 to 7 that had a player flight group arrive or met its goals.",
+        model.RESULT_TEAMS,
+        team,
+    )
+
+
+def _rows(name: str, key: str, size: int, columns: tuple[str, ...]) -> dict[str, Any]:
+    """Return a list of a table's rows that hold a number other than 0."""
+    row = _closed(
+        f"One row of {name}.",
+        {key: _index(f"The row's {key}.", 0, size - 1), **_counts(*columns)},
+    )
+    return _list(
+        f"The rows of {name} with a number other than 0, lowest {key} first.",
+        size,
+        row,
+    )
+
+
+def _detail() -> dict[str, Any]:
+    """Return the schema of the result's detail object."""
+    kills = ("kills", "shared", "assists")
+    members: dict[str, Any] = {
+        **_counts(
+            "shots",
+            "hits",
+            "warheads",
+            "warhead_hits",
+            "losses",
+            "losses_to_collisions",
+            "losses_to_starships",
+            "losses_to_mines",
+            "friendlies_killed",
+            "special_inspected",
+        ),
+        "by_craft": _rows("kills by craft type", "craft_type", 100, kills),
+        "on_pilot_ranks": _rows("kills of human pilots by rank", "rank", 25, kills),
+        "on_ai_ranks": _rows("kills of computer pilots by rank", "rank", 6, kills),
+        "killed_by_pilot_ranks": _rows(
+            "deaths by the human killer's rank", "rank", 25, ("times",)
+        ),
+        "killed_by_ai_ranks": _rows(
+            "deaths by the computer killer's rank", "rank", 6, ("times",)
+        ),
+        "on_players": _rows(
+            "the pilot's kills of each player", "entry", 8, ("kills", "shared")
+        ),
+        "from_players": _rows(
+            "each player's kills of the pilot", "entry", 8, ("kills", "shared")
+        ),
+        "on_flight_groups": _rows(
+            "the pilot's kills of each flight group",
+            "flight_group",
+            48,
+            ("kills", "shared"),
+        ),
+        "from_flight_groups": _rows(
+            "each flight group's kills of the pilot",
+            "flight_group",
+            48,
+            ("kills", "shared"),
+        ),
+    }
+    return _closed(
+        "The local pilot's own record of the battle, the numbers its debriefing "
+        "shows; each machine keeps only its own pilot's.",
+        members,
+    )
+
+
 def result_schema(version: int = model.RESULT_SCHEMA_VERSION) -> dict[str, Any]:
-    """Return the JSON Schema of the launch result of ``version`` (2 or 3).
+    """Return the JSON Schema of the launch result of ``version`` (2, 3 or 4).
 
     Always the same dict for a version. Version 3 adds the closed ``sith``
     object; version 2 is what a game build from before the Sith setting
-    writes. The score may be below zero; the counts and the time may not.
-    Does not encode that a status and its exit code go together, or that a
-    battle not flown has zeros for its numbers. Raises ValueError for any
-    other version.
+    writes. Version 4 adds ``local_entry``, ``players``, ``teams`` and
+    ``detail``, the game's own counts as it holds them, so their numbers carry
+    no bounds but their indexes do. The score may be below zero; version 3's
+    counts and time may not. Does not encode that a status and its exit code
+    go together, that a battle not flown has zeros for its numbers and empty
+    lists, or that local_entry names a listed player. Raises ValueError for
+    any other version.
     """
     if version not in model.RESULT_SCHEMA_VERSIONS:
         raise ValueError(f"no result schema of version {version}")
@@ -225,7 +396,8 @@ def result_schema(version: int = model.RESULT_SCHEMA_VERSION) -> dict[str, Any]:
             "losses",
             "goals_met_seconds",
             "why",
-            *(["sith"] if version == 3 else []),
+            *(["sith"] if version >= 3 else []),
+            *(["local_entry", "players", "teams", "detail"] if version >= 4 else []),
         ],
         "properties": {
             "schema_version": {"const": version},
@@ -240,6 +412,21 @@ def result_schema(version: int = model.RESULT_SCHEMA_VERSION) -> dict[str, Any]:
                 "description": "A plain sentence when the battle was not flown; empty otherwise.",
                 "type": "string",
             },
-            **({"sith": _sith_block()} if version == 3 else {}),
+            **({"sith": _sith_block()} if version >= 3 else {}),
+            **(_battle_members() if version >= 4 else {}),
         },
+    }
+
+
+def _battle_members() -> dict[str, Any]:
+    """Return version 4's members: who flew and how each fared."""
+    return {
+        "local_entry": _index(
+            "The local pilot's place in the pilot record; -1 when it has none.",
+            -1,
+            model.RESULT_PLAYERS - 1,
+        ),
+        "players": _players(),
+        "teams": _teams(),
+        "detail": _detail(),
     }

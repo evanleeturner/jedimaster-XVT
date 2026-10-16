@@ -177,7 +177,7 @@ def _read_result(path: Path) -> dict[str, Any]:
     Reads the file as UTF-8 with a replacement mark for any byte that is not,
     since the result holds a flight name from the mission file, and a made
     mission may name one in another encoding. Checks the document against the
-    schema of its own version (2 from an older game build, 3 from today's).
+    schema of its own version (2 or 3 from an older game build, 4 from today's).
     """
     try:
         document = json.loads(path.read_text(encoding="utf-8", errors="replace"))

@@ -15,11 +15,15 @@
     "losses",
     "goals_met_seconds",
     "why",
-    "sith"
+    "sith",
+    "local_entry",
+    "players",
+    "teams",
+    "detail"
   ],
   "properties": {
     "schema_version": {
-      "const": 3
+      "const": 4
     },
     "status": {
       "enum": [
@@ -122,6 +126,475 @@
         "why": {
           "description": "Empty when a group was promoted or the setting is none; else why none was.",
           "type": "string"
+        }
+      }
+    },
+    "local_entry": {
+      "description": "The local pilot's place in the pilot record; -1 when it has none.",
+      "type": "integer",
+      "minimum": -1,
+      "maximum": 7
+    },
+    "players": {
+      "description": "Every filled entry of the pilot record's players, in entry order.",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "description": "One player as the game's end of battle counted it.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entry",
+          "slot",
+          "name",
+          "team",
+          "flight_group",
+          "rating",
+          "score",
+          "kills",
+          "shared",
+          "assists",
+          "losses",
+          "shots",
+          "hits",
+          "warheads",
+          "warhead_hits",
+          "has_left"
+        ],
+        "properties": {
+          "entry": {
+            "description": "The player's place in the pilot record.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "slot": {
+            "description": "The player's place in the flight; -1 when no place holds the player, and then team is -1 and the flight's counts are 0.",
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 7
+          },
+          "name": {
+            "description": "The name the debriefing shows.",
+            "type": "string",
+            "maxLength": 12
+          },
+          "team": {
+            "type": "integer",
+            "minimum": -1
+          },
+          "flight_group": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rating": {
+            "description": "The rank at launch, as a number.",
+            "type": "integer"
+          },
+          "score": {
+            "description": "The player's score plus its team's bonus.",
+            "type": "integer"
+          },
+          "kills": {
+            "type": "integer"
+          },
+          "shared": {
+            "type": "integer"
+          },
+          "assists": {
+            "type": "integer"
+          },
+          "losses": {
+            "type": "integer"
+          },
+          "shots": {
+            "description": "Laser and ion shots.",
+            "type": "integer"
+          },
+          "hits": {
+            "description": "Laser and ion hits.",
+            "type": "integer"
+          },
+          "warheads": {
+            "type": "integer"
+          },
+          "warhead_hits": {
+            "type": "integer"
+          },
+          "has_left": {
+            "description": "True when the player left before the end.",
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "teams": {
+      "description": "Each of teams 0 to 7 that had a player flight group arrive or met its goals.",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "description": "One team of the battle.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "team",
+          "completed",
+          "score",
+          "kills",
+          "shared",
+          "losses",
+          "seconds"
+        ],
+        "properties": {
+          "team": {
+            "description": "The team's number.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "completed": {
+            "description": "True when its primary goals were met and none prevented.",
+            "type": "boolean"
+          },
+          "score": {
+            "type": "integer"
+          },
+          "kills": {
+            "type": "integer"
+          },
+          "shared": {
+            "type": "integer"
+          },
+          "losses": {
+            "type": "integer"
+          },
+          "seconds": {
+            "description": "When the team met its goals; 0 when it never did.",
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "detail": {
+      "description": "The local pilot's own record of the battle, the numbers its debriefing shows; each machine keeps only its own pilot's.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shots",
+        "hits",
+        "warheads",
+        "warhead_hits",
+        "losses",
+        "losses_to_collisions",
+        "losses_to_starships",
+        "losses_to_mines",
+        "friendlies_killed",
+        "special_inspected",
+        "by_craft",
+        "on_pilot_ranks",
+        "on_ai_ranks",
+        "killed_by_pilot_ranks",
+        "killed_by_ai_ranks",
+        "on_players",
+        "from_players",
+        "on_flight_groups",
+        "from_flight_groups"
+      ],
+      "properties": {
+        "shots": {
+          "type": "integer"
+        },
+        "hits": {
+          "type": "integer"
+        },
+        "warheads": {
+          "type": "integer"
+        },
+        "warhead_hits": {
+          "type": "integer"
+        },
+        "losses": {
+          "type": "integer"
+        },
+        "losses_to_collisions": {
+          "type": "integer"
+        },
+        "losses_to_starships": {
+          "type": "integer"
+        },
+        "losses_to_mines": {
+          "type": "integer"
+        },
+        "friendlies_killed": {
+          "type": "integer"
+        },
+        "special_inspected": {
+          "type": "integer"
+        },
+        "by_craft": {
+          "description": "The rows of kills by craft type with a number other than 0, lowest craft_type first.",
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "description": "One row of kills by craft type.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "craft_type",
+              "kills",
+              "shared",
+              "assists"
+            ],
+            "properties": {
+              "craft_type": {
+                "description": "The row's craft_type.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 99
+              },
+              "kills": {
+                "type": "integer"
+              },
+              "shared": {
+                "type": "integer"
+              },
+              "assists": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "on_pilot_ranks": {
+          "description": "The rows of kills of human pilots by rank with a number other than 0, lowest rank first.",
+          "type": "array",
+          "maxItems": 25,
+          "items": {
+            "description": "One row of kills of human pilots by rank.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rank",
+              "kills",
+              "shared",
+              "assists"
+            ],
+            "properties": {
+              "rank": {
+                "description": "The row's rank.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 24
+              },
+              "kills": {
+                "type": "integer"
+              },
+              "shared": {
+                "type": "integer"
+              },
+              "assists": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "on_ai_ranks": {
+          "description": "The rows of kills of computer pilots by rank with a number other than 0, lowest rank first.",
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "description": "One row of kills of computer pilots by rank.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rank",
+              "kills",
+              "shared",
+              "assists"
+            ],
+            "properties": {
+              "rank": {
+                "description": "The row's rank.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5
+              },
+              "kills": {
+                "type": "integer"
+              },
+              "shared": {
+                "type": "integer"
+              },
+              "assists": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "killed_by_pilot_ranks": {
+          "description": "The rows of deaths by the human killer's rank with a number other than 0, lowest rank first.",
+          "type": "array",
+          "maxItems": 25,
+          "items": {
+            "description": "One row of deaths by the human killer's rank.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rank",
+              "times"
+            ],
+            "properties": {
+              "rank": {
+                "description": "The row's rank.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 24
+              },
+              "times": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "killed_by_ai_ranks": {
+          "description": "The rows of deaths by the computer killer's rank with a number other than 0, lowest rank first.",
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "description": "One row of deaths by the computer killer's rank.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rank",
+              "times"
+            ],
+            "properties": {
+              "rank": {
+                "description": "The row's rank.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5
+              },
+              "times": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "on_players": {
+          "description": "The rows of the pilot's kills of each player with a number other than 0, lowest entry first.",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "description": "One row of the pilot's kills of each player.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "entry",
+              "kills",
+              "shared"
+            ],
+            "properties": {
+              "entry": {
+                "description": "The row's entry.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 7
+              },
+              "kills": {
+                "type": "integer"
+              },
+              "shared": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "from_players": {
+          "description": "The rows of each player's kills of the pilot with a number other than 0, lowest entry first.",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "description": "One row of each player's kills of the pilot.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "entry",
+              "kills",
+              "shared"
+            ],
+            "properties": {
+              "entry": {
+                "description": "The row's entry.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 7
+              },
+              "kills": {
+                "type": "integer"
+              },
+              "shared": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "on_flight_groups": {
+          "description": "The rows of the pilot's kills of each flight group with a number other than 0, lowest flight_group first.",
+          "type": "array",
+          "maxItems": 48,
+          "items": {
+            "description": "One row of the pilot's kills of each flight group.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flight_group",
+              "kills",
+              "shared"
+            ],
+            "properties": {
+              "flight_group": {
+                "description": "The row's flight_group.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 47
+              },
+              "kills": {
+                "type": "integer"
+              },
+              "shared": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "from_flight_groups": {
+          "description": "The rows of each flight group's kills of the pilot with a number other than 0, lowest flight_group first.",
+          "type": "array",
+          "maxItems": 48,
+          "items": {
+            "description": "One row of each flight group's kills of the pilot.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flight_group",
+              "kills",
+              "shared"
+            ],
+            "properties": {
+              "flight_group": {
+                "description": "The row's flight_group.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 47
+              },
+              "kills": {
+                "type": "integer"
+              },
+              "shared": {
+                "type": "integer"
+              }
+            }
+          }
         }
       }
     }
