@@ -1,20 +1,24 @@
 """The boarding orders: Give, Take, Exchange, Capture, Destroy, Pick Up, SS
 Board and Board to Repair (orders 12 to 17, 31 and 32): find a craft to
-board and fly to the point where the dock begins.
+board, fly to the point where the dock begins, and dock.
 
 Purpose:
     A craft on a boarding order looks for a craft to board, flies to the
     point beside that craft's docking hatch that the engine names
-    (``CraftView.board_point``), and waits there for the dock, which is the
-    engine's. 1997's plans are the blueprint: the eight boardto plans
-    stopped the craft and looked (``paiorder_lookforcrafttoboardorder``),
-    board2pln flew the approach (the first phase of
-    ``paiman_boardmaneuver``).
+    (``CraftView.board_point``), and there asks the engine to dock (the
+    board action); the dock is the engine's. 1997's plans are the
+    blueprint: the eight boardto plans stopped the craft and looked
+    (``paiorder_lookforcrafttoboardorder``), board2pln flew the approach
+    (the first phase of ``paiman_boardmaneuver``).
 
     The target is a player's command target first, when the question shows
-    it and no other boarder keeps it (Shift+B names one); else the nearest
-    craft its order names that may be boarded now, by 1997's rough distance
-    with no range limit, the earlier contact between two as near. A craft
+    it, no other boarder keeps it (Shift+B names one) and the craft has not
+    boarded it (ruling 102: each boarding counts a different craft); else
+    the nearest craft its order's first pair of targets names that may be
+    boarded now, and only when none may, the nearest of the rest its order
+    names (ruling 101, 1997's fallback to the second pair,
+    ``old:pai.c:654-700``): by 1997's rough distance with no range limit,
+    the earlier contact between two as near. A craft
     may be boarded now when its order holds it still (PARKED), it is a
     platform, or none of its subsystems work (DISABLED); for any order but
     Capture and Destroy also when it waits to be boarded (AWAITING) or is a
@@ -36,12 +40,23 @@ Purpose:
     the target the craft named on its last think, so on the think it picks
     a target, and until the engine names the point, it steers at the
     target itself and measures from the edge of the target's clearance
-    (``tactics.clearance``). At the point (AT_BOARD_POINT) it waits,
-    stopped.
+    (``tactics.clearance``). At the point (AT_BOARD_POINT) it stops and
+    asks the engine to dock with the target, every think until the dock
+    begins.
+
+    While the engine docks it (``CraftView.board_phase`` 1 to 3: align,
+    transfer, separate) it sends no target, steer or throttle: the dock
+    reads the craft's target every step, so a new one would be docked with
+    (ruling L2-1). Once the dock ends it looks again where it is (ruling
+    C7): a craft it boarded is in ``CraftView.boarded`` and is never picked
+    again; after a dock the engine gave up (its target gone, wrecked or
+    replaced, the craft disabled, a player's craft moving) it keeps its
+    target while it may and approaches it again.
 
     Its status line (ruling C8): while it looks, the order's own, "Looking
     for craft to capture" for Capture, "... to pick up" for Pick Up, "...
-    to board" for the others; "Docking" from the approach on. Its cannons
+    to board" for the others; "Docking" from the approach to the dock's
+    end. Its cannons
     never fire; its turrets defend it (``turrets.defend``), and avoidance
     steers it round other craft and leaves its target to it.
 
@@ -54,15 +69,19 @@ Phases, the notebook's phase byte, 0 before the behavior first writes it:
 
     LOOKING   no target: stopped, the looking line
     APPROACH  steer at the board point, the throttle by the distance left
-    AT_POINT  at the board point, stopped, waiting for the dock
+    AT_POINT  at the board point, stopped, asking the engine to dock
+    DOCKING   the engine docks the craft: nothing sent but the status line
 
 The scratch bytes, little-endian: u8 the order slot the memory is for, u8 1
 while a target is held, else 0, u16 the target's index and u16 its
-signature; the rest zero.
+signature; the rest zero. A dock keeps them as they were.
 
 Invariants:
     - Its cannons never fire.
-    - It names no target the question does not show.
+    - It names no target the question does not show, and none while the
+      engine docks it.
+    - It asks to dock only with the target it held on its last think, at
+      that target's board point.
     - A notebook written on another order slot starts looking again.
 """
 
@@ -94,6 +113,7 @@ CODE = BehaviorCode.BOARD
 LOOKING = 1
 APPROACH = 2
 AT_POINT = 3
+DOCKING = 4
 
 # The boarding orders' codes (``orders.OrderCode``). orders.py imports this
 # module, so the numbers are written here; tests/test_board.py holds them to
@@ -173,12 +193,17 @@ class Search:
 
 
 def think(view: CraftView, question: Question) -> Decision:
-    """Return the craft's next move: its approach to the target it holds,
-    else a new target's, else a stop to look."""
+    """Return the craft's next move: nothing while the engine docks it, else
+    its approach to the target it holds, else a new target's, else a stop to
+    look."""
     book = notebook.open_for(view, CODE, question.tick)
     memory = Memory.read(book.scratch)
+    if view.board_phase:
+        return _docking(view, question, book, memory)
     if memory.slot != view.order_slot:
         memory = Memory(slot=view.order_slot)
+    if book.phase == DOCKING:
+        memory = _undocked(view, memory)
     if memory.held:
         target, why = _kept(view, question, memory)
         if target is not None:
@@ -211,18 +236,21 @@ def think(view: CraftView, question: Question) -> Decision:
 
 def look(view: CraftView, question: Question) -> Search:
     """Return the craft to board: the command target first, else the
-    nearest the order names that may be boarded now."""
+    nearest the order's first pair names that may be boarded now, else the
+    nearest of the rest the order names."""
     for contact in question.contacts:
         if (
             contact.object_index == view.command_target
             and contact.object_index != view.object_index
             and contact.object_kind in _LIVE_KINDS
             and _free(view, contact)
+            and contact.object_signature not in view.boarded
         ):
             return Search(contact, "command", 0, 0)
     strict = view.order_code in _STRICT_ORDERS
-    nearest = None
-    nearest_reach = 0
+    # The nearest of the first pair's, then of the rest's.
+    nearest: list[Contact | None] = [None, None]
+    reaches = [0, 0]
     named = boardable = 0
     for position, contact in enumerate(question.contacts):
         if not view.order_target_mask >> position & 1:
@@ -239,9 +267,11 @@ def look(view: CraftView, question: Question) -> Search:
             continue
         boardable += 1
         reach = rough_distance(*tactics.offset(view, contact))
-        if nearest is None or reach < nearest_reach:
-            nearest, nearest_reach = contact, reach
-    return Search(nearest, "search", named, boardable)
+        pair = 0 if view.order_first_pair_mask >> position & 1 else 1
+        if nearest[pair] is None or reach < reaches[pair]:
+            nearest[pair], reaches[pair] = contact, reach
+    first, rest = nearest
+    return Search(first if first is not None else rest, "search", named, boardable)
 
 
 def may_board(contact: Contact, strict: bool) -> bool:
@@ -358,7 +388,8 @@ def _approach(
     target: Contact,
     fresh: bool,
 ) -> Decision:
-    """Return the approach to the target's board point, stopped there."""
+    """Return the approach to the target's board point, stopped there and
+    asking the engine to dock."""
     pointed = not fresh and bool(view.books & Books.BOARD_POINT)
     if pointed:
         px, py, pz = view.board_point
@@ -391,14 +422,55 @@ def _approach(
     if throttle:
         yaw, pitch = geometry.bearing(dx, dy, dz)
         steer = Steer(yaw, pitch, view.roll)
+    dock = target.object_index if there else None
+    if there:
+        logger.debug(
+            "board.dock object=%d target=%d order=%d",
+            view.object_index,
+            target.object_index,
+            view.order_code,
+        )
     actions = Actions(
         steer=steer,
         throttle=throttle,
         activity=_changed(view, Activity.BOARDING),
         target=target.object_index,
         lasers=_HOLD,
+        board=dock,
     )
     return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
+
+
+def _docking(
+    view: CraftView, question: Question, book: notebook.Notebook, memory: Memory
+) -> Decision:
+    """Return the answer while the engine docks the craft: no target, steer
+    or throttle (the dock reads the craft's target every step), "Docking"
+    shown, cannons held, the memory kept for the dock's end."""
+    if book.phase != DOCKING:
+        book = book.in_phase(DOCKING, question.tick)
+    logger.debug(
+        "board.docking object=%d target=%d phase=%d",
+        view.object_index,
+        memory.target,
+        view.board_phase,
+    )
+    actions = Actions(activity=_changed(view, Activity.BOARDING), lasers=_HOLD)
+    return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
+
+
+def _undocked(view: CraftView, memory: Memory) -> Memory:
+    """Return the memory once the engine's dock has ended: forgotten when the
+    craft boarded its target (its signature is in ``boarded``), so it looks
+    again where it is; kept when the engine gave the dock up."""
+    boarded = bool(memory.held) and memory.signature in view.boarded
+    logger.info(
+        "board.undocked object=%d target=%d boarded=%d",
+        view.object_index,
+        memory.target,
+        int(boarded),
+    )
+    return Memory(slot=view.order_slot) if boarded else memory
 
 
 def _changed(view: CraftView, activity: Activity) -> Activity | None:

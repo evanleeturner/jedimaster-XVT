@@ -93,6 +93,16 @@
       "fields": ["object", "target"],
       "text": "Craft {object} on a boarding order waits at its board point beside craft {target} for the dock"
     },
+    "board.dock": {
+      "level": "D",
+      "fields": ["object", "target", "order"],
+      "text": "Craft {object} on order {order} asks the engine to dock it with craft {target}, at its board point"
+    },
+    "board.docking": {
+      "level": "D",
+      "fields": ["object", "target", "phase"],
+      "text": "Craft {object} is docked by the engine with craft {target}, phase {phase} (1 align, 2 transfer, 3 separate), and sends no target, steer or throttle"
+    },
     "board.looking": {
       "level": "D",
       "fields": ["object", "order", "named", "boardable"],
@@ -107,6 +117,11 @@
       "level": "I",
       "fields": ["object", "target", "source", "distance", "order", "named", "boardable"],
       "text": "Craft {object} on order {order} picks craft {target} to board ({source}: a player's command, or the nearest of {boardable} boardable of the {named} its order names), {distance} units away by the rough distance"
+    },
+    "board.undocked": {
+      "level": "I",
+      "fields": ["object", "target", "boarded"],
+      "text": "The engine's dock of craft {object} with craft {target} has ended: boarded {boarded} (1 when the craft boarded it and looks again where it is, 0 when the engine gave the dock up and it keeps its target)"
     },
     "countermeasures.threat": {
       "level": "D",

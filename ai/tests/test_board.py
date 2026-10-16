@@ -1,5 +1,5 @@
-"""Fence for board: the boarding orders find a craft to board and fly to its
-board point.
+"""Fence for board: the boarding orders find a craft to board, fly to its
+board point and dock.
 
 The craft flies at the origin facing +y (yaw 0), level, on a Give order
 that asks one boarding; contact 0 is its own, contacts 1 and 2 the craft its
@@ -7,7 +7,10 @@ order names. The craft to board sits parked 32,768 units ahead, a model of
 size 0, so its clearance is 4,096. Rulings C1 (Python flies the approach),
 C2 (full throttle past 16,384), C6 (craft only), C8 (each order's looking
 line) and C9 (the lower object index keeps a craft) each have a test; the
-1997 search (``old:pai.c:802-939``) is fenced test by test.
+1997 search (``old:pai.c:802-939``) is fenced test by test. Round L2 adds
+the dock: the board action at the point, nothing else sent while the engine
+docks (ruling L2-1), the look after it (C7), the docked list on the command
+path (ruling 102) and the first pair before the second (ruling 101).
 """
 
 from __future__ import annotations
@@ -532,3 +535,126 @@ def test_avoidance_leaves_its_target_alone_and_turns_it_round_others(
     )
     turned = avoidance.steer_clear(me, question, board.think(me, question))
     assert turned.actions.steer.yaw != 0
+
+
+# L2: the dock, and the look after it.
+
+
+def test_at_the_board_point_it_asks_the_engine_to_dock(
+    boarder, craft, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    me = boarder(notebook=holding(), books=AT_POINT, board_point=(0, 0x3000, 0))
+    decision = ask(me, craft())
+    assert decision.actions.board == TARGET
+    assert decision.actions.target == TARGET
+    assert f"board.dock object={ME} target={TARGET} order={GIVE}" in caplog.text
+
+
+def test_short_of_its_board_point_it_asks_no_dock(boarder, craft, ask) -> None:
+    near = boarder(notebook=holding(), books=BOARD_POINT, board_point=(0, 2048, 0))
+    assert ask(near, craft()).actions.board is None
+    # A target picked this think: the point at hand is the old target's.
+    fresh = boarder(books=AT_POINT, board_point=(0, 1, 0))
+    assert ask(fresh, craft()).actions.board is None
+
+
+@pytest.mark.parametrize("phase", [1, 2, 3])
+def test_while_the_engine_docks_it_sends_no_target_steer_or_throttle(
+    boarder, craft, ask, phase
+) -> None:
+    me = boarder(
+        notebook=holding(phase=board.AT_POINT),
+        board_phase=phase,
+        books=AT_POINT,
+        board_point=(0, 1, 0),
+    )
+    decision = ask(me, craft())
+    actions = decision.actions
+    assert actions.target is None
+    assert actions.steer is None
+    assert actions.throttle is None
+    assert actions.board is None
+    assert actions.activity == Activity.BOARDING
+    assert actions.lasers == (HOLD_FIRE, HOLD_FIRE)
+    assert phase_of(decision) == board.DOCKING
+    assert memory_of(decision) == board.Memory(0, 1, TARGET, SIGNATURE)
+
+
+def test_a_dock_is_flown_by_the_engine_whatever_the_craft_holds(
+    boarder, craft, ask
+) -> None:
+    # A follower whose leader moved its order slot, its memory on slot 0.
+    me = boarder(notebook=holding(), board_phase=2, order_slot=1, order_code=7)
+    decision = ask(me, craft(object_index=OTHER, y=0x1000))
+    assert decision.actions.target is None
+    assert decision.actions.throttle is None
+    assert memory_of(decision).target == TARGET
+
+
+def test_a_dock_shows_docking_only_when_it_changes(boarder, craft, ask) -> None:
+    me = boarder(notebook=holding(), board_phase=1, activity=Activity.BOARDING)
+    assert ask(me, craft()).actions.activity is None
+
+
+def test_a_dock_is_logged_each_think(boarder, craft, ask, caplog) -> None:
+    caplog.set_level("DEBUG")
+    ask(boarder(notebook=holding(), board_phase=3), craft())
+    assert f"board.docking object={ME} target={TARGET} phase=3" in caplog.text
+
+
+def test_after_a_dock_that_boarded_it_looks_again_where_it_is(
+    boarder, craft, ask, caplog
+) -> None:
+    caplog.set_level("INFO")
+    me = boarder(
+        notebook=holding(phase=board.DOCKING),
+        y=0x7000,
+        boarded=(SIGNATURE,),
+        order_target_mask=0b1110,
+    )
+    left_behind = craft(object_index=OTHER, object_signature=12, y=0)
+    beside = craft(object_index=FAR, object_signature=13, y=0x9000)
+    decision = ask(me, craft(), left_behind, beside)
+    assert decision.actions.target == FAR
+    assert f"board.undocked object={ME} target={TARGET} boarded=1" in caplog.text
+    assert "board.lost" not in caplog.text
+
+
+def test_after_a_dock_the_engine_gave_up_it_keeps_its_target(
+    boarder, craft, ask, caplog
+) -> None:
+    caplog.set_level("INFO")
+    nearer = craft(object_index=OTHER, object_signature=12, y=0x1000)
+    decision = ask(boarder(notebook=holding(phase=board.DOCKING)), craft(), nearer)
+    assert decision.actions.target == TARGET
+    assert f"board.undocked object={ME} target={TARGET} boarded=0" in caplog.text
+    caplog.clear()
+    ask(boarder(notebook=decision.notebook), craft(), nearer)
+    assert "board.undocked" not in caplog.text
+
+
+def test_a_command_target_already_boarded_leaves_the_search(
+    boarder, craft, ask
+) -> None:
+    commanded = craft(object_index=FAR, object_signature=13, flags=0, y=0x20000)
+    me = boarder(order_target_mask=0b10, command_target=FAR, boarded=(13,))
+    assert ask(me, craft(y=0x1000), commanded).actions.target == TARGET
+
+
+def test_the_first_pair_comes_before_a_nearer_craft_of_the_second(
+    boarder, craft, ask
+) -> None:
+    second = craft(object_index=OTHER, object_signature=12, y=0x1000)
+    me = boarder(order_target_mask=0b110, order_first_pair_mask=0b100)
+    assert ask(me, second, craft()).actions.target == TARGET
+
+
+def test_with_no_first_pair_craft_boardable_the_nearest_of_the_rest_is_picked(
+    boarder, craft, ask
+) -> None:
+    first = craft(object_index=FAR, object_signature=13, y=0x800, flags=0)
+    second = craft(object_index=OTHER, object_signature=12, y=0x1000)
+    farther = craft(object_index=NAMED, object_signature=14, y=0x4000)
+    me = boarder(order_target_mask=0b1110, order_first_pair_mask=0b10)
+    assert ask(me, first, farther, second).actions.target == OTHER
