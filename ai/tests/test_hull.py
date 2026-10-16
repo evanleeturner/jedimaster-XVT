@@ -6,8 +6,8 @@ model's axes, from the same 2026-10-13 opt_dump run as ``test_tactics.py``'s
 sizes. The expected numbers are worked by hand from the engine's axes
 (``hull``'s docstring): a level craft at yaw 0 has its side along +x, its
 up along +z and its forward along +y, and the model's y runs backward.
-The engine's own cases, its local-to-world turn over a table of angles,
-come with the wire version that sends the box.
+The engine's own cases, its local-to-world turn over a table of poses,
+are checked in ``test_hull_frame.py``.
 """
 
 from __future__ import annotations
