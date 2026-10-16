@@ -13,6 +13,13 @@ Purpose:
     on it with chaff or a flare (``behaviors.countermeasures``), and the
     decisions become the answer.
 
+    While the engine docks a craft (``CraftView.board_phase`` not 0) only
+    ``behaviors.board`` decides, before its books, its order or a player's
+    command: the dock reads the craft's target every step, and no other
+    behavior may name one (ruling L2-1). A captured craft (``Books.
+    CAPTURED``) is flown by ``behaviors.captured``, home or held, whatever
+    its order or books say; a player's wait command still holds it.
+
 Invariants:
     - The answer depends only on the question and the behavior table: the
       same question gets the same answer on every machine, and again after
@@ -30,6 +37,8 @@ from . import progress
 from .behaviors import arrival
 from .behaviors import avoidance
 from .behaviors import Behavior
+from .behaviors import board
+from .behaviors import captured
 from .behaviors import countermeasures
 from .behaviors import home
 from .behaviors import turrets
@@ -38,6 +47,7 @@ from .behaviors import waiting
 from .orders import behavior_for
 from .orders import BEHAVIORS
 from .world import Answer
+from .world import Books
 from .world import Commands
 from .world import Contact
 from .world import CraftAnswer
@@ -74,9 +84,13 @@ def think(
         elif arrival.forms_up(view, question):
             decision = arrival.form_up(view, question)
             decision = avoidance.steer_clear(view, question, decision)
+        elif view.board_phase:
+            decision = board.think(view, question)
         else:
             if view.commands & Commands.WAIT:
                 decision = wait.think(view, question)
+            elif view.books & Books.CAPTURED:
+                decision = captured.think(view, question)
             else:
                 step = progress.decide(view)
                 behavior = home.think if step.home else behavior_for(view, behaviors)

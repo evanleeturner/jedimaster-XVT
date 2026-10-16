@@ -541,3 +541,16 @@ def test_a_follower_twenty_thousand_behind_flies_into_its_place(
         later <= earlier + 50
         for earlier, later in zip(errors, errors[100:], strict=False)
     )
+
+
+@pytest.mark.parametrize(
+    ("mine", "theirs"), [(1, 2), (3, 1)], ids=["leader captured", "craft captured"]
+)
+def test_a_leader_on_another_team_is_no_leader(
+    follower, own, leader, mine, theirs
+) -> None:
+    craft = follower(team=mine)
+    question = Question(1, (craft,), (own(team=mine), leader(team=theirs)))
+    assert formation.leader_for(craft, question, formation.on_order) is None
+    same = Question(1, (craft,), (own(team=mine), leader(team=mine)))
+    assert formation.leader_for(craft, same, formation.on_order) is not None

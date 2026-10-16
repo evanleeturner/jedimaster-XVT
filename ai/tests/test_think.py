@@ -10,6 +10,8 @@ import dataclasses
 import hashlib
 import logging
 
+import pytest
+
 from jedimaster_ai import notebook
 from jedimaster_ai import think as think_module
 from jedimaster_ai import wire
@@ -315,3 +317,47 @@ def test_debug_records_the_new_view_values_and_the_statics(
         'board_x=31 board_y=32 board_z=33 progress="01020304" boarded="7,8" '
         "board_phase=2 lifetime_timer=3540 first_pair=6 " in caplog.text
     )
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"books": Books.ORDERS_DONE | Books.MAY_JUMP},
+        {"commands": Commands.WAIT, "books": Books.TARGETS_LEFT},
+        {"order_variable2": 1, "order_progress": (1, 0, 0, 0)},
+    ],
+    ids=["books send it home", "a player's wait", "its goal met"],
+)
+def test_a_docking_craft_is_left_to_the_engine(view, changes) -> None:
+    """While the engine docks it, nothing a dock reads is sent, nor an order
+    move (ruling L2-1)."""
+    give = OrderCode.BOARD_AND_GIVE_CARGO
+    fields = {"order_code": give, "order_codes": (give, give, 0, 0), "board_phase": 3}
+    said = answered(Question(1, (view(**(fields | changes)),))).craft[0].actions
+    assert (said.target, said.steer, said.throttle) == (None, None, None)
+    assert (said.order, said.depart, said.activity) == (None, False, Activity.BOARDING)
+
+
+def test_a_captured_craft_drops_its_order(view) -> None:
+    """Its Attack goal met, it would move to its next order; captured and
+    unable to move, it holds instead."""
+    attack = OrderCode.ATTACK
+    craft = view(
+        order_code=attack,
+        order_codes=(attack, attack, 0, 0),
+        full_speed=0,
+        books=Books.CAPTURED,
+        turret_slot_mask=0,
+    )
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert (said.order, said.throttle, said.target) == (None, 0, 0xFFFF)
+
+
+def test_a_captured_craft_goes_home_and_a_players_wait_still_holds_it(view) -> None:
+    hold = OrderCode.HOLD_STEADY
+    craft = view(order_code=hold, books=Books.CAPTURED | Books.MAY_JUMP)
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert (said.activity, said.depart) == (Activity.LEAVING_BY_HYPERSPACE, True)
+    held = dataclasses.replace(craft, commands=Commands.WAIT)
+    said = answered(Question(1, (held,))).craft[0].actions
+    assert (said.activity, said.depart) == (Activity.WAITING_FOR_GO, False)

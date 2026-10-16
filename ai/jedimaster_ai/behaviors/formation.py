@@ -103,14 +103,15 @@ def leader_for(
     view: CraftView, question: Question, flies: t.Callable[[Contact], bool]
 ) -> Contact | None:
     """Return the leader a craft flies in formation on: the leader the
-    engine names, shown in the question, flown by no player, for which
-    ``flies`` holds (it flies the way the craft does); None for none, or
-    with no place given."""
+    engine names, shown in the question, flown by no player, on the craft's
+    own team (a captured craft's old leader is not, nor a captured leader
+    its old wingmen's), for which ``flies`` holds (it flies the way the
+    craft does); None for none, or with no place given."""
     if view.leader == NO_OBJECT or not view.books & Books.PLACE:
         return None
     for contact in question.contacts:
         if contact.object_index == view.leader:
-            if contact.player_flown or not flies(contact):
+            if contact.player_flown or contact.team != view.team or not flies(contact):
                 return None
             return contact
     return None
