@@ -7,7 +7,8 @@ Purpose:
     decide, adding any move of its order slot, or, while a player's wait
     command holds it, ``behaviors.wait`` decides (``behaviors.arrival`` while
     the craft arrives from hyperspace; out of a hangar its order decides at
-    once and the leaving mark ends), it steers clear of a bulky craft in its
+    once and the leaving mark ends; ``behaviors.dropoff`` while the engine
+    drops from it, whatever its order, books and commands), it steers clear of a bulky craft in its
     way (``behaviors.avoidance``), its turrets are aimed
     (``behaviors.turrets``), a starfighter answers a homing shot closing
     on it with chaff or a flare (``behaviors.countermeasures``), and the
@@ -40,6 +41,7 @@ from .behaviors import Behavior
 from .behaviors import board
 from .behaviors import captured
 from .behaviors import countermeasures
+from .behaviors import dropoff
 from .behaviors import home
 from .behaviors import turrets
 from .behaviors import wait
@@ -86,6 +88,8 @@ def think(
             decision = avoidance.steer_clear(view, question, decision)
         elif view.board_phase:
             decision = board.think(view, question)
+        elif view.drop_phase:
+            decision = dropoff.think(view, question)
         else:
             if view.commands & Commands.WAIT:
                 decision = wait.think(view, question)

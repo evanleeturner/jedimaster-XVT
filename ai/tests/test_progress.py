@@ -17,6 +17,7 @@ from jedimaster_ai import progress
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import board
 from jedimaster_ai.behaviors import Decision
+from jedimaster_ai.behaviors import dropoff
 from jedimaster_ai.behaviors import waiting
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.world import Actions
@@ -140,6 +141,18 @@ def test_self_destruct_is_never_done(view) -> None:
 def test_wait_and_wait_2_end_when_the_waiting_behavior_says_so() -> None:
     assert progress.GOALS[OrderCode.WAIT] is waiting.done
     assert progress.GOALS[OrderCode.WAIT_2] is waiting.done
+
+
+def test_drop_off_is_done_once_all_is_dropped(view) -> None:
+    assert progress.GOALS[OrderCode.DROP_OFF] is dropoff.done
+    dropping = {
+        "order_code": OrderCode.DROP_OFF,
+        "order_codes": (OrderCode.DROP_OFF, OrderCode.DROP_OFF, 0, 0),
+    }
+    dropped = view(**dropping | {"books": Books.ALL_DROPPED})
+    assert progress.decide(dropped) == progress.Progress(move=OrderMove(1, 2))
+    at_point = view(**dropping | {"books": Books.DROP_POINT | Books.AT_DROP_POINT})
+    assert progress.decide(at_point) == progress.STAY
 
 
 # A Give leader asked for one boarding, on slot 0 of a group with orders in

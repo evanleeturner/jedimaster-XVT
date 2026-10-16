@@ -221,6 +221,34 @@ def test_a_waiting_craft_waits_whatever_its_books_say(view) -> None:
     assert (said.order, said.depart) == (None, False)
 
 
+def test_the_engines_drop_comes_before_orders_books_and_commands(view) -> None:
+    """While the engine drops from a craft, nothing else moves it: no order
+    move, no trip home, no wait."""
+    craft = view(
+        order_code=OrderCode.SS_GO_HOME,
+        commands=Commands.WAIT,
+        books=Books.ORDERS_DONE | Books.MAY_JUMP | Books.ALL_DROPPED,
+        drop_phase=2,
+    )
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert said.activity == Activity.DEPLOYING_CRAFT
+    assert (said.steer, said.throttle, said.target, said.order) == (None,) * 4
+    assert (said.depart, said.drop_off) == (False, None)
+
+
+def test_sent_home_mid_drop_a_craft_stops_it_then_goes(view) -> None:
+    craft = view(
+        order_code=OrderCode.DROP_OFF,
+        books=Books.ABORTED | Books.MAY_JUMP,
+        drop_phase=1,
+    )
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert (said.drop_off, said.depart) == (0, False)
+    stopped = dataclasses.replace(craft, drop_phase=0)
+    said = answered(Question(2, (stopped,))).craft[0].actions
+    assert (said.activity, said.depart) == (Activity.LEAVING_BY_HYPERSPACE, True)
+
+
 def test_released_a_wingman_attacks_the_craft_its_player_named(view, contact) -> None:
     """A wingman of a player's flight (leader 0, the player's craft) told to
     wait, then given a target by the attack order, which ends the wait."""
