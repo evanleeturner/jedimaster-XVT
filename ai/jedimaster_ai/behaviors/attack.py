@@ -270,36 +270,18 @@ def fight(
     if target is None:
         return _seek(view, question, book, memory, interval, cruising)
 
-    dx, dy, dz = tactics.offset(view, target)
-    reach = geometry.distance(dx, dy, dz)
-    yaw, pitch = geometry.bearing(dx, dy, dz)
-    off_nose = geometry.angle_between(yaw, view.yaw)
-    off_level = geometry.angle_between(pitch, view.pitch)
-    lined_up = (
-        off_nose < cannons.AIM_CONE[tier]
-        and off_level < cannons.AIM_CONE[tier]
-        and reach < cannons.fire_range(view, target, tier)
-    )
-
+    aim = cannons.aim(view, target, tier)
     keep = tactics.clearance(target)
-    if reach < keep and (off_nose < BREAK_CONE or tactics.is_bulky(target)):
-        held_yaw, state = break_heading(view.yaw, yaw, book.dice)
-        held_pitch, blocked = geometry.LEVEL, NO_OBJECT
-        obstacle = avoidance.in_the_way(
-            view, question, held_yaw, held_pitch, target.object_index
+    if aim.reach < keep and (aim.off_nose < BREAK_CONE or tactics.is_bulky(target)):
+        held_yaw, held_pitch, blocked, state = _break_course(
+            view, question, target, aim.yaw, book.dice
         )
-        away = None if obstacle is None else escape(view, target, obstacle.contact)
-        crosses = away is not None and any(
-            geometry.sweeps(view.yaw, away[0], toward) for toward in (yaw, obstacle.yaw)
-        )
-        if away is not None and not crosses:
-            (held_yaw, held_pitch), blocked = away, obstacle.contact.object_index
         logger.debug(
             "attack.break object=%d target=%d distance=%d clearance=%d yaw=%d "
             "pitch=%d blocked=%d",
             view.object_index,
             target.object_index,
-            reach,
+            aim.reach,
             keep,
             held_yaw,
             held_pitch,
@@ -309,7 +291,7 @@ def fight(
         return _hold(view, book, state, BREAK, tick, memory, target, interval)
 
     threat = tail_threat(view, question)
-    if threat is not None and not lined_up and weave.may_start(memory.weave, tick):
+    if threat is not None and not aim.lined_up and weave.may_start(memory.weave, tick):
         started, move, state = weave.start(
             view, threat.object_index, memory.weave, book.dice, tick
         )
@@ -327,9 +309,12 @@ def fight(
         book = book.in_phase(ATTACK, tick)
         memory = dataclasses.replace(memory, shots=0)
     choice, memory = _warhead(view, question, target, memory, disabling)
+    yaw, pitch = aim.yaw, aim.pitch
     if choice.lead is not None:
         yaw, pitch = geometry.bearing(choice.lead.dx, choice.lead.dy, choice.lead.dz)
-    caught = reach < cannons.ALL_CANNONS_RANGE and off_nose < cannons.AIM_CONE[tier]
+    caught = (
+        aim.reach < cannons.ALL_CANNONS_RANGE and aim.off_nose < cannons.AIM_CONE[tier]
+    )
     throttle = CLOSE_THROTTLE if caught else FULL_THROTTLE
     if tier == 0:
         throttle = min(throttle, ROOKIE_THROTTLE)
@@ -339,8 +324,8 @@ def fight(
         think_interval=interval,
         target=target.object_index,
         lasers=(
-            cannons.cannon_fire(view, reach, tier, disabling)
-            if lined_up
+            cannons.cannon_fire(view, aim.reach, tier, disabling)
+            if aim.lined_up
             else (HOLD_FIRE, HOLD_FIRE)
         ),
         warhead=choice.warhead,
@@ -408,6 +393,30 @@ def _warhead(
     return choice, dataclasses.replace(
         memory, shots=shots, fresh=fresh, held=warheads.Held.NONE
     )
+
+
+def _break_course(
+    view: CraftView, question: Question, target: Contact, toward: int, state: int
+) -> tuple[int, int, int, int]:
+    """Return the yaw and pitch a break from the target holds, the object
+    index of the bulky craft that turned it (NO_OBJECT when none did), and
+    the dice state after it: a quarter turn away from the target's side
+    (``break_heading``), or, with a bulky craft in that turn's way, away
+    from the two alike (``escape``), unless the craft lies nearly in line
+    between them or that heading swings its nose across either.
+
+    ``toward`` is the yaw that points at the target.
+    """
+    held_yaw, state = break_heading(view.yaw, toward, state)
+    obstacle = avoidance.in_the_way(
+        view, question, held_yaw, geometry.LEVEL, target.object_index
+    )
+    away = None if obstacle is None else escape(view, target, obstacle.contact)
+    if away is None or any(
+        geometry.sweeps(view.yaw, away[0], across) for across in (toward, obstacle.yaw)
+    ):
+        return held_yaw, geometry.LEVEL, NO_OBJECT, state
+    return away[0], away[1], obstacle.contact.object_index, state
 
 
 def break_heading(heading: int, toward: int, state: int) -> tuple[int, int]:

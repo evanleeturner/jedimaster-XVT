@@ -4,8 +4,9 @@ Purpose:
     The fire control of a craft's cannon groups in a dogfight, by the 1997
     pilot's numbers: the aim cone, the firing range and the burst by skill
     tier, the range's changes for a fast target and a big one
-    (``fire_range``), and, by range, whether all cannons fire together, in
-    pairs or one at a time (``cannon_fire``). Its ion cannons hold, as in
+    (``fire_range``), whether the cannons are lined up on a target
+    (``aim``), and, by range, whether all cannons fire together, in pairs
+    or one at a time (``cannon_fire``). Its ion cannons hold, as in
     1997: only the Disable order fires them, at its target, where every
     other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
     ``behaviors.kamikaze`` fire by these rules.
@@ -18,6 +19,8 @@ Invariants:
 """
 
 from __future__ import annotations
+
+import dataclasses
 
 from . import geometry
 from . import tactics
@@ -51,6 +54,37 @@ PAIRS_RANGE = 0x4000
 # target, where every other cannon holds; the ion turbolasers, 142 and 147,
 # fire as other cannons do.
 ION_CANNON = 141
+
+
+@dataclasses.dataclass(frozen=True)
+class Aim:
+    """Where a target lies from a craft, and whether its cannons are lined
+    up on it."""
+
+    reach: int
+    yaw: int
+    pitch: int
+    # How far the target's bearing lies from the craft's heading, in yaw.
+    off_nose: int
+    lined_up: bool
+
+
+def aim(view: CraftView, target: Contact, tier: int) -> Aim:
+    """Return how far the target lies, the yaw and pitch that point at it,
+    how far that yaw lies off the craft's nose, and whether the cannons are
+    lined up: the target inside the aim cone in yaw and in pitch alike, and
+    nearer than the firing range (``fire_range``)."""
+    dx, dy, dz = tactics.offset(view, target)
+    reach = geometry.distance(dx, dy, dz)
+    yaw, pitch = geometry.bearing(dx, dy, dz)
+    off_nose = geometry.angle_between(yaw, view.yaw)
+    off_level = geometry.angle_between(pitch, view.pitch)
+    lined_up = (
+        off_nose < AIM_CONE[tier]
+        and off_level < AIM_CONE[tier]
+        and reach < fire_range(view, target, tier)
+    )
+    return Aim(reach, yaw, pitch, off_nose, lined_up)
 
 
 def fire_range(view: CraftView, target: Contact, tier: int) -> int:

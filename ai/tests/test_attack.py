@@ -185,6 +185,15 @@ def test_a_rookie_holds_back_its_throttle(craft, foe, ask) -> None:
     assert ask(craft(), foe(y=0x1800)).actions.throttle == attack.CLOSE_THROTTLE
 
 
+def test_a_close_target_off_the_nose_is_not_yet_caught(craft, foe, ask) -> None:
+    """Two thirds throttle only once the target is close and inside the aim
+    cone: 0x1800 away, outside its clearance, and 0x1000 off the nose, the
+    craft keeps full throttle."""
+    x = round(0x1800 * math.sin(math.pi / 8))
+    y = round(0x1800 * math.cos(math.pi / 8))
+    assert ask(craft(), foe(x=x, y=y)).actions.throttle == attack.FULL_THROTTLE
+
+
 def at(yaw: int, reach: int) -> dict:
     """Return the x and y of a point reach away from the origin along a yaw."""
     radians = yaw * 2 * math.pi / 0x10000
