@@ -6,7 +6,7 @@ Purpose:
     1997 rule: a target whose last subsystem fails (``Contact.disabled``)
     leaves the list, and the craft turns to the next. At those targets only
     its ion cannons fire, every other cannon group holds, as in 1997
-    (``cannons.cannon_fire``), so a craft with no ion cannon flies at its
+    (``cannons.bursts``), so a craft with no ion cannon flies at its
     target and never fires a cannon: the mission wants the target whole. Its guided warheads fire as
     Attack's do, but by the Disable limit (``warheads.outlasts_disabling``):
     only while the target's front shield, with a tenth of its hull once more

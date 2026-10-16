@@ -10,7 +10,7 @@ Purpose:
     1997's dive kept it. While it closes it fires as Attack fires: its
     cannons, the ion cannons held, while the target sits inside Attack's
     aim cone and firing range (``cannons.AIM_CONE``, ``cannons.fire_range``,
-    ``cannons.cannon_fire``), and a guided warhead whenever
+    ``cannons.bursts``), and a guided warhead whenever
     ``warheads.choose`` lets it (ruling K1). Avoidance leaves the target
     alone, since the dive steers into the target's clearance, and turns the
     craft round any other bulky craft in its way (ruling K3). The engine's
@@ -212,9 +212,7 @@ def _dive(
         think_interval=interval,
         target=target.object_index,
         lasers=(
-            cannons.cannon_fire(view, reach, tier)
-            if lined_up
-            else (HOLD_FIRE, HOLD_FIRE)
+            cannons.bursts(view, reach, tier) if lined_up else (HOLD_FIRE, HOLD_FIRE)
         ),
         warhead=shot,
     )

@@ -6,7 +6,7 @@ Purpose:
     tier, the range's changes for a fast target and a big one
     (``fire_range``), whether the cannons are lined up on a target
     (``aim``), and, by range, whether all cannons fire together, in pairs
-    or one at a time (``cannon_fire``). Its ion cannons hold, as in
+    or one at a time (``bursts``). Its ion cannons hold, as in
     1997: only the Disable order fires them, at its target, where every
     other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
     ``behaviors.kamikaze`` fire by these rules.
@@ -101,7 +101,7 @@ def fire_range(view: CraftView, target: Contact, tier: int) -> int:
     return reach
 
 
-def cannon_fire(
+def bursts(
     view: CraftView, reach: int, tier: int, disabling: bool = False
 ) -> tuple[CannonGroup, CannonGroup]:
     """Return a burst for each cannon group the craft has, by range and tier:

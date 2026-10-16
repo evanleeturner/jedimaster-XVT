@@ -16,7 +16,7 @@ Purpose:
     sets the aim cone, the firing range and the burst (``cannons``) and how
     soon it looks again for a nearer target. Its ion cannons hold, as in
     1997: only the Disable order fires them, at its target
-    (``cannons.cannon_fire``), so a craft whose only cannons are ion cannons
+    (``cannons.bursts``), so a craft whose only cannons are ion cannons
     fires no cannon here. Lined up or not,
     it fires a guided warhead at its target when ``warheads.choose`` lets it:
     its lock declared, a warhead that suits the target, inside 1997's limits.
@@ -236,7 +236,7 @@ def fight(
 ) -> Decision:
     """Return the craft's next move in a dogfight at the nearest of targets,
     each a contact it may fight; ``disabling`` sets the Disable order's
-    cannons (``cannons.cannon_fire``) and warhead limit
+    cannons (``cannons.bursts``) and warhead limit
     (``warheads.outlasts_disabling``); ``cruising`` flies ``seek``'s cruise
     while there is no target, else the craft keeps its course."""
     tick = question.tick
@@ -326,7 +326,7 @@ def fight(
         think_interval=interval,
         target=target.object_index,
         lasers=(
-            cannons.cannon_fire(view, aim.reach, tier, disabling)
+            cannons.bursts(view, aim.reach, tier, disabling)
             if aim.lined_up
             else (HOLD_FIRE, HOLD_FIRE)
         ),

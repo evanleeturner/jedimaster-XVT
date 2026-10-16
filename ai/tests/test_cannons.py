@@ -101,7 +101,7 @@ def test_ion_cannons_fire_only_for_a_disable_order_and_alone(
     every other cannon holds; the ion turbolasers fire as other cannons do."""
     me = craft(cannon_group_count=2, cannon_type=kinds)
     burst = CannonGroup(LinkMode.ALL, 5)
-    lasers = cannons.cannon_fire(me, 0x1800, 2, disabling)
+    lasers = cannons.bursts(me, 0x1800, 2, disabling)
     assert lasers == tuple(burst if fires else HOLD_FIRE for fires in fired)
 
 
