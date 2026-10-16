@@ -19,6 +19,9 @@ Purpose:
     whose only cannons are ion cannons fires no cannon here. Lined up or not,
     it fires a guided warhead at its target when ``warheads.choose`` lets it:
     its lock declared, a warhead that suits the target, inside 1997's limits.
+    At skill level Jedi and up it may fire one unguided at a big ship, and
+    while only the aim holds that shot it steers at the point where the
+    shot would meet the ship; its cannons still fire only lined up on it.
 
     With no target its order names in the battle, a craft an enemy is after
     (``pursuer``) fights that enemy while it may fight back (``fights_back``:
@@ -116,7 +119,6 @@ from ..world import Lock
 from ..world import NO_OBJECT
 from ..world import Question
 from ..world import Steer
-from ..world import Warhead
 from . import avoidance
 from . import BehaviorCode
 from . import Decision
@@ -347,7 +349,9 @@ def fight(
     if book.phase != ATTACK:
         book = book.in_phase(ATTACK, tick)
         memory = dataclasses.replace(memory, shots=0)
-    shot, memory = _warhead(view, question, target, memory, disabling)
+    choice, memory = _warhead(view, question, target, memory, disabling)
+    if choice.lead is not None:
+        yaw, pitch = geometry.bearing(choice.lead.dx, choice.lead.dy, choice.lead.dz)
     caught = reach < ALL_CANNONS_RANGE and off_nose < AIM_CONE[tier]
     throttle = CLOSE_THROTTLE if caught else FULL_THROTTLE
     if tier == 0:
@@ -362,7 +366,7 @@ def fight(
             if lined_up
             else (HOLD_FIRE, HOLD_FIRE)
         ),
-        warhead=shot,
+        warhead=choice.warhead,
     )
     return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
 
@@ -373,12 +377,11 @@ def _warhead(
     target: Contact,
     memory: Memory,
     disabling: bool,
-) -> tuple[Warhead | None, Memory]:
-    """Return the guided warhead the craft fires at its target, None when it
-    holds, and the memory counting the shot; the reason it holds is logged
-    when it changes."""
+) -> tuple[warheads.Choice, Memory]:
+    """Return the craft's warhead choice at its target and the memory
+    counting the shot; the reason it holds is logged when it changes."""
     if view.warhead_launcher_count == 0:
-        return None, memory
+        return warheads.Choice(None, warheads.Held.NONE), memory
     choice = warheads.choose(
         view, question, target, memory.shots, bool(memory.fresh), disabling
     )
@@ -396,22 +399,36 @@ def _warhead(
                 target.warheads_coming_damage,
                 memory.shots,
             )
-        return None, dataclasses.replace(memory, held=choice.held)
+        return choice, dataclasses.replace(memory, held=choice.held)
     launcher = choice.warhead.launcher
     shots = memory.shots + 1
-    logger.info(
-        "attack.warhead object=%d target=%d launcher=%d type=%d lock=%d coming=%d "
-        "shots=%d",
-        view.object_index,
-        target.object_index,
-        launcher,
-        view.warhead_type[launcher],
-        view.lock_ticks,
-        target.warheads_coming,
-        shots,
-    )
+    if choice.lead is None:
+        logger.info(
+            "attack.warhead object=%d target=%d launcher=%d type=%d lock=%d "
+            "coming=%d shots=%d",
+            view.object_index,
+            target.object_index,
+            launcher,
+            view.warhead_type[launcher],
+            view.lock_ticks,
+            target.warheads_coming,
+            shots,
+        )
+    else:
+        logger.info(
+            "attack.unguided object=%d target=%d launcher=%d type=%d lock=%d "
+            "ticks=%d miss=%d shots=%d",
+            view.object_index,
+            target.object_index,
+            launcher,
+            view.warhead_type[launcher],
+            view.lock_ticks,
+            choice.lead.ticks,
+            choice.lead.miss,
+            shots,
+        )
     fresh = 1 if warheads.needs_fresh_lock(target) else memory.fresh
-    return choice.warhead, dataclasses.replace(
+    return choice, dataclasses.replace(
         memory, shots=shots, fresh=fresh, held=warheads.Held.NONE
     )
 

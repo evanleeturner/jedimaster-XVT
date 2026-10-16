@@ -101,6 +101,17 @@ def sine(angle: int) -> int:
     return sign * ((y + 0x80) >> 8)
 
 
+def forward(yaw: int, pitch: int) -> tuple[int, int, int]:
+    """Return the unit vector of a heading, in 65,536ths: the way a craft
+    flying it moves, and a shot it fires flies."""
+    level = sine(pitch)
+    return (
+        sine(yaw) * level >> 16,
+        sine(yaw + QUARTER_TURN) * level >> 16,
+        sine(pitch + QUARTER_TURN),
+    )
+
+
 def sweeps(nose: int, heading: int, toward: int) -> bool:
     """Return whether turning from nose to heading the shortest way swings
     the nose across toward, the angles alike yaws."""

@@ -11,6 +11,7 @@ from jedimaster_ai.geometry import angle_between
 from jedimaster_ai.geometry import arctangent
 from jedimaster_ai.geometry import bearing
 from jedimaster_ai.geometry import distance
+from jedimaster_ai.geometry import forward
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.geometry import signed
 from jedimaster_ai.geometry import sine
@@ -96,3 +97,35 @@ def test_sine_is_odd_and_within_20_of_the_exact_sine() -> None:
         exact = round(0x10000 * math.sin(angle * 2 * math.pi / 0x10000))
         assert abs(sine(angle) - exact) <= 20
         assert sine(-angle % 0x10000) == -sine(angle)
+
+
+@pytest.mark.parametrize(
+    ("yaw", "pitch", "expected"),
+    [
+        (0, LEVEL, (0, 0x10000, 0)),
+        (0x4000, LEVEL, (0x10000, 0, 0)),
+        (0x8000, LEVEL, (0, -0x10000, 0)),
+        (0xC000, LEVEL, (-0x10000, 0, 0)),
+        (0x1234, 0, (0, 0, 0x10000)),
+        (0x1234, 0x8000, (0, 0, -0x10000)),
+    ],
+)
+def test_forward_follows_the_engines_axes(yaw, pitch, expected) -> None:
+    assert forward(yaw, pitch) == expected
+
+
+# Two sines of up to 20 65,536ths each make the length; the arctangent's 4
+# units and a sine's 20 65,536ths of a radian, under 4 units, make an angle.
+FORWARD_LENGTH_ERROR = 40
+FORWARD_ANGLE_ERROR = 8
+
+
+def test_forward_points_back_along_the_bearing() -> None:
+    rng = random.Random(7)
+    for _ in range(500):
+        yaw, pitch = rng.randrange(0x10000), rng.randrange(0x400, 0x7C00)
+        x, y, z = forward(yaw, pitch)
+        assert abs(math.hypot(x, y, z) - 0x10000) <= FORWARD_LENGTH_ERROR
+        back_yaw, back_pitch = bearing(x, y, z)
+        assert angle_between(back_yaw, yaw) <= FORWARD_ANGLE_ERROR
+        assert angle_between(back_pitch, pitch) <= FORWARD_ANGLE_ERROR

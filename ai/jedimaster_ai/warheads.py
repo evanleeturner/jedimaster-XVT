@@ -1,5 +1,5 @@
-"""Warheads: when a fighting craft fires a guided warhead, and from which
-launcher.
+"""Warheads: when a fighting craft fires a warhead, guided or aimed ahead,
+and from which launcher.
 
 Purpose:
     The fire control of a craft's warhead launchers in a dogfight
@@ -38,6 +38,28 @@ Purpose:
     at big ships. The shot homes with the lock the craft
     holds; the engine turns the lock into the shot's homing.
 
+    The unguided shot (rulings 50 and 51): a small craft at skill level
+    Jedi or above (UNGUIDED_SKILL_LEVEL, the Sith ranks too) fires at a
+    freighter, starship or platform without its lock declared. The lock
+    test gives way to the aim, tested last:
+
+    aim       the point where the shot meets the target (``lead``) lies
+              within half the target's size of the craft's nose line, and
+              the shot reaches it within its life
+
+    A shot with no homing flies the craft's nose line at the craft's speed
+    plus its kind's until its life ends (the engine's ``object.c``), so the
+    meeting point is found as a player leads a shot, in two passes: the
+    time the shot takes to the target, where the target flies in that time,
+    the time to that point, and where the target flies in that. A lock
+    counted to a game second or more still gives the shot that much homing.
+    While only the aim holds the shot, the choice names the point, and
+    ``behaviors.attack`` turns the craft's nose to it. A warhead a
+    freighter, starship or platform fires leaves straight up or down, so
+    such a craft never fires one unguided. The engine counts only homing
+    warheads as flying at a target, so the run's cap, with the launcher's
+    cooldown, is what bounds the unguided shots.
+
 Invariants:
     - A shot fires from one launcher, one slot at a time: 1997 fired a pair
       only at tier 2 with the craft hurt, and the hull damage that made a
@@ -47,6 +69,8 @@ Invariants:
       run's count and whether the craft disables the target alone;
       ``behaviors.attack`` keeps the count and the fresh-lock mark in its
       notebook.
+    - A declared lock on the target comes first: an unguided shot is aimed
+      only while the craft has none.
 """
 
 from __future__ import annotations
@@ -54,7 +78,9 @@ from __future__ import annotations
 import dataclasses
 import enum
 import logging
+import math
 
+from . import geometry
 from . import tactics
 from .world import Contact
 from .world import CraftView
@@ -90,35 +116,48 @@ DISABLE_HULL_SHARE = 10
 # The genera after a shot at which the lock must lapse before another
 # fires: 1997 set the lock to 0 after a shot at these and kept it at others.
 _FRESH_LOCK_GENERA = (tactics.GENUS_STARFIGHTER, tactics.GENUS_TRANSPORT)
+# The lowest skill level (``CraftView.skill_level``) that fires an unguided
+# warhead at a big ship: Jedi, 5, and the Sith ranks above it (ruling 50).
+UNGUIDED_SKILL_LEVEL = 5
+# The engine's motion rule (``object.c``): a speed moves
+# ((SPEED_SCALE x speed + 128) >> 8) world units in GAME_SECOND ticks, a
+# shot as a craft.
+SPEED_SCALE = 4660
+GAME_SECOND = 236
 
 
 @dataclasses.dataclass(frozen=True)
 class Kind:
     """A warhead kind: its speed and damage before the firer's speed adds
-    to them, and whether it may go at a small and at a bulky target."""
+    to them, whether it may go at a small and at a bulky target, and its
+    life in game seconds."""
 
     name: str
     speed: int
     damage: int
     at_small: bool
     at_bulky: bool
+    life: int
 
 
-# Speeds and damages are the engine's table's (``laser.c`` 35-62). The
-# pulses go at small craft alone, as 1997's class rule sent them; type 154
-# at bulky craft alone, by the same rule.
+# Speeds, damages and lives are the engine's table's (``laser.c`` 35-62;
+# no warhead's life has a part second). The pulses go at small craft alone,
+# as 1997's class rule sent them; type 154 at bulky craft alone, by the
+# same rule.
 KINDS = {
-    SPACE_BOMB: Kind("space_bomb", 25, 65_000, False, True),
-    HEAVY_ROCKET: Kind("heavy_rocket", 175, 35_000, False, True),
-    PROTON_TORPEDO: Kind("proton_torpedo", 250, 10_000, True, True),
-    ADVANCED_PROTON_TORPEDO: Kind("advanced_proton_torpedo", 300, 15_000, True, True),
-    ION_PULSE: Kind("ion_pulse", 350, 6_000, True, False),
-    TYPE_154: Kind("type_154", 400, 9_000, False, True),
-    CONCUSSION_MISSILE: Kind("concussion_missile", 500, 3_000, True, True),
-    ADVANCED_CONCUSSION_MISSILE: Kind(
-        "advanced_concussion_missile", 600, 6_000, True, True
+    SPACE_BOMB: Kind("space_bomb", 25, 65_000, False, True, 120),
+    HEAVY_ROCKET: Kind("heavy_rocket", 175, 35_000, False, True, 90),
+    PROTON_TORPEDO: Kind("proton_torpedo", 250, 10_000, True, True, 40),
+    ADVANCED_PROTON_TORPEDO: Kind(
+        "advanced_proton_torpedo", 300, 15_000, True, True, 45
     ),
-    MAGNETIC_PULSE: Kind("magnetic_pulse", 600, 3_000, True, False),
+    ION_PULSE: Kind("ion_pulse", 350, 6_000, True, False, 40),
+    TYPE_154: Kind("type_154", 400, 9_000, False, True, 35),
+    CONCUSSION_MISSILE: Kind("concussion_missile", 500, 3_000, True, True, 25),
+    ADVANCED_CONCUSSION_MISSILE: Kind(
+        "advanced_concussion_missile", 600, 6_000, True, True, 25
+    ),
+    MAGNETIC_PULSE: Kind("magnetic_pulse", 600, 3_000, True, False, 25),
 }
 # The kinds a craft whose order names a bulky craft keeps for it (ruling 53).
 KEPT_FOR_BULKY = frozenset({PROTON_TORPEDO, ADVANCED_PROTON_TORPEDO})
@@ -136,14 +175,31 @@ class Held(enum.IntEnum):
     FRESH = 5
     LIMIT = 6
     CAPS = 7
+    AIM = 8
+
+
+@dataclasses.dataclass(frozen=True)
+class Lead:
+    """Where an unguided shot fired now meets its target: the point's offset
+    from the craft, the ticks the shot takes to it and how far from it the
+    craft's nose line passes, all in world units but the ticks."""
+
+    dx: int
+    dy: int
+    dz: int
+    ticks: int
+    miss: int
 
 
 @dataclasses.dataclass(frozen=True)
 class Choice:
-    """A fire decision: the warhead to fire, None when held, and why."""
+    """A fire decision: the warhead to fire, None when held, and why; for an
+    unguided shot, fired or held by the aim alone, where it meets the
+    target."""
 
     warhead: Warhead | None
     held: Held
+    lead: Lead | None = None
 
 
 def choose(
@@ -160,7 +216,9 @@ def choose(
     ``shots`` is the warheads the craft fired in this attack run;
     ``fresh_needed`` is set while a shot at a starfighter or transport waits
     for the lock to lapse; ``disabling`` is set for a craft disabling its
-    target, which takes the Disable limit (``outlasts_disabling``).
+    target, which takes the Disable limit (``outlasts_disabling``). With no
+    lock declared, a craft that may fire unguided (``fires_unguided``) is
+    held by the aim (``aimed``) alone once every other test passes.
     """
     bulky = tactics.is_bulky(target)
     allowed = [
@@ -181,7 +239,8 @@ def choose(
     ready = [launcher for launcher in allowed if launcher_ready(view, launcher)]
     if not ready:
         return Choice(None, Held.LAUNCHER)
-    if not locked_on(view, question, target):
+    guided = locked_on(view, question, target)
+    if not guided and not fires_unguided(view, question, target):
         return Choice(None, Held.LOCK)
     if fresh_needed:
         return Choice(None, Held.FRESH)
@@ -189,7 +248,30 @@ def choose(
         return Choice(None, Held.LIMIT)
     if not under_caps(target, shots):
         return Choice(None, Held.CAPS)
-    return Choice(Warhead(first_choice(view, ready, bulky)), Held.NONE)
+    launcher = first_choice(view, ready, bulky)
+    if guided:
+        return Choice(Warhead(launcher), Held.NONE)
+    kind = KINDS[view.warhead_type[launcher]]
+    point = lead(view, target, kind)
+    on = aimed(point, target, kind)
+    logger.debug(
+        "warheads.lead object=%d target=%d launcher=%d dx=%d dy=%d dz=%d "
+        "ticks=%d life=%d miss=%d half=%d aimed=%d",
+        view.object_index,
+        target.object_index,
+        launcher,
+        point.dx,
+        point.dy,
+        point.dz,
+        point.ticks,
+        kind.life * GAME_SECOND,
+        point.miss,
+        target.size // 2,
+        int(on),
+    )
+    if not on:
+        return Choice(None, Held.AIM, point)
+    return Choice(Warhead(launcher), Held.NONE, point)
 
 
 def fits(warhead_type: int, bulky: bool) -> bool:
@@ -222,6 +304,53 @@ def locked_on(view: CraftView, question: Question, target: Contact) -> bool:
         return False
     own = tactics.own_contact(view, question)
     return own is not None and own.target == target.object_index
+
+
+def fires_unguided(view: CraftView, question: Question, target: Contact) -> bool:
+    """Return whether the craft may fire an unguided warhead at the target:
+    its skill level is UNGUIDED_SKILL_LEVEL or more, the target is bulky,
+    and the craft's own contact, which the question must show, is small."""
+    if view.skill_level < UNGUIDED_SKILL_LEVEL or not tactics.is_bulky(target):
+        return False
+    own = tactics.own_contact(view, question)
+    return own is not None and not tactics.is_bulky(own)
+
+
+def pace(speed: int) -> int:
+    """Return the world units a speed moves in a game second, by the
+    engine's motion rule."""
+    return (SPEED_SCALE * speed + 128) >> 8
+
+
+def lead(view: CraftView, target: Contact, kind: Kind) -> Lead:
+    """Return where a warhead of a kind, fired now along the craft's nose
+    with no homing, meets the target flying on at its speed and heading:
+    two passes of the time to meet and the target's flight in that time."""
+    dx, dy, dz = tactics.offset(view, target)
+    shot = pace(view.speed + kind.speed)
+    drift = pace(target.speed)
+    ux, uy, uz = geometry.forward(target.yaw, target.pitch)
+    px, py, pz = dx, dy, dz
+    for _ in range(2):
+        flown = geometry.distance(px, py, pz) * drift // shot
+        px, py, pz = (
+            dx + (ux * flown >> 16),
+            dy + (uy * flown >> 16),
+            dz + (uz * flown >> 16),
+        )
+    square = px * px + py * py + pz * pz
+    reach = math.isqrt(square)
+    nx, ny, nz = geometry.forward(view.yaw, view.pitch)
+    along = (px * nx + py * ny + pz * nz) >> 16
+    miss = reach if along <= 0 else math.isqrt(max(square - along * along, 0))
+    return Lead(px, py, pz, reach * GAME_SECOND // shot, miss)
+
+
+def aimed(point: Lead, target: Contact, kind: Kind) -> bool:
+    """Return whether an unguided shot meets the target: the craft's nose
+    line passes within half the target's size of the meeting point, and the
+    shot reaches it before its life ends."""
+    return point.miss < target.size // 2 and point.ticks < kind.life * GAME_SECOND
 
 
 def outlasts(target: Contact) -> bool:

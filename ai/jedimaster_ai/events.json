@@ -43,6 +43,11 @@
       "fields": ["object", "target", "distance"],
       "text": "Craft {object} attacks craft {target}, {distance} units away"
     },
+    "attack.unguided": {
+      "level": "I",
+      "fields": ["object", "target", "launcher", "type", "lock", "ticks", "miss", "shots"],
+      "text": "Craft {object} fired an unguided warhead of type {type} from launcher {launcher} at craft {target}, aimed ahead to meet it in {ticks} ticks with its nose line {miss} units from the meeting point, its lock at {lock} ticks; {shots} fired in this attack run"
+    },
     "attack.warhead": {
       "level": "I",
       "fields": ["object", "target", "launcher", "type", "lock", "coming", "shots"],
@@ -237,6 +242,11 @@
       "level": "D",
       "fields": ["object", "target", "durability", "salvo", "coming", "lasts"],
       "text": "Craft {object} disabling craft {target} counts its front shield, with a tenth of its hull once more than a tenth is damaged, as {durability}; the warheads flying at it and one from each of its launchers that may go at it ({salvo} of that) come to {coming} once divided; it fires only while the shield lasts ({lasts})"
+    },
+    "warheads.lead": {
+      "level": "D",
+      "fields": ["object", "target", "launcher", "dx", "dy", "dz", "ticks", "life", "miss", "half", "aimed"],
+      "text": "Craft {object} with no lock on craft {target} finds that a warhead from launcher {launcher} fired now unguided meets it at ({dx}, {dy}, {dz}) from the craft in {ticks} ticks, of a life of {life}, its nose line passing {miss} units from that point; the shot goes ({aimed}) when that is under half the target's size, {half}, within the life"
     },
     "weave.end": {
       "level": "D",
