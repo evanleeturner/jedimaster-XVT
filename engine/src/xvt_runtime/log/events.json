@@ -2623,10 +2623,25 @@
       "fields": ["code", "why"],
       "text": "The launch door ended with exit code {code} (3 refused, 4 battle not reached, 5 flight failed): {why}"
     },
+    "launch.result_detail": {
+      "level": "D",
+      "fields": ["shots", "hits", "warheads", "warhead_hits", "losses", "kills", "shared", "assists", "player_kills", "player_shared", "ai_kills", "ai_shared", "lost_to_players", "lost_to_ai"],
+      "text": "The launch door read the local pilot's own record of the battle: {shots} laser and ion shots, {hits} hits, {warheads} warheads fired, {warhead_hits} warhead hits, {losses} craft lost; summed over its tables, {kills} kills, {shared} shared kills and {assists} assists by craft type, {player_kills} kills and {player_shared} shared kills of human pilots, {ai_kills} kills and {ai_shared} shared kills of computer pilots, killed {lost_to_players} times by human pilots and {lost_to_ai} times by computer pilots"
+    },
+    "launch.result_player": {
+      "level": "D",
+      "fields": ["entry", "slot", "name", "team", "fg", "rating", "score", "kills", "shared", "assists", "losses", "shots", "hits", "warheads", "warhead_hits", "has_left"],
+      "text": "The launch door read player entry {entry} of the pilot record, \"{name}\", at flight place {slot} (-1 none): team {team}, flight group {fg}, rank {rating}, score {score}, kills {kills}, shared {shared}, assists {assists}, losses {losses}, shots {shots}, hits {hits}, warheads {warheads}, warhead hits {warhead_hits}, left early {has_left}"
+    },
     "launch.result_read": {
       "level": "D",
       "fields": ["local", "team", "score", "kills", "losses", "goals_met_seconds", "outcome", "sith", "sith_group", "sith_craft", "apprentices_flown", "apprentices_lost", "lord_flown", "lord_lost", "sith_why"],
       "text": "The launch door read the battle's result from the pilot record: local player {local}, team {team}, score {score}, kills {kills}, losses {losses}, goals met {goals_met_seconds} seconds into the mission (0: never), outcome {outcome} (1 completed, 2 not completed); Sith setting {sith}, promoted flight group {sith_group} (-1 none) of craft type {sith_craft}, apprentices flown {apprentices_flown} and lost {apprentices_lost}, Lord flown {lord_flown} and lost {lord_lost}, reason none was promoted \"{sith_why}\""
+    },
+    "launch.result_team": {
+      "level": "D",
+      "fields": ["team", "completed", "score", "kills", "shared", "losses", "seconds"],
+      "text": "The launch door read team {team} of the pilot record: goals met {completed} (1 yes), score {score}, kills {kills}, shared {shared}, losses {losses}, goals met {seconds} seconds into the mission (0: never)"
     },
     "launch.result_unwritten": {
       "level": "E",

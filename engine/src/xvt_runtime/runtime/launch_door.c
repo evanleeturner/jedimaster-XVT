@@ -29,6 +29,7 @@
 #include "xvt_runtime/runtime/launch_description.h"
 #include "xvt_runtime/runtime/launch_options.h"
 #include "xvt_runtime/runtime/launch_result.h"
+#include "xvt_runtime/runtime/launch_stats.h"
 #include "xvt_runtime/runtime/network_metadata.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/port.h"
@@ -90,6 +91,7 @@ static void write_failure(int exit_code, const char *why)
 	struct xvt_launch_result result;
 	memset(&result, 0, sizeof(result));
 	result.exit_code = exit_code;
+	result.local_entry = -1;
 	snprintf(result.why, sizeof(result.why), "%s", why);
 	if (!xvt_launch_result_write(&result, g_result_path)) {
 		XVT_LOG_ERROR("launch.result_unwritten path=\"%s\"",
@@ -1015,6 +1017,8 @@ void xvt_launch_door_finish(int flown)
 		result.losses =
 			g_pilot_data.network_players[local].total_losses;
 	}
+	result.local_entry = local >= 0 && local < 8 ? local : -1;
+	xvt_launch_stats_read(&result);
 	result.outcome = XVT_LAUNCH_OUTCOME_NOT_COMPLETED;
 	if (team >= 0 && team < 10) {
 		result.goals_met_seconds =

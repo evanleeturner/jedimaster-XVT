@@ -777,9 +777,13 @@ if(NOT MSVC)
     xvt_add_engine_test(test_launch_door test_launch_door.c
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_door.c"
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_description.c"
-        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_result.c")
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_result.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_stats.c")
     target_link_libraries(test_launch_door PRIVATE aeron_cjson)
     add_test(NAME launch_door COMMAND test_launch_door)
+    xvt_add_engine_test(test_launch_stats test_launch_stats.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_stats.c")
+    add_test(NAME launch_stats COMMAND test_launch_stats)
     # The network door's admission, with descriptions read by the real parser.
     xvt_add_engine_test(test_door_admission test_door_admission.c
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/door_admission.c"
