@@ -44,6 +44,7 @@ class BehaviorCode(enum.IntEnum):
     KAMIKAZE = 10
     BOARD = 11
     SELF_DESTRUCT = 12
+    DROP_OFF = 13
 
 
 @dataclasses.dataclass(frozen=True)

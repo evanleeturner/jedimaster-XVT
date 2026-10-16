@@ -138,6 +138,46 @@
       "fields": ["object", "named", "working", "chosen", "ion_groups"],
       "text": "Craft {object} on a Disable order has {named} targets its order names, {working} of them with subsystems that work; once a player's commands apply it fights the nearest of {chosen}, with its {ion_groups} ion cannon groups alone (none fire when it has none)"
     },
+    "dropoff.approach": {
+      "level": "D",
+      "fields": ["object", "group", "left", "throttle"],
+      "text": "Craft {object} on Drop Off flies to its drop point for group {group} (the order's variable2, counted from 1): {left} units left, throttle {throttle}"
+    },
+    "dropoff.at_point": {
+      "level": "I",
+      "fields": ["object", "group"],
+      "text": "Craft {object} on Drop Off stops at its drop point and asks the engine to drop group {group} (the order's variable2, counted from 1)"
+    },
+    "dropoff.done": {
+      "level": "I",
+      "fields": ["object", "group", "delivered"],
+      "text": "Craft {object} on Drop Off is done with group {group} (the order's variable2, counted from 1): {delivered} delivered, or nothing to deliver"
+    },
+    "dropoff.drop": {
+      "level": "D",
+      "fields": ["object", "phase", "delivered"],
+      "text": "Craft {object} on Drop Off waits while the engine drops: phase {phase} (1 the push to a place, 2 the wait after a delivery), {delivered} delivered"
+    },
+    "dropoff.dropping": {
+      "level": "I",
+      "fields": ["object", "group"],
+      "text": "The engine drops group {group} (the order's variable2, counted from 1) from craft {object}"
+    },
+    "dropoff.no_leader": {
+      "level": "D",
+      "fields": ["object", "leader"],
+      "text": "Craft {object} on Drop Off follows craft {leader}, which it cannot follow now (not shown, flown by a player, leaving, or no place given), and holds still"
+    },
+    "dropoff.no_point": {
+      "level": "W",
+      "fields": ["object", "group", "books"],
+      "text": "Craft {object} on Drop Off for group {group} (the order's variable2, counted from 1) has no drop point and is not done (books {books}), and holds still"
+    },
+    "dropoff.stopped": {
+      "level": "I",
+      "fields": ["object", "delivered", "books"],
+      "text": "Craft {object} stops its drop to go home (books {books}): {delivered} delivered"
+    },
     "escort.station": {
       "level": "D",
       "fields": ["object", "escorted", "distance", "range", "disabled"],
