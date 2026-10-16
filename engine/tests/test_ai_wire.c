@@ -92,6 +92,9 @@ static struct ai_wire_craft_view view_with_distinct_bytes(void)
 		10,
 		{0xD1D0, 0xD3D2, 0xD5D4, 0xD7D6, 0xD9D8, 0xDBDA, 0xDDDC, 0xDFDE,
 		 0xE1E0, 0xE3E2},
+		0xE4,
+		0xE6E5,
+		0xEAE9E8E7,
 		{0}};
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		view.notebook[byte] = (uint8_t)(0x40 + byte);
@@ -144,8 +147,8 @@ static struct ai_wire_contact static_with_distinct_bytes(void)
 
 static void check_question_bytes(void)
 {
-	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 387] = {
-		0x8B, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x10, 0x00,
+	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 394] = {
+		0x92, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x11, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x00, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
@@ -185,7 +188,8 @@ static void check_question_bytes(void)
 		0x70, 0x71, 0x72, 0x73, 0xF3, 0xFF, 0xFF, 0xFF, 0x74, 0x75,
 		0x76, 0x77, 0xC0, 0xC1, 0xC2, 0xC3, 0x0A, 0xD0, 0xD1, 0xD2,
 		0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC,
-		0xDD, 0xDE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3};
+		0xDD, 0xDE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6,
+		0xE7, 0xE8, 0xE9, 0xEA};
 	static const uint8_t expected_contacts[AI_WIRE_CONTACT_HEAD_BYTES +
 					       AI_WIRE_CONTACT_BYTES] = {
 		0x01, 0x00, 0x00, 0x00, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
@@ -450,9 +454,11 @@ static void check_good_answer(void)
 	struct ai_wire_craft_answer answers[2];
 	good_answer(&bytes);
 	/* Craft 7's answer is the longest but for 14 turrets of 4 bytes. */
-	XVT_ASSERT_INT_EQ(bytes.length, AI_WIRE_HEAD_BYTES +
-						AI_WIRE_CRAFT_ANSWER_BYTES_MAX -
-						14 * 4 + 3 + AI_NOTEBOOK_BYTES);
+	/* A dock is 1 byte; the board action, which cannot share an answer
+	 * with it, is 3, so the answer's most is 2 bytes more. */
+	XVT_ASSERT_INT_EQ(bytes.length,
+			  AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_ANSWER_BYTES_MAX -
+				  2 - 14 * 4 + 3 + AI_NOTEBOOK_BYTES);
 	XVT_ASSERT_INT_EQ(read_two(&bytes, answers), AI_WIRE_OK);
 	XVT_ASSERT_INT_EQ(answers[0].object_index, 7);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[0], 0x5A);
@@ -678,7 +684,7 @@ static void check_shown_faults(void)
 static void check_action_faults(void)
 {
 	static const uint8_t kind_zero[] = {0};
-	static const uint8_t kind_end[] = {17};
+	static const uint8_t kind_end[] = {18};
 	static const uint8_t twice[] = {AI_WIRE_ACTION_THROTTLE, 1, 0,
 					AI_WIRE_ACTION_THROTTLE, 2, 0};
 	/* 16 activities: 0 to 15 are named, the three looking ones are 13 to
@@ -952,6 +958,131 @@ static void check_self_destruct_faults(void)
 	XVT_ASSERT_INT_EQ(answer.actions, 1u << 16);
 }
 
+/* The board action is a u16: an object index starts a dock, only while the
+ * view shows the craft at its board point on a boarding order, not docking,
+ * and the object is a contact (the answer's own target action, when it has
+ * one, must name it); 0xFFFF stops a dock in its align or transfer phase;
+ * it never shares an answer with a depart or a dock; and while the view
+ * shows a dock the maneuver timer is refused but steer and throttle are not.
+ * The limits are numbers: the orders 12 to 17, 31 and 32, the phases 0 to 3. */
+static void check_board_faults(void)
+{
+	static const uint8_t board_12[] = {AI_WIRE_ACTION_BOARD, 12, 0};
+	static const uint8_t board_11[] = {AI_WIRE_ACTION_BOARD, 11, 0};
+	static const uint8_t board_static[] = {AI_WIRE_ACTION_BOARD, 40, 0};
+	static const uint8_t board_none[] = {AI_WIRE_ACTION_BOARD, 0xFF, 0xFF};
+	static const uint8_t board_12_target_12[] = {
+		AI_WIRE_ACTION_BOARD, 12, 0, AI_WIRE_ACTION_TARGET, 12, 0};
+	static const uint8_t target_12_board_12[] = {
+		AI_WIRE_ACTION_TARGET, 12, 0, AI_WIRE_ACTION_BOARD, 12, 0};
+	static const uint8_t board_12_target_9[] = {
+		AI_WIRE_ACTION_BOARD, 12, 0, AI_WIRE_ACTION_TARGET, 9, 0};
+	static const uint8_t board_none_target_9[] = {
+		AI_WIRE_ACTION_BOARD, 0xFF, 0xFF, AI_WIRE_ACTION_TARGET, 9, 0};
+	static const uint8_t board_12_dock[] = {AI_WIRE_ACTION_BOARD, 12, 0,
+						AI_WIRE_ACTION_DOCK};
+	static const uint8_t board_12_depart[] = {AI_WIRE_ACTION_BOARD, 12, 0,
+						  AI_WIRE_ACTION_DEPART};
+	static const uint8_t timer[] = {AI_WIRE_ACTION_MANEUVER_TIMER, 5, 0, 0,
+					0};
+	static const uint8_t steer_throttle[] = {
+		AI_WIRE_ACTION_STEER,	 1, 0, 2, 0, 3, 0,
+		AI_WIRE_ACTION_THROTTLE, 4, 0};
+	static const uint8_t boarding_orders[] = {12, 13, 14, 15,
+						  16, 17, 31, 32};
+	static const uint8_t other_orders[] = {0, 1, 11, 18, 30, 33, 255};
+	struct ai_wire_craft_view *view = &g_views[0];
+	const uint32_t books = view->books;
+	const uint8_t order = view->order_code;
+	view->books = AI_WIRE_BOOKS_BOARD_POINT | AI_WIRE_BOOKS_AT_BOARD_POINT;
+	for (size_t index = 0; index < sizeof boarding_orders; ++index) {
+		view->order_code = boarding_orders[index];
+		XVT_ASSERT_INT_EQ(read_actions(1, board_12, sizeof board_12),
+				  AI_WIRE_OK);
+	}
+	for (size_t index = 0; index < sizeof other_orders; ++index) {
+		view->order_code = other_orders[index];
+		XVT_ASSERT_INT_EQ(read_actions(1, board_12, sizeof board_12),
+				  AI_WIRE_BAD_ACTION);
+	}
+	view->order_code = 12;
+	/* A contact that is not the craft's target, a non-contact, a static. */
+	XVT_ASSERT_INT_EQ(read_actions(1, board_11, sizeof board_11),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, board_static, sizeof board_static),
+			  AI_WIRE_BAD_ACTION);
+	/* Near the point but not at it. */
+	view->books = AI_WIRE_BOOKS_BOARD_POINT;
+	XVT_ASSERT_INT_EQ(read_actions(1, board_12, sizeof board_12),
+			  AI_WIRE_BAD_ACTION);
+	view->books = AI_WIRE_BOOKS_AT_BOARD_POINT;
+	XVT_ASSERT_INT_EQ(read_actions(1, board_12, sizeof board_12),
+			  AI_WIRE_OK);
+	view->books = AI_WIRE_BOOKS_BOARD_POINT | AI_WIRE_BOOKS_AT_BOARD_POINT;
+	/* The answer's own target. */
+	XVT_ASSERT_INT_EQ(
+		read_actions(2, board_12_target_12, sizeof board_12_target_12),
+		AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(
+		read_actions(2, target_12_board_12, sizeof target_12_board_12),
+		AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(
+		read_actions(2, board_12_target_9, sizeof board_12_target_9),
+		AI_WIRE_BAD_ACTION);
+	/* Never with a depart or a dock. */
+	view->books |= AI_WIRE_BOOKS_AT_HANGAR | AI_WIRE_BOOKS_MAY_JUMP;
+	XVT_ASSERT_INT_EQ(read_actions(2, board_12_dock, sizeof board_12_dock),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(
+		read_actions(2, board_12_depart, sizeof board_12_depart),
+		AI_WIRE_BAD_ACTION);
+	view->books = AI_WIRE_BOOKS_BOARD_POINT | AI_WIRE_BOOKS_AT_BOARD_POINT;
+	/* The stop is allowed in phases 1 and 2 only, with a target of its
+	 * own in the answer whatever it is. */
+	for (int phase = 0; phase <= 3; ++phase) {
+		view->board_phase = (uint8_t)phase;
+		XVT_ASSERT_INT_EQ(
+			read_actions(1, board_none, sizeof board_none),
+			phase == 1 || phase == 2 ? AI_WIRE_OK
+						 : AI_WIRE_BAD_ACTION);
+		XVT_ASSERT_INT_EQ(read_actions(1, board_12, sizeof board_12),
+				  phase == 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
+		/* The timer is refused while docking; steer and throttle are
+		 * not. */
+		XVT_ASSERT_INT_EQ(read_actions(1, timer, sizeof timer),
+				  phase == 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
+		XVT_ASSERT_INT_EQ(
+			read_actions(2, steer_throttle, sizeof steer_throttle),
+			AI_WIRE_OK);
+	}
+	view->board_phase = 1;
+	XVT_ASSERT_INT_EQ(read_actions(2, board_none_target_9,
+				       sizeof board_none_target_9),
+			  AI_WIRE_OK);
+	view->board_phase = 0;
+	/* The object cut off by the end of the message. */
+	XVT_ASSERT_INT_EQ(read_actions(1, board_12, sizeof board_12 - 1),
+			  AI_WIRE_SHORT);
+	/* Read into the answer: the object, the action bit 17. */
+	struct test_bytes bytes;
+	struct ai_wire_craft_answer answer;
+	start_answer(&bytes, 1);
+	add_craft(&bytes, 7, 0);
+	add_u8(&bytes, 1);
+	memcpy(&bytes.data[bytes.length], board_12, sizeof board_12);
+	bytes.length += sizeof board_12;
+	finish_answer(&bytes);
+	struct ai_wire_question question = g_question;
+	question.craft_count = 1;
+	XVT_ASSERT_INT_EQ(ai_wire_read_answer(bytes.data, bytes.length,
+					      &question, &answer),
+			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(answer.board_object, 12);
+	XVT_ASSERT_INT_EQ(answer.actions, 1u << 17);
+	view->books = books;
+	view->order_code = order;
+}
+
 int main(void)
 {
 	check_question_bytes();
@@ -967,5 +1098,6 @@ int main(void)
 	check_ion_faults();
 	check_maneuver_timer_faults();
 	check_self_destruct_faults();
+	check_board_faults();
 	return 0;
 }

@@ -27,6 +27,10 @@ from jedimaster_ai.world import Turret
         {"maneuver_timer": 0x80000000},
         {"self_destruct": 0},
         {"self_destruct": 56},
+        {"board": -1},
+        {"board": 0x10000},
+        {"board": 12, "depart": True},
+        {"board": 12, "dock": True},
     ],
     ids=[
         "throttle low",
@@ -40,6 +44,10 @@ from jedimaster_ai.world import Turret
         "timer high",
         "self destruct 0",
         "self destruct 56",
+        "board low",
+        "board high",
+        "board and depart",
+        "board and dock",
     ],  # fmt: skip
 )
 def test_actions_out_of_range_are_refused(changes: dict[str, int]) -> None:
@@ -63,6 +71,10 @@ def test_actions_at_their_limits_are_made() -> None:
     assert Actions(self_destruct=1).self_destruct == 1
     assert Actions(self_destruct=55).self_destruct == 55
     assert Actions().self_destruct is None
+    # A board names an object index of 16 bits; NO_OBJECT stops a dock.
+    assert Actions(board=0).board == 0
+    assert Actions(board=0xFFFF).board == 0xFFFF
+    assert Actions().board is None
 
 
 @pytest.mark.parametrize(
@@ -148,3 +160,16 @@ def test_boarding_names_default_to_nothing() -> None:
     assert ContactFlags.PARKED == 0x10 and ContactFlags.AWAITING == 0x20
     assert [Activity.LOOKING_TO_BOARD, Activity.LOOKING_TO_CAPTURE] == [13, 14]
     assert Activity.LOOKING_TO_PICK_UP == 15
+
+
+def test_dock_names_default_to_nothing() -> None:
+    """Until the engine sends them (wire version 17): no dock, no lifetime
+    timer running, no first-pair match, not captured."""
+    from conftest import VIEW
+
+    from jedimaster_ai.world import Books
+
+    assert VIEW.board_phase == 0
+    assert VIEW.lifetime_timer == 0
+    assert VIEW.order_first_pair_mask == 0
+    assert Books.CAPTURED == 0x20000

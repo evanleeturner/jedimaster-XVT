@@ -50,6 +50,9 @@ SELF_DESTRUCT_UNITS_MAX = 55
 SELF_DESTRUCT_UNIT_TICKS = 1180
 # The signatures of docked craft a craft view holds.
 BOARDED_MAX = 10
+# The mission order codes that board a craft: Give, Take, Exchange, Capture,
+# Destroy and Pick Up cargo (12 to 17), SS Board (31) and Repair (32).
+BOARDING_ORDER_CODES = frozenset({12, 13, 14, 15, 16, 17, 31, 32})
 
 
 class Activity(enum.IntEnum):
@@ -163,10 +166,12 @@ class Books(enum.IntFlag):
     - ALL_LAUNCHED: every flight group that arrives from its group as its
       mothership has arrived with no waves left, the 1997 test that ends
       SS Launch
+    - CAPTURED: the craft has been captured: its capture mark, the flight
+      group that holds it, is not 0
 
     ALL_RETURNED comes with wire version 13, STATION and START_POINT with
-    14, BOARD_POINT, AT_BOARD_POINT and ALL_LAUNCHED with 16; the engine
-    sends none of them before.
+    14, BOARD_POINT, AT_BOARD_POINT and ALL_LAUNCHED with 16, CAPTURED with
+    17; the engine sends none of them before.
     """
 
     ORDERS_DONE = 0x001
@@ -186,6 +191,7 @@ class Books(enum.IntFlag):
     BOARD_POINT = 0x4000
     AT_BOARD_POINT = 0x8000
     ALL_LAUNCHED = 0x10000
+    CAPTURED = 0x20000
 
 
 class ContactFlags(enum.IntFlag):
@@ -286,6 +292,20 @@ class CraftView:
     boarding order, the craft's boardings. ``boarded`` holds the signatures
     of the craft it has boarded, oldest first, at most 10. All three come
     with wire version 16 and read (0, 0, 0), (0, 0, 0, 0) and () before it.
+
+    ``board_phase`` is where the engine's dock of the craft stands: 0 none,
+    1 align, 2 transfer, 3 separate. The engine docks a craft from the board
+    action to the separation's end, steering it and setting its throttle,
+    and refuses the maneuver timer meanwhile. ``lifetime_timer`` is the ticks
+    left on the craft's object's lifetime timer, counted down, the craft
+    destroyed at 0; 0 when none runs. A self destruct is asked for only
+    while it reads 0, as the engine keeps a running timer. Bit n of
+    ``order_first_pair_mask`` is set when the question's contact n matches
+    the first pair of the targets of the craft's order alone (targets 1 and
+    2), by the rule of ``order_target_mask``, of which every bit of it is
+    also set: a search tries these first and the rest after, as the second
+    pair, the order's fallback, can swap the boarders of a mirrored order.
+    These three come with wire version 17 and read 0, 0 and 0 before it.
     """
 
     object_index: int
@@ -363,6 +383,9 @@ class CraftView:
     board_point: tuple[int, int, int] = (0, 0, 0)
     order_progress: tuple[int, int, int, int] = (0, 0, 0, 0)
     boarded: tuple[int, ...] = ()
+    board_phase: int = 0
+    lifetime_timer: int = 0
+    order_first_pair_mask: int = 0
 
     @property
     def threats(self) -> tuple[Threat, ...]:
@@ -630,6 +653,12 @@ class Actions:
     of 1,180 ticks, 1 to SELF_DESTRUCT_UNITS_MAX; the engine sets the
     craft's lifetime timer to it when none runs and keeps one that does. It
     comes with wire version 16.
+    ``board`` is the object index of the craft the engine docks it with: the
+    craft's target, while its view shows it at its board point on a boarding
+    order and not docking, and the object is a contact (the answer's own
+    target action, when it has one, names it); NO_OBJECT stops a dock in its
+    align or transfer phase. Never with ``depart`` or ``dock``. It comes with
+    wire version 17.
     ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
@@ -650,10 +679,15 @@ class Actions:
     evaded: bool = False
     maneuver_timer: int | None = None
     self_destruct: int | None = None
+    board: int | None = None
 
     def __post_init__(self) -> None:
         if self.depart and self.dock:
             raise ValueError("depart and dock are both sent")
+        if self.board is not None:
+            _check_u16("board", self.board)
+            if self.depart or self.dock:
+                raise ValueError("board is sent with a depart or a dock")
         if self.target is not None:
             _check_u16("target", self.target)
         if self.lasers is not None and len(self.lasers) != CANNON_GROUPS:

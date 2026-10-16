@@ -13,6 +13,36 @@
       "fields": ["tick", "craft", "result", "answer_bytes", "predicted"],
       "text": "At tick {tick} the pilot program's {answer_bytes}-byte answer about {craft} craft was refused whole with ai_wire_result {result}; no craft took any of it ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.boarding_abandoned": {
+      "level": "D",
+      "fields": ["object", "target", "phase", "working", "predicted"],
+      "text": "Craft {object} abandoned its dock with object {target} in phase {phase}: the target is gone or changed, the craft has no working subsystem (mask {working}), or a player's target moves; the dock ends with no progress and the craft forgets its target ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.boarding_done": {
+      "level": "D",
+      "fields": ["object", "target", "order", "state", "target_state", "progress", "docked", "docked_count", "boarded", "predicted"],
+      "text": "Craft {object} finished the transfer to object {target} on order {order}: boarding state {state}, target's {target_state}; boardings done {progress}; its group's docked count {docked}, its docked list holds {docked_count}, the target has been boarded {boarded} times ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.boarding_finished": {
+      "level": "I",
+      "fields": ["object", "fg", "target", "order", "progress", "tick"],
+      "text": "Craft {object} of flight group {fg} finished boarding object {target} on order {order}: boardings done {progress}, at tick {tick}"
+    },
+    "ai.boarding_separated": {
+      "level": "D",
+      "fields": ["object", "target", "predicted"],
+      "text": "Craft {object} finished separating from object {target}: the dock ends and the craft forgets its target ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.boarding_started": {
+      "level": "I",
+      "fields": ["object", "fg", "target", "target_fg", "order", "timer", "tick"],
+      "text": "Craft {object} of flight group {fg} lined up with object {target} of group {target_fg} on order {order}: its transfer runs for {timer} ticks, at tick {tick}"
+    },
+    "ai.boarding_stopped": {
+      "level": "D",
+      "fields": ["object", "phase", "predicted"],
+      "text": "Craft {object} was told to stop its dock in phase {phase} (1 align, 2 transfer): the dock ends with no progress, the push and the maneuver timers cleared ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.cargo_departed": {
       "level": "D",
       "fields": ["object", "carried", "fg", "captured", "delivered", "undelivered", "predicted"],
@@ -37,6 +67,21 @@
       "level": "D",
       "fields": ["object", "arriving", "kind", "speed", "predicted"],
       "text": "Craft {object} took the pilot program's arrival, arriving {arriving}: its object kind is now {kind} (6 arriving from hyperspace, 0 active; a craft that was neither, or was not arriving when asked about, keeps its kind and speed) and its speed {speed} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_board": {
+      "level": "D",
+      "fields": ["object", "target", "started", "bits", "predicted"],
+      "text": "Craft {object} was told to dock with {target}: started is {started}, 0 when the dock was declined because the craft was already docking, was not at its board point for its own target on a boarding order, or the target was not the craft's target; the books' board bits were {bits} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_captured": {
+      "level": "I",
+      "fields": ["object", "target", "team", "captured", "tick"],
+      "text": "Craft {object} captured object {target}: it flies for team {team} with capture mark {captured}, at tick {tick}"
+    },
+    "ai.craft_changed_side": {
+      "level": "D",
+      "fields": ["object", "target", "fg", "from", "team", "iff", "captured", "predicted"],
+      "text": "Craft {object} gave object {target} of flight group {fg} its team and iff: team {from} became {team}, iff {iff}, capture mark {captured} (0 when not captured); its subsystems are restored and its damage cleared ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.craft_countermeasure": {
       "level": "D",
@@ -93,6 +138,11 @@
       "fields": ["object", "fg", "from", "count", "minutes", "seconds", "predicted"],
       "text": "Computer-flown craft {object} of flight group {fg} began its departure, with its departure clock at {minutes}:{seconds} ({from}: own when its group's departure time or condition came and it set that clock to the mission clock, leader when it took the departure and its clock from its leader); {count} craft of its group are now counted as not yet departed; it withdraws when its group's departure delay has passed since that clock time; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.docking_counted": {
+      "level": "D",
+      "fields": ["object", "target", "failed", "completed", "predicted"],
+      "text": "Craft {object} began its dock with {target}: its flight group now counts {failed} failed-mission outcomes and the target's {completed} completed-mission outcomes, each counted once per craft ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.entered_hangar": {
       "level": "I",
       "fields": ["object", "fg", "hangar", "outcome", "tick"],
@@ -127,6 +177,11 @@
       "level": "D",
       "fields": ["fg", "formation", "spacing", "predicted"],
       "text": "Flight group {fg} took the mission's formation {formation} and spacing {spacing}, every craft of it in the battle, as a craft of it ended leaving a hangar ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.hud_features_restored": {
+      "level": "D",
+      "fields": ["object", "target", "slot", "mask", "local", "predicted"],
+      "text": "Craft {object} restored the system health of player {slot}'s craft {target}, and its lost cockpit features: active feature mask {mask}; local is 1 when that player is this machine's, which redraws the cockpit ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.hyperspace_departed": {
       "level": "I",
@@ -187,6 +242,16 @@
       "level": "E",
       "fields": ["program", "error"],
       "text": "The AI program {program} could not be started: {error}"
+    },
+    "ai.reload_step": {
+      "level": "D",
+      "fields": ["object", "target", "slot", "reloaded", "timer", "predicted"],
+      "text": "Craft {object} reloaded and repaired player {slot}'s craft {target} by a step: reloaded is {reloaded}, 1 when anything changed, which keeps the dock {timer} ticks more ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.target_sabotaged": {
+      "level": "D",
+      "fields": ["object", "target", "life", "predicted"],
+      "text": "Craft {object} boarded object {target} to destroy it and was credited with the kill: the target's lifetime timer is {life} ticks (set to 15 to 30 seconds when none ran) and it blows itself up when it ends ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.think": {
       "level": "D",

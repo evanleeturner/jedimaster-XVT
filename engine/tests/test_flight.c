@@ -3772,6 +3772,39 @@ static const char *const k_resupply_second_pair[] = {
 	NULL,
 };
 
+static const char *const k_resupply_called_board[] = {
+	/* recorded resupply_looking_to_board */
+	"flight.action_key slot=0 key=66 object=2 map=0 hyper=0 request=0 predicted=0",
+	"flight.resupply_called slot=0 target=7 activity=13 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,258,0\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_resupply_called_capture[] = {
+	/* recorded resupply_looking_to_capture */
+	"flight.action_key slot=0 key=66 object=2 map=0 hyper=0 request=0 predicted=0",
+	"flight.resupply_called slot=0 target=7 activity=14 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,258,0\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_resupply_called_pick_up[] = {
+	/* recorded resupply_looking_to_pick_up */
+	"flight.action_key slot=0 key=66 object=2 map=0 hyper=0 request=0 predicted=0",
+	"flight.resupply_called slot=0 target=7 activity=15 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,258,0\" waiting=1 tick=0",
+	NULL,
+};
+
+static const char *const k_resupply_looking_refused[] = {
+	/* recorded resupply_looking_not_named */
+	"flight.action_key slot=0 key=66 object=2 map=0 hyper=0 request=0 predicted=0",
+	"msg.message_built message=146 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=146 type=1 length=7 args=\"32768,32769,258,0\" waiting=1 tick=0",
+	NULL,
+};
+
 static const struct order_case g_resupply_cases[] = {
 	{"resupply_radio_out", k_resupply_radio_out, FLIGHT_KEY_SHIFT_B, PILOT,
 	 SUPPLY, AI_ACTIVITY_BOARDING, F_COMMS_OUT, MATCH_FIRST},
@@ -3783,15 +3816,6 @@ static const struct order_case g_resupply_cases[] = {
 	 PILOT, SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST},
 	{"resupply_board3", k_resupply_board3, FLIGHT_KEY_SHIFT_B, PILOT,
 	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST},
-	{"resupply_looking_to_board", k_resupply_boardtogive,
-	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
-	 MATCH_FIRST},
-	{"resupply_looking_to_capture", k_resupply_boardtogive,
-	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_CAPTURE, 0,
-	 MATCH_FIRST},
-	{"resupply_looking_to_pick_up", k_resupply_boardtogive,
-	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_PICK_UP, 0,
-	 MATCH_FIRST},
 	{"resupply_other_activity", k_resupply_other_activity,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_NONE, 0, MATCH_FIRST},
 	{"resupply_not_named", k_resupply_not_named, FLIGHT_KEY_SHIFT_B, PILOT,
@@ -3802,15 +3826,37 @@ static const struct order_case g_resupply_cases[] = {
 	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_AND_BOTH},
 	{"resupply_second_pair", k_resupply_second_pair, FLIGHT_KEY_SHIFT_B,
 	 PILOT, SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_SECOND_PAIR},
+	{"resupply_looking_to_board", k_resupply_called_board,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_FIRST},
+	{"resupply_looking_to_capture", k_resupply_called_capture,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_CAPTURE, 0,
+	 MATCH_FIRST},
+	{"resupply_looking_to_pick_up", k_resupply_called_pick_up,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_PICK_UP, 0,
+	 MATCH_FIRST},
+	{"resupply_looking_not_named", k_resupply_looking_refused,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_NONE},
+	{"resupply_looking_and_one", k_resupply_looking_refused,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_AND_ONE},
+	{"resupply_looking_and_both", k_resupply_called_board,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_AND_BOTH},
+	{"resupply_looking_second_pair", k_resupply_called_board,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_SECOND_PAIR},
 };
 
 /* Shift+B calls the targeted supply craft when it is looking for a craft to
- * board, capture or pick up (not while it docks) and its order
- * names the pilot's craft: the radio and the tactical officer answer.
- * Whether the order names the pilot is the pilot program's to answer, and
- * until it does the answer is no: every call here gets the not-responding
- * message, whatever the order. With the radio out it says so; with no
- * target, or one past the craft slots, nothing happens. */
+ * board, capture or pick up (not while it docks) and its order names the
+ * pilot's craft, by the rule of the pilot's order target mask (either pair
+ * of the targets, a pair's two joined by "or" or "and"): the radio and the
+ * tactical officer answer, and the pilot's craft is the supply craft's
+ * command target. Any other call gets the not-responding message. With the
+ * radio out it says so; with no target, or one past the craft slots, nothing
+ * happens. */
 static void check_order_resupply(void)
 {
 	for (size_t k = 0;

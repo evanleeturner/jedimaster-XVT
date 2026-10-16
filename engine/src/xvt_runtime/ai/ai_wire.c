@@ -150,6 +150,9 @@ static uint8_t *put_craft_view(uint8_t *at,
 	for (int slot = 0; slot < AI_WIRE_BOARDED_MAX; ++slot) {
 		at = put_u16(at, view->boarded[slot]);
 	}
+	*at++ = view->board_phase;
+	at = put_u16(at, view->lifetime_timer);
+	at = put_u32(at, view->order_first_pair_mask);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -431,6 +434,35 @@ static int countermeasure_ready(const struct ai_wire_craft_view *view)
 	       view->countermeasure_cooldown == 0;
 }
 
+/* Whether the mission order code boards a craft: Give to Pick Up (12 to 17),
+ * SS Board (31) and Repair (32). */
+static int order_boards(unsigned int order_code)
+{
+	return (order_code >= 12 && order_code <= 17) || order_code == 31 ||
+	       order_code == 32;
+}
+
+/* Reads the board action: an object index to start a dock at, which the
+ * view must show at its board point on a boarding order with no dock, a
+ * contact; or 0xFFFF to stop a dock in its align or transfer phase. */
+static int take_board(struct wire_reader *reader,
+		      const struct ai_wire_question *question,
+		      const struct ai_wire_craft_view *view,
+		      struct ai_wire_craft_answer *answer)
+{
+	answer->board_object = (uint16_t)take_u16(reader);
+	if (reader->short_read) {
+		return 1;
+	}
+	if (answer->board_object == UINT16_MAX) {
+		return view->board_phase == 1 || view->board_phase == 2;
+	}
+	return view->board_phase == 0 &&
+	       (view->books & AI_WIRE_BOOKS_AT_BOARD_POINT) != 0 &&
+	       order_boards(view->order_code) &&
+	       is_contact_or_none(question, answer->board_object);
+}
+
 /* Reads one action into answer; returns 0 for a kind that is unknown or
  * already sent, a value out of range, or a thing the question did not
  * show. */
@@ -494,7 +526,10 @@ static int take_action(struct wire_reader *reader,
 	case AI_WIRE_ACTION_MANEUVER_TIMER:
 		answer->maneuver_timer = take_u32(reader);
 		return reader->short_read ||
-		       answer->maneuver_timer <= 0x7FFFFFFFu;
+		       (answer->maneuver_timer <= 0x7FFFFFFFu &&
+			view->board_phase == 0);
+	case AI_WIRE_ACTION_BOARD:
+		return take_board(reader, question, view, answer);
 	case AI_WIRE_ACTION_SELF_DESTRUCT:
 		answer->self_destruct_units = (uint8_t)take_u8(reader);
 		return reader->short_read ||
@@ -526,7 +561,15 @@ take_craft_answer(struct wire_reader *reader,
 	}
 	const unsigned int leaving =
 		1u << AI_WIRE_ACTION_DEPART | 1u << AI_WIRE_ACTION_DOCK;
+	const unsigned int board = 1u << AI_WIRE_ACTION_BOARD;
 	if (!reader->short_read && (answer->actions & leaving) == leaving) {
+		return AI_WIRE_BAD_ACTION;
+	}
+	if (!reader->short_read && (answer->actions & board) != 0 &&
+	    ((answer->actions & leaving) != 0 ||
+	     ((answer->actions & (1u << AI_WIRE_ACTION_TARGET)) != 0 &&
+	      answer->board_object != UINT16_MAX &&
+	      answer->board_object != answer->target))) {
 		return AI_WIRE_BAD_ACTION;
 	}
 	return reader->short_read ? AI_WIRE_SHORT : AI_WIRE_OK;

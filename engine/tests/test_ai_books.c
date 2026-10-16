@@ -561,7 +561,8 @@ static void check_view_orders_and_home(void)
 	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_BY_MOTHERSHIP |
 						    AI_WIRE_BOOKS_MAY_JUMP |
 						    AI_WIRE_BOOKS_ALL_RETURNED |
-						    AI_WIRE_BOOKS_ALL_LAUNCHED);
+						    AI_WIRE_BOOKS_ALL_LAUNCHED |
+						    AI_WIRE_BOOKS_CAPTURED);
 	craft->captured_by_flight_group = 0;
 
 	group->fg.mission_point_enabled[13] = 1;
@@ -1607,6 +1608,34 @@ static void check_order_progress_and_boarded(void)
 	XVT_ASSERT_INT_EQ(view.boarded[3], 0);
 }
 
+/* The board bits write the point's three axes and nothing past them. */
+static void check_board_bits_write_three_axes(void)
+{
+	boarding_world();
+	int32_t point[4] = {7, 7, 7, 0x5EE};
+	uint16_t ask = 0;
+	uint32_t bits = ai_books_board_bits(1, point, &ask);
+	XVT_ASSERT_INT_EQ(bits & AI_WIRE_BOOKS_BOARD_POINT,
+			  AI_WIRE_BOOKS_BOARD_POINT);
+	XVT_ASSERT_INT_EQ(ask, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(point[3], 0x5EE);
+}
+
+/* The captured bit is set exactly when the craft's capture mark is not 0,
+ * whatever its flight group or flag bits. */
+static void check_captured(void)
+{
+	static const uint8_t marks[] = {0, 1, 0x7F, 0x80, 0x82, 0xFF};
+	XVT_ASSERT_INT_EQ(AI_WIRE_BOOKS_CAPTURED, 0x20000);
+	for (size_t row = 0; row < sizeof marks; ++row) {
+		fresh_world();
+		struct craft_data *craft = make_craft(1, TEST_GROUP);
+		craft->captured_by_flight_group = marks[row];
+		XVT_ASSERT_INT_EQ(has_bit(1, AI_WIRE_BOOKS_CAPTURED),
+				  marks[row] != 0);
+	}
+}
+
 int main(void)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -1635,5 +1664,7 @@ int main(void)
 	check_board_point_targets();
 	check_at_board_point();
 	check_order_progress_and_boarded();
+	check_captured();
+	check_board_bits_write_three_axes();
 	return 0;
 }

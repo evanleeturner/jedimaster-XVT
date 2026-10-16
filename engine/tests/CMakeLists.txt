@@ -362,6 +362,21 @@ add_test(NAME ai_brain COMMAND test_ai_brain)
 # src/xvt/flight/ai_books.c.
 xvt_add_engine_test(test_ai_books test_ai_books.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_books.c")
 add_test(NAME ai_books COMMAND test_ai_books)
+# The dock of a computer craft on a boarding order: align, transfer by order, separate and abort:
+# src/xvt/flight/ai_boarding.c.
+# The cockpit redraw it makes for a Give to the local player draws a screen no test has, and the voices,
+# sounds and messages it makes cannot be heard or read, so the linker hands the test its own functions in
+# place of hud_rebuild_display_for_view_state and the four that speak, play and print (not under MSVC).
+if(NOT MSVC)
+    xvt_add_engine_test(test_ai_boarding test_ai_boarding.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_boarding.c")
+    target_link_options(test_ai_boarding PRIVATE
+        "LINKER:--wrap=hud_rebuild_display_for_view_state"
+        "LINKER:--wrap=fsfx_speak_tactical_officer_event"
+        "LINKER:--wrap=fsfx_play_sound"
+        "LINKER:--wrap=msg_emit_craft_message"
+        "LINKER:--wrap=msg_emit_in_flight_message")
+    add_test(NAME ai_boarding COMMAND test_ai_boarding)
+endif()
 # A player's commands to a computer craft in its view, and the evade command taken up:
 # src/xvt/flight/ai_commands.c.
 xvt_add_engine_test(test_ai_commands test_ai_commands.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_commands.c")

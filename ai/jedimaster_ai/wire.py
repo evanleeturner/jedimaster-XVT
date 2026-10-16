@@ -25,7 +25,8 @@ Invariants:
       allow, a depart or dock the view's books do not show, or both, a
       countermeasure the view does not show ready, an evaded with no
       evade command shown, a turret ion past 1, a maneuver timer past
-      0x7FFFFFFF, and a self destruct of 0 units or more than 55.
+      0x7FFFFFFF or sent while the view shows a dock, a board the view does not
+      allow, and a self destruct of 0 units or more than 55.
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ from .world import Actions
 from .world import Answer
 from .world import Arrival
 from .world import BOARDED_MAX
+from .world import BOARDING_ORDER_CODES
 from .world import Books
 from .world import CannonGroup
 from .world import Commands
@@ -56,7 +58,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 16
+VERSION = 17
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -141,6 +143,9 @@ VIEW_LAYOUT = (
     ("order_progress", "B", 4),
     ("boarded_count", "B", 1),
     ("boarded", "H", 10),
+    ("board_phase", "B", 1),
+    ("lifetime_timer", "H", 1),
+    ("order_first_pair_mask", "I", 1),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -212,6 +217,7 @@ class ActionKind(enum.IntEnum):
     EVADED = 14
     MANEUVER_TIMER = 15
     SELF_DESTRUCT = 16
+    BOARD = 17
 
 
 class WireError(ValueError):
@@ -427,6 +433,9 @@ def _actions_bytes(actions: Actions) -> bytes:
     if actions.self_destruct is not None:
         written += U8.pack(ActionKind.SELF_DESTRUCT) + U8.pack(actions.self_destruct)
         count += 1
+    if actions.board is not None:
+        written += U8.pack(ActionKind.BOARD) + U16.pack(actions.board)
+        count += 1
     return U8.pack(count) + bytes(written)
 
 
@@ -508,7 +517,7 @@ def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
         return reader.take(U32)[0]
     if kind == ActionKind.SELF_DESTRUCT:
         return reader.take(U8)[0]
-    return reader.take(U16)[0]
+    return reader.take(U16)[0]  # target and board
 
 
 def _read_actions(reader: _Reader) -> Actions:
@@ -519,7 +528,7 @@ def _read_actions(reader: _Reader) -> Actions:
         try:
             kind = ActionKind(code)
         except ValueError:
-            raise WireError(f"action kind {code} is not one of the sixteen") from None
+            raise WireError(f"action kind {code} is not one of the seventeen") from None
         name = kind.name.lower()
         if name in found:
             raise WireError(f"action kind {code} is sent twice")
@@ -549,6 +558,23 @@ def _check_order(order: OrderMove, view: CraftView) -> None:
         raise WireError(f"order slot {order.slot} is not one the view allows")
 
 
+def _check_board(actions: Actions, view: CraftView, shown: set[int]) -> None:
+    """Raise WireError for a board the view does not allow."""
+    if actions.board == NO_OBJECT:
+        if view.board_phase not in (1, 2):
+            raise WireError("board with no object stops a dock only in phase 1 or 2")
+        return
+    if (
+        view.board_phase != 0
+        or not view.books & Books.AT_BOARD_POINT
+        or view.order_code not in BOARDING_ORDER_CODES
+        or actions.board not in shown
+    ):
+        raise WireError(f"board {actions.board} is not one the view allows")
+    if actions.target is not None and actions.target != actions.board:
+        raise WireError(f"board {actions.board} is not the answer's target")
+
+
 def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     """Raise WireError when the actions name what the question did not show.
 
@@ -561,7 +587,10 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     own, one of 0 to 2 with an order (not after a skip to order 4) or 3 with
     the skip due, a depart or dock the view's books do not allow, a
     countermeasure the view does not show ready, and an evaded with no
-    evade command in the view's commands.
+    evade command in the view's commands, a board the view does not allow
+    (not at its board point, not on a boarding order, docking already, not a
+    contact, not the answer's own target, or with a depart or a dock; no
+    object outside phases 1 and 2), and a maneuver timer while it docks.
     """
     shown = {contact.object_index for contact in question.contacts} | {NO_OBJECT}
     targets = shown | {static.object_index for static in question.statics}
@@ -588,6 +617,10 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
         raise WireError("depart is not one the view's books allow")
     if actions.dock and not view.books & Books.AT_HANGAR:
         raise WireError("dock is not one the view's books allow")
+    if actions.board is not None:
+        _check_board(actions, view, shown)
+    if actions.maneuver_timer is not None and view.board_phase != 0:
+        raise WireError("the maneuver timer is refused while the craft docks")
     if actions.countermeasure and not view.countermeasure_ready:
         raise WireError("the countermeasure is not shown ready")
     if actions.evaded and not view.commands & Commands.EVADE:

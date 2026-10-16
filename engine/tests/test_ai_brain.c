@@ -38,12 +38,16 @@ enum {
 			    AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where what a boarder sees starts, the 37 bytes before the notebook:
-	 * board point 12, order progress 4, boarded count 1, boarded 20. */
-	VIEW_BOARD_POINT = VIEW_NOTEBOOK - 37,
+	/* Where what a boarder sees starts, the 44 bytes before the notebook:
+	 * board point 12, order progress 4, boarded count 1, boarded 20, dock
+	 * phase 1, lifetime timer 2, order first pair mask 4. */
+	VIEW_BOARD_POINT = VIEW_NOTEBOOK - 44,
 	VIEW_ORDER_PROGRESS = VIEW_BOARD_POINT + 12,
 	VIEW_BOARDED_COUNT = VIEW_ORDER_PROGRESS + 4,
 	VIEW_BOARDED = VIEW_BOARDED_COUNT + 1,
+	VIEW_BOARD_PHASE = VIEW_BOARDED + 20,
+	VIEW_LIFETIME = VIEW_BOARD_PHASE + 1,
+	VIEW_FIRST_PAIR = VIEW_LIFETIME + 2,
 	/* Where its escorted craft starts, the 35 bytes before those:
 	 * escorted 2, station 12, start point 12, targets now 1, static target
 	 * mask 8. */
@@ -1757,6 +1761,313 @@ static void check_self_destruct_action(void)
 	}
 }
 
+/* Slot 1 is due; slots 3, 4 and 5 are craft of flight groups 3, 4 and 5.
+ * The order's first pair names group first (joined by "or" with nothing),
+ * its second pair group second. */
+static void pair_world(int first, int second)
+{
+	fresh_world();
+	due_craft(1);
+	for (int slot = 3; slot <= 5; ++slot) {
+		due_craft(slot)->ai_controller.think_timer = 5;
+		g_test_objects[slot].flight_group_idx = (uint16_t)slot;
+	}
+	struct mission_order *order =
+		&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	order->target1_type = 1;
+	order->target1 = (uint16_t)first;
+	order->target1_or_target2 = 1;
+	order->secondary_target_types[0] = 1;
+	order->secondary_targets[0] = (uint16_t)second;
+	order->target3_or_target4 = 1;
+	g_fake.echo = 1;
+}
+
+/* The order first pair mask has the contacts that match the first pair of
+ * targets alone; every one of them is also in the order target mask, which
+ * has the second pair's too. Contacts are slots 1, 3, 4, 5: bits 0 to 3. */
+static void check_order_first_pair_mask(void)
+{
+	static const struct {
+		int first;
+		int second;
+		unsigned int first_mask;
+		unsigned int all_mask;
+	} cases[] = {{3, 4, 0x2, 0x6}, {4, 3, 0x4, 0x6}, {3, 3, 0x2, 0x2},
+		     {5, 6, 0x8, 0x8}, {6, 5, 0x0, 0x8}, {6, 7, 0x0, 0x0}};
+	for (size_t row = 0; row < sizeof cases / sizeof cases[0]; ++row) {
+		pair_world(cases[row].first, cases[row].second);
+		ai_brain_think_due_craft();
+		XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+		const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+		XVT_ASSERT_INT_EQ(get_u32(view + 38), cases[row].all_mask);
+		XVT_ASSERT_INT_EQ(get_u32(view + VIEW_FIRST_PAIR),
+				  cases[row].first_mask);
+	}
+}
+
+/* The pairs' joins: a pair's two targets are joined by "or" when its flag is
+ * 1, else by "and", which needs one object to match both. Contacts are slots
+ * 1, 3, 4, 5 (groups 2, 3, 4, 5): bits 0 to 3. */
+static void check_pair_joins(void)
+{
+	static const struct {
+		int first_a;
+		int first_b;
+		int first_or;
+		int second_a;
+		int second_b;
+		int second_or;
+		unsigned int first_mask;
+		unsigned int all_mask;
+	} cases[] = {
+		/* "and" with the same group twice matches that group. */
+		{3, 3, 0, 9, 9, 0, 0x2, 0x2},
+		{3, 4, 0, 9, 9, 0, 0x0, 0x0},
+		{3, 4, 1, 9, 9, 0, 0x6, 0x6},
+		{3, 5, 1, 9, 9, 1, 0xA, 0xA},
+		/* The second pair: "and" with one group twice, with two groups,
+		 * and "or" with two groups, each of its targets read. */
+		{9, 9, 1, 4, 4, 0, 0x0, 0x4},
+		{9, 9, 1, 4, 5, 0, 0x0, 0x0},
+		{9, 9, 1, 4, 5, 1, 0x0, 0xC},
+		{9, 9, 1, 5, 4, 1, 0x0, 0xC}};
+	for (size_t row = 0; row < sizeof cases / sizeof cases[0]; ++row) {
+		pair_world(9, 9);
+		struct mission_order *order =
+			&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+		order->target1 = (uint16_t)cases[row].first_a;
+		order->target2_type = 1;
+		order->target2 = (uint16_t)cases[row].first_b;
+		order->target1_or_target2 = (uint8_t)cases[row].first_or;
+		order->secondary_targets[0] = (uint16_t)cases[row].second_a;
+		order->secondary_target_types[1] = 1;
+		order->secondary_targets[1] = (uint16_t)cases[row].second_b;
+		order->target3_or_target4 = (uint8_t)cases[row].second_or;
+		ai_brain_think_due_craft();
+		const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+		XVT_ASSERT_INT_EQ(get_u32(view + 38), cases[row].all_mask);
+		XVT_ASSERT_INT_EQ(get_u32(view + VIEW_FIRST_PAIR),
+				  cases[row].first_mask);
+	}
+}
+
+/* A pair's second target of type 0 names nothing, and with "and" nothing
+ * matches though the first target does: the second is read from its own
+ * type, not the first's. */
+static void check_second_target_type(void)
+{
+	pair_world(9, 4);
+	struct mission_order *order =
+		&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	order->secondary_targets[1] = 4;
+	order->target3_or_target4 = 0;
+	ai_brain_think_due_craft();
+	XVT_ASSERT_INT_EQ(get_u32(g_fake.question[0] + AI_WIRE_HEAD_BYTES + 38),
+			  0);
+}
+
+/* The lifetime timer and the dock phase in the view: the object's timer in
+ * ticks, 0 for none, and the dock's phase while the mode is BOARD. */
+static void check_view_lifetime_and_phase(void)
+{
+	static const uint16_t timers[] = {0, 1, 3540, 7080, 65535};
+	for (size_t row = 0; row < sizeof timers / sizeof timers[0]; ++row) {
+		fresh_world();
+		struct craft_data *craft = due_craft(1);
+		g_test_mobiles[1].lifetime_timer = timers[row];
+		g_fake.echo = 1;
+		ai_brain_think_due_craft();
+		const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+		XVT_ASSERT_INT_EQ(get_u16(view + VIEW_LIFETIME), timers[row]);
+		XVT_ASSERT_INT_EQ(view[VIEW_BOARD_PHASE], 0);
+		(void)craft;
+	}
+	/* A phase counts only in mode BOARD. */
+	for (int phase = 0; phase <= 3; ++phase) {
+		fresh_world();
+		struct craft_data *craft = due_craft(1);
+		craft->ai_controller.maneuver_phase = (uint8_t)phase;
+		g_fake.echo = 1;
+		ai_brain_think_due_craft();
+		XVT_ASSERT_INT_EQ(g_fake.question[0][AI_WIRE_HEAD_BYTES +
+						     VIEW_BOARD_PHASE],
+				  0);
+	}
+}
+
+/* Shift+B and the player's release ask whether an object matches the targets
+ * of the order g_cur_craft works on: either pair of its current slot's, as
+ * the order target mask has it; a static of the group matches as a craft
+ * does; no object, an object of another group and a craft that is not in the
+ * active region do not. */
+static void check_order_targets_match_object(void)
+{
+	pair_world(3, 4);
+	g_active_region_craft_object_slot_end = 8;
+	g_test_objects[9].object_type = 5;
+	g_test_objects[9].flight_group_idx = 3;
+	g_test_objects[10].object_type = 5;
+	g_test_objects[10].flight_group_idx = 6;
+	g_cur_craft = &g_test_craft[1];
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(3), 1);
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(4), 1);
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(5), 0);
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(1), 0);
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(9), 1);
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(10), 0);
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(UINT16_MAX), 0);
+	/* The craft's own current slot: slot 1's order is read, not slot 0's. */
+	g_mission_flight_groups[TEST_GROUP].fg.orders[1] =
+		g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	g_mission_flight_groups[TEST_GROUP].fg.orders[1].target1 = 5;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[1].secondary_targets[0] =
+		6;
+	g_test_craft[1].ai_controller.current_order_slot = 1;
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(3), 0);
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(5), 1);
+	/* A slot that is empty or holds another family's object is no holder,
+	 * though its craft record is the one g_cur_craft names. */
+	g_test_craft[1].ai_controller.current_order_slot = 0;
+	g_test_mobiles[0].p_craft = &g_test_craft[1];
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(3), 1);
+	g_test_objects[0].object_type = 5;
+	g_test_mobiles[0].family = 1;
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(3), 1);
+	g_test_objects[0].object_type = 0;
+	g_test_mobiles[0].family = 0;
+	g_test_mobiles[0].p_craft = &g_test_craft[0];
+	g_test_craft[1].ai_controller.current_order_slot = 1;
+	/* A craft outside the region, or none, matches nothing. */
+	g_active_region_craft_object_slot_end = 1;
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(5), 0);
+	g_active_region_craft_object_slot_end = 8;
+	g_cur_craft = NULL;
+	XVT_ASSERT_INT_EQ(ai_brain_order_targets_match_object(5), 0);
+}
+
+/* An answer with no board action starts no dock, though the craft is at the
+ * board point of its target and the action's object would read 0: the target
+ * is slot 0. */
+static void check_no_board_without_the_action(void)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	due_craft(0)->ai_controller.think_timer = 5;
+	craft->working_subsystems = CRAFT_SUBSYSTEM_FLAGS_ALL;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].order =
+		MISSION_ORDER_BOARD_AND_GIVE_CARGO;
+	craft->ai_controller.target_obj_idx = 0;
+	g_fake.echo = 1;
+	ai_brain_think_due_craft();
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_phase, 0);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_NULL);
+	/* The books did show it at its board point. */
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_TRUE((get_u32(view + 77) & AI_WIRE_BOOKS_AT_BOARD_POINT) !=
+			0);
+}
+
+/* Slot 1 on Give at its target, slot 2, both at the origin, so the books
+ * show it at its board point. */
+static struct craft_data *give_world(void)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	due_craft(2)->ai_controller.think_timer = 5;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].order =
+		MISSION_ORDER_BOARD_AND_GIVE_CARGO;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].variable1 = 2;
+	craft->ai_controller.target_obj_idx = 2;
+	craft->ai_controller.target_signature = 0x102;
+	craft->working_subsystems = CRAFT_SUBSYSTEM_FLAGS_ALL;
+	static char name_long[] = "Craft";
+	strcpy(g_model_defs[0].name, "Craft");
+	g_model_defs[0].name_long = name_long;
+	static char message[] = "\003message";
+	for (size_t id = 0; id < sizeof g_str_in_flight_messages /
+					 sizeof g_str_in_flight_messages[0];
+	     ++id) {
+		g_str_in_flight_messages[id] = message;
+	}
+	g_players[g_local_player].object_index = -1;
+	return craft;
+}
+
+/* Answers slot 1 with the action bytes given: a count and the bytes. */
+static void answer_slot_one(const uint8_t *actions, size_t bytes,
+			    int action_count)
+{
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0x30, action_count);
+	memcpy(at, actions, bytes);
+	g_fake.answer_length = finish_answer(g_fake.answer, at + bytes);
+	g_fake.calls = 0;
+	g_test_craft[1].ai_controller.think_timer = 0;
+	ai_brain_think_due_craft();
+}
+
+/* The board action starts the dock: throttle 0, phase align, mode BOARD. The
+ * dock then steps on each think before the view is built, so the next question
+ * shows the step's phase; while it docks the steer and the throttle are not
+ * applied and the maneuver timer is refused with the whole answer; a board of
+ * no object stops it. */
+static void check_board_action(void)
+{
+	struct craft_data *craft = give_world();
+	craft->throttle_speed = 0x8000;
+	static const uint8_t board[] = {AI_WIRE_ACTION_BOARD, 2, 0};
+	answer_slot_one(board, sizeof board, 1);
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_BOARD);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_phase, 1);
+	XVT_ASSERT_INT_EQ(craft->throttle_speed, 0);
+	/* The view of the first question showed the board point reached. */
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(view[VIEW_BOARD_PHASE], 0);
+	/* Steer and throttle while it docks: the notebook is kept, the heading
+	 * and throttle are not set. The align step ran first and found the
+	 * craft on its point, so the second question shows the transfer. */
+	craft->ai_controller.target_xy_angle = 0x77;
+	static const uint8_t steer_throttle[] = {
+		AI_WIRE_ACTION_STEER,	 0x11, 0x11, 0x00, 0x50, 0x22, 0x22,
+		AI_WIRE_ACTION_THROTTLE, 0x00, 0x80};
+	answer_slot_one(steer_throttle, sizeof steer_throttle, 2);
+	view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(view[VIEW_BOARD_PHASE], 2);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_phase, 2);
+	XVT_ASSERT_INT_EQ(craft->ai_notebook[0], 0x30);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.target_xy_angle, 0x77);
+	XVT_ASSERT_INT_EQ(craft->throttle_speed, 0);
+	/* The maneuver timer while it docks is refused and nothing applies. */
+	craft->ai_notebook[0] = 0;
+	static const uint8_t timer[] = {AI_WIRE_ACTION_MANEUVER_TIMER, 9, 0, 0,
+					0};
+	answer_slot_one(timer, sizeof timer, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_notebook[0], 0);
+	/* A board of no object stops the dock in phase 2. */
+	static const uint8_t stop[] = {AI_WIRE_ACTION_BOARD, 0xFF, 0xFF};
+	answer_slot_one(stop, sizeof stop, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_phase, 0);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_timer, 0);
+	/* The activity BOARDING on a boarding order is mode BOARD, phase 0; any
+	 * other activity ends it. */
+	static const uint8_t boarding[] = {AI_WIRE_ACTION_ACTIVITY,
+					   AI_ACTIVITY_BOARDING};
+	answer_slot_one(boarding, sizeof boarding, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_BOARD);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_phase, 0);
+	static const uint8_t looking[] = {AI_WIRE_ACTION_ACTIVITY,
+					  AI_ACTIVITY_LOOKING_TO_BOARD};
+	answer_slot_one(looking, sizeof looking, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_NULL);
+}
+
 int main(void)
 {
 	check_stat_level();
@@ -1789,6 +2100,13 @@ int main(void)
 	check_contact_boarder();
 	check_activity_status_lines();
 	check_self_destruct_action();
+	check_order_first_pair_mask();
+	check_view_lifetime_and_phase();
+	check_order_targets_match_object();
+	check_board_action();
+	check_pair_joins();
+	check_second_target_type();
+	check_no_board_without_the_action();
 	ai_brain_set_exchange(NULL);
 	return 0;
 }

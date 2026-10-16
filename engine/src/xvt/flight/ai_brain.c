@@ -13,6 +13,7 @@
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
+#include "xvt/flight/ai_boarding.h"
 #include "xvt/flight/ai_books.h"
 #include "xvt/flight/ai_commands.h"
 #include "xvt/flight/ai_countermeasures.h"
@@ -388,32 +389,45 @@ static void ai_brain_view_statics(struct ai_brain_batch *batch)
 	}
 }
 
+/* Whether the object matches one pair of the targets of an order: pair 0 is
+ * targets 1 and 2, joined by "or" when target1_or_target2 is 1, else by "and",
+ * and pair 1 is targets 3 and 4, joined the same way by target3_or_target4.
+ * The 1997 AI's test, pai_current_order_targets_match_object, read the same
+ * fields. */
+static int ai_brain_pair_matches(const struct mission_order *order, int pair,
+				 uint16_t object_index)
+{
+	int first;
+	int second;
+	int joined_by_or;
+	if (pair == 0) {
+		first = mission_object_matches_trigger_variable(
+			object_index, order->target1_type, order->target1);
+		second = mission_object_matches_trigger_variable(
+			object_index, order->target2_type, order->target2);
+		joined_by_or = order->target1_or_target2 == 1;
+	} else {
+		first = mission_object_matches_trigger_variable(
+			object_index, order->secondary_target_types[0],
+			order->secondary_targets[0]);
+		second = mission_object_matches_trigger_variable(
+			object_index, order->secondary_target_types[1],
+			order->secondary_targets[1]);
+		joined_by_or = order->target3_or_target4 == 1;
+	}
+	return joined_by_or ? first | second : first & second;
+}
+
 /* Whether the object matches the targets of the order in order_slot of the
- * flight group: targets 1 and 2, joined by "or" when target1_or_target2 is
- * 1, else by "and", or targets 3 and 4, joined the same way by
- * target3_or_target4. The 1997 AI's test, pai_current_order_targets_match_
- * object, read the same fields. */
+ * flight group: either pair of them (ai_brain_pair_matches). */
 static int ai_brain_order_targets_match(uint16_t flight_group,
 					uint8_t order_slot,
 					uint16_t object_index)
 {
 	const struct mission_order *order =
 		&g_mission_flight_groups[flight_group].fg.orders[order_slot];
-	int first = mission_object_matches_trigger_variable(
-		object_index, order->target1_type, order->target1);
-	int second = mission_object_matches_trigger_variable(
-		object_index, order->target2_type, order->target2);
-	int primary = order->target1_or_target2 == 1 ? first | second
-						     : first & second;
-	first = mission_object_matches_trigger_variable(
-		object_index, order->secondary_target_types[0],
-		order->secondary_targets[0]);
-	second = mission_object_matches_trigger_variable(
-		object_index, order->secondary_target_types[1],
-		order->secondary_targets[1]);
-	int secondary = order->target3_or_target4 == 1 ? first | second
-						       : first & second;
-	return primary != 0 || secondary != 0;
+	return ai_brain_pair_matches(order, 0, object_index) != 0 ||
+	       ai_brain_pair_matches(order, 1, object_index) != 0;
 }
 
 /* Whether a craft of team other is hostile to a craft of team own: another
@@ -518,13 +532,18 @@ static void ai_brain_view_craft(uint16_t object_index,
 	view->speed = object->mobj->speed;
 	view->random_seed = controller->saved_rand_seed;
 	view->order_target_mask = 0;
+	view->order_first_pair_mask = 0;
 	view->enemy_mask = 0;
 	view->static_target_mask = 0;
+	const struct mission_order *order =
+		&g_mission_flight_groups[object->flight_group_idx]
+			 .fg.orders[controller->current_order_slot];
 	for (int contact = 0; contact < batch->contact_count; ++contact) {
-		if (ai_brain_order_targets_match(
-			    object->flight_group_idx,
-			    controller->current_order_slot,
-			    batch->contacts[contact].object_index)) {
+		const uint16_t other = batch->contacts[contact].object_index;
+		if (ai_brain_pair_matches(order, 0, other) != 0) {
+			view->order_first_pair_mask |= 1u << contact;
+			view->order_target_mask |= 1u << contact;
+		} else if (ai_brain_pair_matches(order, 1, other) != 0) {
 			view->order_target_mask |= 1u << contact;
 		}
 		if (ai_brain_teams_hostile(view->team,
@@ -554,6 +573,8 @@ static void ai_brain_view_craft(uint16_t object_index,
 		craft->ai_controller.maneuver_timer < 0
 			? 0
 			: (uint32_t)craft->ai_controller.maneuver_timer;
+	view->board_phase = ai_boarding_phase(object_index);
+	view->lifetime_timer = object->mobj->lifetime_timer;
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
 
@@ -750,11 +771,17 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	int was_arriving =
 		controller->activity == AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE;
 	memcpy(craft->ai_notebook, answer->notebook, sizeof craft->ai_notebook);
+	/* While the engine docks the craft it alone steers and sets the
+	 * throttle. */
+	const int docking = ai_boarding_phase(answer->object_index) !=
+			    AI_BOARDING_PHASE_NONE;
 	if ((answer->actions & (1u << AI_WIRE_ACTION_STEER)) != 0 &&
-	    craft->object_kind != CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE) {
+	    craft->object_kind != CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
+	    !docking) {
 		ai_brain_apply_steer(craft, answer);
 	}
-	if ((answer->actions & (1u << AI_WIRE_ACTION_THROTTLE)) != 0) {
+	if ((answer->actions & (1u << AI_WIRE_ACTION_THROTTLE)) != 0 &&
+	    !docking) {
 		craft->throttle_speed = answer->throttle;
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_ACTIVITY)) != 0) {
@@ -805,6 +832,14 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	if ((answer->actions & (1u << AI_WIRE_ACTION_SELF_DESTRUCT)) != 0) {
 		ai_brain_apply_self_destruct(object_index, answer);
 	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_BOARD)) != 0) {
+		if (answer->board_object == UINT16_MAX) {
+			ai_boarding_stop(object_index);
+		} else {
+			ai_boarding_start(object_index, answer->board_object);
+		}
+	}
+	ai_boarding_sync_mode(object_index);
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d timer=%d predicted=%d",
 		(int)answer->object_index, answer->actions,
@@ -990,6 +1025,7 @@ void ai_brain_think_due_craft(void)
 			controller->think_timer += controller->think_interval;
 			continue;
 		}
+		ai_boarding_step(object_index);
 		ai_brain_view_craft(object_index, &batch,
 				    &batch.views[batch.count]);
 		++batch.count;
@@ -1002,11 +1038,27 @@ void ai_brain_think_due_craft(void)
 	}
 }
 
-/* Whether the object matches the targets of the order g_cur_craft works on.
- * Answers 0 until the pilot program answers. */
+/* Whether the object matches the targets of the order g_cur_craft works on,
+ * the rule the order target mask uses: either pair of its flight group's
+ * order in the craft's current order slot. Answers 0 when g_cur_craft is not
+ * a craft of the active region. */
 int16_t ai_brain_order_targets_match_object(uint16_t object_index)
 {
-	(void)object_index;
+	if (object_index == UINT16_MAX) {
+		return 0;
+	}
+	for (uint16_t slot = (uint16_t)g_active_region_object_slot_start;
+	     slot < g_active_region_craft_object_slot_end; ++slot) {
+		const struct object_record *holder = &g_object_table[slot];
+		if (holder->object_type == 0 || holder->mobj->family != 0 ||
+		    holder->mobj->p_craft != g_cur_craft) {
+			continue;
+		}
+		return (int16_t)ai_brain_order_targets_match(
+			holder->flight_group_idx,
+			g_cur_craft->ai_controller.current_order_slot,
+			object_index);
+	}
 	return 0;
 }
 

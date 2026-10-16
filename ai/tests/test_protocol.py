@@ -100,7 +100,7 @@ def test_wire_constants_match() -> None:
         turrets=tuple(Turret(slot, 7, True) for slot in range(world.WEAPON_SLOTS)),
         arrival=Arrival(True, world.ARRIVAL_SPEED_MAX),
         order=OrderMove(1, 2),
-        depart=True,
+        board=7,
         countermeasure=True,
         evaded=True,
         maneuver_timer=world.MANEUVER_TIMER_MAX,

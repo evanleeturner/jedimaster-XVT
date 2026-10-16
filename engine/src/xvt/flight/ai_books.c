@@ -1236,21 +1236,52 @@ static void books_ask_player_to_stop(uint16_t object_index, uint16_t target)
 		      (int)object_index, (int)target, g_local_player);
 }
 
+uint32_t ai_books_board_bits(uint16_t object_index,
+			     int32_t point[AI_WIRE_POINT_AXES],
+			     uint16_t *ask_target)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	const uint16_t target =
+		books_craft(object_index)->ai_controller.target_obj_idx;
+	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
+		point[axis] = 0;
+	}
+	*ask_target = UINT16_MAX;
+	if (!ai_books_order_boards(mission_current_order_code(object_index)) ||
+	    target == object_index ||
+	    target < g_active_region_object_slot_start ||
+	    target >= g_active_region_craft_object_slot_end ||
+	    g_object_table[target].object_type == 0 ||
+	    g_object_table[target].mobj->family != 0) {
+		return 0;
+	}
+	books_approach_point(object_index, target, point);
+	trig2_ctop(point[0] - object->world_x, point[1] - object->world_y,
+		   point[2] - object->world_z);
+	if (trig2_polardistance > BOOKS_BOARD_POINT_RANGE) {
+		return AI_WIRE_BOOKS_BOARD_POINT;
+	}
+	if (g_object_table[target].player_owner_idx != -1 &&
+	    g_object_table[target].mobj->speed != 0) {
+		*ask_target = target;
+		return AI_WIRE_BOOKS_BOARD_POINT;
+	}
+	return AI_WIRE_BOOKS_BOARD_POINT | AI_WIRE_BOOKS_AT_BOARD_POINT;
+}
+
 /* Writes what a boarder sees: the board point and the books' two bits for the
- * craft's AI target when its current order boards and the target is a craft
- * in the active region (board point 0, 0, 0 and the bits clear otherwise);
- * each order slot's goal progress; and the signatures it has docked with.
- * The craft is at the point when its rough polar distance to it is at most
- * 2,048, the 1997 test, unless the target is a moving player's craft, which
- * is asked to stop instead. */
+ * craft's AI target (ai_books_board_bits), asking a moving player's craft to
+ * stop; each order slot's goal progress; and the signatures it has docked
+ * with. */
 static void books_view_boarding(uint16_t object_index,
 				struct ai_wire_craft_view *view)
 {
-	const struct object_record *object = &g_object_table[object_index];
 	const struct craft_data *craft = books_craft(object_index);
-	const uint16_t target = craft->ai_controller.target_obj_idx;
-	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
-		view->board_point[axis] = 0;
+	uint16_t ask_target;
+	view->books |= ai_books_board_bits(object_index, view->board_point,
+					   &ask_target);
+	if (ask_target != UINT16_MAX) {
+		books_ask_player_to_stop(object_index, ask_target);
 	}
 	for (int slot = 0; slot < AI_WIRE_ORDER_SLOTS; ++slot) {
 		view->order_progress[slot] =
@@ -1267,28 +1298,9 @@ static void books_view_boarding(uint16_t object_index,
 					  .docked_target_signatures[slot]
 				: 0;
 	}
-	if (!ai_books_order_boards(mission_current_order_code(object_index)) ||
-	    target == object_index ||
-	    target < g_active_region_object_slot_start ||
-	    target >= g_active_region_craft_object_slot_end ||
-	    g_object_table[target].object_type == 0 ||
-	    g_object_table[target].mobj->family != 0) {
-		return;
+	if (craft->captured_by_flight_group != 0) {
+		view->books |= AI_WIRE_BOOKS_CAPTURED;
 	}
-	books_approach_point(object_index, target, view->board_point);
-	view->books |= AI_WIRE_BOOKS_BOARD_POINT;
-	trig2_ctop(view->board_point[0] - object->world_x,
-		   view->board_point[1] - object->world_y,
-		   view->board_point[2] - object->world_z);
-	if (trig2_polardistance > BOOKS_BOARD_POINT_RANGE) {
-		return;
-	}
-	if (g_object_table[target].player_owner_idx != -1 &&
-	    g_object_table[target].mobj->speed != 0) {
-		books_ask_player_to_stop(object_index, target);
-		return;
-	}
-	view->books |= AI_WIRE_BOOKS_AT_BOARD_POINT;
 }
 
 void ai_books_view_craft(uint16_t object_index, struct ai_wire_craft_view *view)

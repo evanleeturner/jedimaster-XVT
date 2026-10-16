@@ -59,6 +59,7 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/audio/fsfx.c
     src/xvt/audio/music_cd.c
     src/xvt/audio/sound.c
+    src/xvt/flight/ai_boarding.c
     src/xvt/flight/ai_books.c
     src/xvt/flight/ai_brain.c
     src/xvt/flight/ai_commands.c

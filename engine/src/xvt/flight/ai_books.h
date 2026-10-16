@@ -49,6 +49,17 @@ int ai_books_static_is_target(uint16_t object_index);
  * (32). */
 int ai_books_order_boards(int order_code);
 
+/* What the craft's board point is: the board point and the books' BOARD_POINT
+ * and AT_BOARD_POINT bits for the craft's AI target (its last target action)
+ * when its current order boards and the target is a craft in the active
+ * region (point 0, 0, 0 and no bits otherwise). The craft is at the point when
+ * its rough polar distance to it is at most 2,048, the 1997 test, unless the
+ * target is a moving player's craft, which is asked to stop instead: then
+ * *ask_target is that craft, else UINT16_MAX. Changes nothing. */
+uint32_t ai_books_board_bits(uint16_t object_index,
+			     int32_t point[AI_WIRE_POINT_AXES],
+			     uint16_t *ask_target);
+
 /* The order action: the craft works on slot from now, and the slot it worked
  * on takes completion state state when state is not 0; a move to slot 3 marks
  * it skipped to order 4, and its orders are marked done when every order of

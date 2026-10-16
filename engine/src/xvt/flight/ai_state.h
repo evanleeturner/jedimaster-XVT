@@ -234,9 +234,9 @@ struct ai_flight_state {
 	/* 1 once this craft's first docking counted its group's
 	 * FLIGHT_GROUP_OUTCOME_FAILED_MISSION outcome. */
 	uint8_t docking_accounting_done;
-	/* Signatures recorded in docked_target_signatures, at most 9 after a
-	 * docking: a tenth docking writes slot 9, which no search reads, and
-	 * later ones overwrite it. */
+	/* Signatures recorded in docked_target_signatures, at most 10: the
+	 * eleventh docking and later write over the last. (The 1997 AI held at
+	 * most 9, and a tenth docking wrote a slot no search read.) */
 	uint8_t docked_target_count;
 	/* Signatures of objects the craft has docked with, so it does not board
 	 * them again. Slot 0 also keeps think_interval while the craft arrives
