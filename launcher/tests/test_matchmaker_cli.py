@@ -19,6 +19,7 @@ import socket
 import ssl
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 import pytest
@@ -36,8 +37,16 @@ GUID_TEXT = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 START_SECONDS = 20
 
 
-def start(settings: Path, *options: str) -> subprocess.Popen:
-    """Start the command on a free port of 127.0.0.1 with its log at DEBUG."""
+def start(
+    settings: Path, *options: str, ctrl_c: signal.Handlers = signal.SIG_DFL
+) -> subprocess.Popen:
+    """Start the command on a free port of 127.0.0.1 with its log at DEBUG.
+
+    Outside Windows the command starts with SIGINT set to ``ctrl_c``, by
+    default as a terminal starts it, whatever the test runner's own setting:
+    a runner started as a script's background job has SIGINT ignored, and
+    its children inherit that.
+    """
     env = {**os.environ, "PYTHONPATH": str(LAUNCHER)}
     command = [sys.executable, "-m", "jedimaster", "-vv", "matchmaker"]
     command += ["--settings", str(settings), "--host", "127.0.0.1", "--port", "0"]
@@ -48,18 +57,46 @@ def start(settings: Path, *options: str) -> subprocess.Popen:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        preexec_fn=None
+        if sys.platform == "win32"
+        else lambda: signal.signal(signal.SIGINT, ctrl_c),
     )
 
 
 def announced(process: subprocess.Popen, games: int) -> dict[str, list[str]]:
-    """Read the announced lines: one port, one fingerprint, ``games`` games."""
+    """Read the announced lines: one port, one fingerprint, ``games`` games.
+
+    A command that has not announced them within ``START_SECONDS`` is
+    killed, so the read ends and the test fails instead of waiting forever.
+    """
+    watchdog = threading.Timer(START_SECONDS, process.kill)
+    watchdog.start()
     lines: dict[str, list[str]] = {"port": [], "fingerprint": [], "game": []}
-    while len(lines["game"]) < games or not lines["fingerprint"]:
-        line = process.stdout.readline()
-        assert line, process.stderr.read()
-        name, value = line.split()
-        lines[name].append(value)
+    try:
+        while len(lines["game"]) < games or not lines["fingerprint"]:
+            line = process.stdout.readline()
+            assert line, process.stderr.read()
+            name, value = line.split()
+            lines[name].append(value)
+    finally:
+        watchdog.cancel()
     return lines
+
+
+def ended(process: subprocess.Popen, signum: int | None = None) -> tuple[str, str]:
+    """Send ``signum`` if given, wait for the command to end; return (stdout, log).
+
+    A command still running after ``START_SECONDS`` is killed and the test
+    fails, so a fault never leaves a serving matchmaker behind.
+    """
+    if signum is not None:
+        process.send_signal(signum)
+    try:
+        return process.communicate(timeout=START_SECONDS)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate()
+        pytest.fail(f"the command still ran after {START_SECONDS} s and was killed")
 
 
 def request(port: int, method: str, path: str, body: object = None):
@@ -121,8 +158,7 @@ def test_the_command_serves_its_games_over_tls_with_the_printed_pin(
             {"error": "not_found"},
         )
     finally:
-        process.send_signal(signal.SIGINT)
-        _, log = process.communicate(timeout=START_SECONDS)
+        _, log = ended(process, signal.SIGINT)
     assert process.returncode == 0
     assert (settings.parent / CERT_FILE_NAME).is_file()
     assert (settings.parent / KEY_FILE_NAME).is_file()
@@ -135,10 +171,23 @@ def test_a_lone_key_file_stops_the_command(tmp_path: Path) -> None:
     settings = tmp_path / "settings.json"
     (tmp_path / KEY_FILE_NAME).write_text("left behind")
     process = start(settings)
-    out, log = process.communicate(timeout=START_SECONDS)
+    out, log = ended(process)
     assert process.returncode == 2
     assert out == ""
     assert KEY_FILE_NAME in log
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows sends no SIGTERM")
+def test_sigterm_stops_the_command_even_with_ctrl_c_ignored(tmp_path: Path) -> None:
+    # A script's background job starts with SIGINT ignored, so Ctrl-C's
+    # signal cannot reach it; SIGTERM must stop it the same clean way.
+    process = start(tmp_path / "settings.json", ctrl_c=signal.SIG_IGN)
+    try:
+        announced(process, 1)
+    finally:
+        _, log = ended(process, signal.SIGTERM)
+    assert process.returncode == 0
+    assert "stopped" in log
 
 
 def test_a_port_in_use_stops_the_command(tmp_path: Path) -> None:

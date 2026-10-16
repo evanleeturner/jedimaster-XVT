@@ -471,6 +471,13 @@ MATCHMAKER_PLANTS: list[Plant] = [
         TL + "test_a_port_in_use_stops_the_command",
     ),
     plant(
+        "sigterm-not-handled",
+        MCL,
+        "    previous = signal.signal(signal.SIGTERM, signal.default_int_handler)\n",
+        "    previous = signal.getsignal(signal.SIGTERM)\n",
+        TL + "test_sigterm_stops_the_command_even_with_ctrl_c_ignored",
+    ),
+    plant(
         "wrong-pin-printed",
         MCL,
         'f"fingerprint {certificate.fingerprint}"',

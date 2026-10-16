@@ -3,9 +3,9 @@
 Purpose:
     Run the host's matchmaker by itself: load or make the install's
     certificate, issue the games asked for, print what the players' launch
-    descriptions and games need, and serve until Ctrl-C. A test run and a
-    host trying their router's port use it; the bot will issue its games
-    inside the launcher's own process.
+    descriptions and games need, and serve until Ctrl-C or SIGTERM. A test
+    run and a host trying their router's port use it; the bot will issue its
+    games inside the launcher's own process.
 
 Flow:
     ``add_parser`` adds the ``matchmaker`` command; ``run`` imports the web
@@ -16,9 +16,12 @@ Flow:
     game.
 
 Invariants:
-    - Exit status: 0 after Ctrl-C, 2 for a usage problem (a missing extra, a
-      port out of range or that cannot be bound, a certificate pair that
-      cannot be used).
+    - Exit status: 0 after Ctrl-C or SIGTERM, 2 for a usage problem (a
+      missing extra, a port out of range or that cannot be bound, a
+      certificate pair that cannot be used).
+    - SIGTERM stops the server as Ctrl-C does, so a script or a service
+      manager stops it cleanly; a script's background job starts with
+      Ctrl-C's signal ignored and still stops this way.
     - The game ids appear only on standard output, never in a log line.
     - The default port is 8781, beside the page's 8780; the server binds
       every address of the computer unless ``--host`` names one.
@@ -32,6 +35,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import signal
 from pathlib import Path
 
 from ..page.settings import default_settings_path
@@ -109,6 +113,7 @@ def run(args: argparse.Namespace) -> int:
         lines += [f"game {game}" for game in games]
         print("\n".join(lines), flush=True)
 
+    previous = signal.signal(signal.SIGTERM, signal.default_int_handler)
     try:
         asyncio.run(
             serve(directory, tls_context(certificate), args.port, args.host, announce)
@@ -118,4 +123,6 @@ def run(args: argparse.Namespace) -> int:
     except OSError as err:
         logger.error("cannot serve on port %d: %s", args.port, err)
         return 2
+    finally:
+        signal.signal(signal.SIGTERM, previous)
     return 0
