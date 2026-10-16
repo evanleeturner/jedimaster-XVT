@@ -546,9 +546,11 @@ static void use_battle_lobby(void)
 	game.Data2 = id->data2;
 	game.Data3 = id->data3;
 	memcpy(game.Data4, id->data4, sizeof(game.Data4));
-	/* The description holds at most 511 characters, which the directory
-	 * takes. */
-	(void)xvt_network_session_use_door(g_description.network.lobby, &game);
+	/* The description holds at most 511 characters and one key pin, which
+	 * the directory takes. */
+	(void)xvt_network_session_use_door(g_description.network.lobby,
+					   g_description.network.lobby_pin,
+					   &game);
 }
 
 /* The concourse step of a network host: loads the pilot, sets up the battle

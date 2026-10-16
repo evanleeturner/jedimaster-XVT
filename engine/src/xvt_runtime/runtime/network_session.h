@@ -32,16 +32,20 @@ struct xvt_network_session_status {
 };
 
 /* Configures the directory with the lobby URL from settings and the game's fixed application id, or
- * with the door's address and id while xvt_network_session_use_door holds them, remembering both on
- * success; an unchanged URL and id return NONE at once. Returns NOT_CONFIGURED for an empty URL and
- * INVALID_REQUEST for one too long or not a bare https origin. */
+ * with the door's address, key pin and id while xvt_network_session_use_door holds them, remembering
+ * them on success; an unchanged URL, pin and id return NONE at once. The settings' lobby is never
+ * pinned. Returns NOT_CONFIGURED for an empty URL and INVALID_REQUEST for one too long or not a bare
+ * https origin, or for a pin that is not one "sha256//" key pin. */
 AeronDplayDirectoryError xvt_network_session_configure(void);
 /* For a battle the network door starts: sessions begun from now on list and find their room at lobby
- * under the application id game, in place of the settings' URL and the fixed id, and a joiner's
- * handshake sends no 1997 join request (the door sends its own asking). Returns 1, or 0 and
- * changes nothing when lobby is NULL or longer than the directory takes; NULL game goes back to the
- * settings' URL and the fixed id (returning 1). Also clears the door's accepting mark. */
-int xvt_network_session_use_door(const char *lobby, const GUID *game);
+ * under the application id game, in place of the settings' URL and the fixed id, trusting lobby by
+ * pinned_key alone when it is not empty or NULL (the system's certificate check otherwise), and a
+ * joiner's handshake sends no 1997 join request (the door sends its own asking). Returns 1, or 0 and
+ * changes nothing when lobby is NULL or lobby or pinned_key is longer than the directory takes; NULL
+ * game goes back to the settings' URL and the fixed id (returning 1). Also clears the door's
+ * accepting mark. */
+int xvt_network_session_use_door(const char *lobby, const char *pinned_key,
+				 const GUID *game);
 /* While the door is in use, marks whether its host's room takes joiners: the door's own wait for
  * its seats stands in for mission setup's screen. Ignored without the door. */
 void xvt_network_session_set_door_accepting(int accepting);

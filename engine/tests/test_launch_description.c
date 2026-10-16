@@ -690,6 +690,58 @@ static uint32_t fingerprint(const char *text)
 	return xvt_launch_setup_fingerprint(&g_out);
 }
 
+/* A key pin as the matchmaker prints it: 43 base64 digits, then "=". */
+#define LOBBY_PIN "sha256//w9xD+xBV/7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOII="
+
+/* "lobby_pin" is optional: given in the one form it is kept whole, absent it
+ * is empty; any other form or type is refused by name. It is how this
+ * machine trusts the matchmaker, not the battle's setup, so the setup
+ * fingerprint is the same with it and without it. */
+static void check_lobby_pin(void)
+{
+	/* net_doc's text is overwritten by its next call. */
+	static char pinned[TEXT_CAPACITY];
+	snprintf(pinned, sizeof(pinned), "%s",
+		 net_doc(MELEE, "Ace", "",
+			 HOST_PART ",\"lobby_pin\":\"" LOBBY_PIN "\""));
+	XVT_ASSERT_INT_EQ(parse(pinned), 1);
+	XVT_ASSERT_INT_EQ(strcmp(g_out.network.lobby_pin, LOBBY_PIN), 0);
+	XVT_ASSERT_INT_EQ(parse(net_doc(MELEE, "Ace", "", HOST_PART)), 1);
+	XVT_ASSERT_INT_EQ(g_out.network.lobby_pin[0], 0);
+
+	static const char *const others[] = {
+		"\"\"",
+		/* no "=": 51 characters, and 52 with a 44th digit in its place */
+		"\"sha256//w9xD+xBV/7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOII\"",
+		"\"sha256//w9xD+xBV/7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOIIA\"",
+		/* 42 digits, 44 digits */
+		"\"sha256//w9xD+xBV/7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOI=\"",
+		"\"sha256//w9xD+xBV/7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOIIA=\"",
+		"\"SHA256//w9xD+xBV/7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOII=\"",
+		"\"sha1//AAw9xD+xBV/7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOII=\"",
+		/* base64url's digits */
+		"\"sha256//w9xD-xBV/7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOII=\"",
+		"\"sha256//w9xD+xBV_7eLcbRfyHbozusXvaT0ZU44Bdc4c0oZOII=\"",
+		/* a list of pins */
+		"\"" LOBBY_PIN ";" LOBBY_PIN "\"",
+		"7",
+		"null",
+		"[\"" LOBBY_PIN "\"]",
+	};
+	for (size_t index = 0; index < sizeof(others) / sizeof(others[0]);
+	     ++index) {
+		char network[512];
+		snprintf(network, sizeof(network), "%s,\"lobby_pin\":%s",
+			 HOST_PART, others[index]);
+		refused(net_doc(MELEE, "Ace", "", network),
+			"\"lobby_pin\" must be one key pin");
+	}
+
+	uint32_t with_pin = fingerprint(pinned);
+	XVT_ASSERT_INT_EQ(fingerprint(net_doc(MELEE, "Ace", "", HOST_PART)),
+			  with_pin);
+}
+
 static void check_setup_fingerprint(void)
 {
 	/* The host's and the joiner's descriptions of one battle agree, though
@@ -786,5 +838,6 @@ int main(void)
 	check_valid_network();
 	check_network_refusals();
 	check_setup_fingerprint();
+	check_lobby_pin();
 	return 0;
 }

@@ -60,17 +60,19 @@ static struct {
 } g_session;
 
 static char g_origin[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
+static char g_pinned_key[AERON_DPLAY_DIRECTORY_PIN_CAPACITY];
 static GUID g_configured_application;
 static const GUID g_application = {
 	0x09438c20, 0xe06a, 0x11ce, {0x86, 0x81, 0, 0xaa, 0, 0x6c, 0x5d, 0x57}};
 
-/* The network door's directory: its address and application id, and whether
- * its host's room takes joiners. Outlives a session's start, which clears
- * g_session. */
+/* The network door's directory: its address, its key pin (empty for the
+ * system's certificate check) and application id, and whether its host's room
+ * takes joiners. Outlives a session's start, which clears g_session. */
 static struct {
 	int active;
 	int accepting;
 	char origin[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
+	char pinned_key[AERON_DPLAY_DIRECTORY_PIN_CAPACITY];
 	GUID application;
 } g_door;
 
@@ -117,10 +119,13 @@ AeronDplayDirectoryError xvt_network_session_configure(void)
 					   : "";
 	const GUID *application =
 		g_door.active ? &g_door.application : &g_application;
+	/* Empty without the door, which is zeroed whenever it is not in use:
+	 * the settings' lobby has an authority's certificate, never a pin. */
+	const char *pinned_key = g_door.pinned_key;
 	if (!*origin) {
 		return AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED;
 	}
-	if (!strcmp(origin, g_origin) &&
+	if (!strcmp(origin, g_origin) && !strcmp(pinned_key, g_pinned_key) &&
 	    !memcmp(application, &g_configured_application,
 		    sizeof(*application))) {
 		return AERON_DPLAY_DIRECTORY_ERROR_NONE;
@@ -130,32 +135,42 @@ AeronDplayDirectoryError xvt_network_session_configure(void)
 	}
 	AeronDplayDirectoryConfig config = {0};
 	strcpy(config.lobby_url, origin);
+	strcpy(config.pinned_key, pinned_key);
 	config.application_id = *application;
 	snprintf(config.game_version, sizeof(config.game_version), "%d",
 		 FRONTEND_NET_PROTOCOL_VERSION);
 	AeronDplayDirectoryError error = AeronDplayDirectory_Configure(&config);
 	if (!error) {
 		strcpy(g_origin, origin);
+		strcpy(g_pinned_key, pinned_key);
 		g_configured_application = *application;
 	}
 	return error;
 }
 
-int xvt_network_session_use_door(const char *lobby, const GUID *game)
+int xvt_network_session_use_door(const char *lobby, const char *pinned_key,
+				 const GUID *game)
 {
 	if (!game) {
 		memset(&g_door, 0, sizeof(g_door));
-		XVT_LOG_DEBUG("network.door_directory used=0 lobby=\"\"");
+		XVT_LOG_DEBUG(
+			"network.door_directory used=0 lobby=\"\" pin=\"\"");
 		return 1;
 	}
-	if (!lobby || strlen(lobby) >= sizeof(g_door.origin)) {
+	if (!pinned_key) {
+		pinned_key = "";
+	}
+	if (!lobby || strlen(lobby) >= sizeof(g_door.origin) ||
+	    strlen(pinned_key) >= sizeof(g_door.pinned_key)) {
 		return 0;
 	}
 	g_door.active = 1;
 	g_door.accepting = 0;
 	strcpy(g_door.origin, lobby);
+	strcpy(g_door.pinned_key, pinned_key);
 	g_door.application = *game;
-	XVT_LOG_DEBUG("network.door_directory used=1 lobby=\"%s\"", lobby);
+	XVT_LOG_DEBUG("network.door_directory used=1 lobby=\"%s\" pin=\"%s\"",
+		      lobby, pinned_key);
 	return 1;
 }
 
@@ -811,4 +826,5 @@ void xvt_network_session_shutdown(void)
 	memset(&g_door, 0, sizeof(g_door));
 	memset(&g_configured_application, 0, sizeof(g_configured_application));
 	g_origin[0] = 0;
+	g_pinned_key[0] = 0;
 }

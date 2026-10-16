@@ -450,6 +450,29 @@ static int read_game_id(const char *text, struct xvt_launch_game_id *id)
 	return 1;
 }
 
+/* Returns 1 when text is one key pin as the matchmaker prints it and curl
+ * reads it: "sha256//", 43 base64 digits (never base64url's '-' or '_') and
+ * "=", 52 characters in all. Returns 0 otherwise, a list of pins included. */
+static int is_lobby_pin(const char *text)
+{
+	static const char prefix[] = "sha256//";
+	const size_t digits = XVT_LAUNCH_PIN_CAPACITY - sizeof(prefix) - 1;
+	if (strlen(text) != XVT_LAUNCH_PIN_CAPACITY - 1 ||
+	    strncmp(text, prefix, sizeof(prefix) - 1) != 0) {
+		return 0;
+	}
+	for (size_t index = 0; index < digits; ++index) {
+		char digit = text[sizeof(prefix) - 1 + index];
+		if (!(digit >= 'A' && digit <= 'Z') &&
+		    !(digit >= 'a' && digit <= 'z') &&
+		    !(digit >= '0' && digit <= '9') && digit != '+' &&
+		    digit != '/') {
+			return 0;
+		}
+	}
+	return text[XVT_LAUNCH_PIN_CAPACITY - 2] == '=';
+}
+
 /* Reads "players", the seat order, into network, and finds pilot's seat. */
 static int read_players(const cJSON *players, const char *pilot,
 			struct xvt_launch_network *network, char *why,
@@ -501,14 +524,15 @@ static int read_players(const cJSON *players, const char *pilot,
 	return 1;
 }
 
-/* Reads "network", an object holding exactly role, lobby, game and players,
- * into out->network. Needs out->pilot. */
+/* Reads "network", an object holding exactly role, lobby, game and players
+ * and optionally lobby_pin, into out->network. Needs out->pilot. */
 static int read_network(const cJSON *network,
 			struct xvt_launch_description *out, char *why,
 			size_t why_size)
 {
 	static const char *const roles[] = {"host", "join"};
-	static const char *const known[] = {"role", "lobby", "game", "players"};
+	static const char *const known[] = {"role", "lobby", "lobby_pin",
+					    "game", "players"};
 	if (!cJSON_IsObject(network)) {
 		return refuse(
 			why, why_size, "%s",
@@ -517,7 +541,7 @@ static int read_network(const cJSON *network,
 	const cJSON *item;
 	cJSON_ArrayForEach(item, network)
 	{
-		if (index_of(known, 4, item->string) < 0) {
+		if (index_of(known, 5, item->string) < 0) {
 			return refuse(
 				why, why_size,
 				"\"network\" holds \"%s\", which it does not take.",
@@ -538,6 +562,16 @@ static int read_network(const cJSON *network,
 			"The network \"lobby\" must be an https:// address of at most 511 characters.");
 	}
 	strcpy(out->network.lobby, lobby);
+	const cJSON *pin =
+		cJSON_GetObjectItemCaseSensitive(network, "lobby_pin");
+	if (pin && !(cJSON_IsString(pin) && is_lobby_pin(pin->valuestring))) {
+		return refuse(
+			why, why_size, "%s",
+			"The network \"lobby_pin\" must be one key pin as the matchmaker prints it: \"sha256//\", 43 base64 digits and \"=\".");
+	}
+	if (pin) {
+		strcpy(out->network.lobby_pin, pin->valuestring);
+	}
 	const char *game = string_member(network, "game");
 	if (!game || !read_game_id(game, &out->network.game)) {
 		return refuse(

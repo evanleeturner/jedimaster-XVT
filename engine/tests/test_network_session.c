@@ -120,9 +120,9 @@ static void check_door_directory(void)
 	/* The door's address replaces the empty one of the settings: a plain
 	 * http address reaches the directory's own check and is refused
 	 * there. */
-	XVT_ASSERT_INT_EQ(
-		xvt_network_session_use_door("http://plain.invalid", &g_room),
-		1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door("http://plain.invalid",
+						       "", &g_room),
+			  1);
 	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
 			  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 
@@ -131,21 +131,61 @@ static void check_door_directory(void)
 	memset(too_long, 'h', sizeof too_long);
 	memcpy(too_long, "https://", 8);
 	too_long[AERON_DPLAY_DIRECTORY_URL_CAPACITY] = 0;
-	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(too_long, &g_room), 0);
-	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(NULL, &g_room), 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(too_long, "", &g_room),
+			  0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(NULL, "", &g_room), 0);
 	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
 			  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
 
 	/* No id goes back to the settings, as Shutdown does. */
-	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(NULL, NULL), 1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(NULL, NULL, NULL), 1);
 	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
 			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
-	XVT_ASSERT_INT_EQ(
-		xvt_network_session_use_door("http://plain.invalid", &g_room),
-		1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door("http://plain.invalid",
+						       "", &g_room),
+			  1);
 	xvt_network_session_shutdown();
 	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
 			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
+}
+
+/* The door's key pin reaches the directory's own check. A good pin and no pin
+ * both configure a bare https address; a pin of any other form is refused
+ * there, even under the address and id just configured, so a changed pin is
+ * never answered from what was remembered. A pin longer than the directory
+ * takes changes nothing. Configuring sends no request. */
+static void check_door_pin(void)
+{
+	static const char good[] =
+		"sha256//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door("https://lobby.invalid",
+						       good, &g_room),
+			  1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NONE);
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_use_door("https://lobby.invalid",
+					     "sha256//short=", &g_room),
+		1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
+			  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door("https://lobby.invalid",
+						       NULL, &g_room),
+			  1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NONE);
+
+	char too_long[AERON_DPLAY_DIRECTORY_PIN_CAPACITY + 1];
+	memset(too_long, 'A', sizeof too_long);
+	too_long[AERON_DPLAY_DIRECTORY_PIN_CAPACITY] = 0;
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door("https://other.invalid",
+						       too_long, &g_room),
+			  0);
+	/* Nothing changed: the address, pin and id configured last stand. */
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NONE);
+	xvt_network_session_shutdown();
 }
 
 static void check_begin_refusals(void)
@@ -357,9 +397,9 @@ static void check_door_is_opening(void)
 	/* With the door: not while idle; from the close a Begin starts with,
 	 * through its completion, into the next phase. */
 	fresh();
-	XVT_ASSERT_INT_EQ(
-		xvt_network_session_use_door("http://plain.invalid", &g_room),
-		1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door("http://plain.invalid",
+						       "", &g_room),
+			  1);
 	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
 	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
 			  XVT_NETWORK_PENDING);
@@ -402,9 +442,9 @@ static void check_door_is_opening(void)
 static void check_door_host_setup_to_established(void)
 {
 	fresh();
-	XVT_ASSERT_INT_EQ(
-		xvt_network_session_use_door("http://plain.invalid", &g_room),
-		1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door("http://plain.invalid",
+						       "", &g_room),
+			  1);
 	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
 			  XVT_NETWORK_PENDING);
 	finish_close();
@@ -429,6 +469,7 @@ int main(void)
 	check_copy_player_names();
 	check_configure_needs_a_lobby();
 	check_door_directory();
+	check_door_pin();
 	check_begin_refusals();
 	check_begin_while_under_way();
 	check_tick();

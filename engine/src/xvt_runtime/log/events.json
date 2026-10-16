@@ -4310,8 +4310,8 @@
     },
     "network.door_directory": {
       "level": "D",
-      "fields": ["used", "lobby"],
-      "text": "Sessions use the door's directory: {used}, at {lobby}"
+      "fields": ["used", "lobby", "pin"],
+      "text": "Sessions use the door's directory: {used}, at {lobby}, trusting the key {pin} (empty: the system's certificate check)"
     },
     "network.dplay_caps": {
       "level": "D",

@@ -17,6 +17,8 @@ enum {
 	XVT_LAUNCH_NAME_CAPACITY = 14,
 	XVT_LAUNCH_FILE_CAPACITY = 64,
 	XVT_LAUNCH_PATH_CAPACITY = 512,
+	/* "sha256//", 43 base64 digits, "=" and the terminating NUL. */
+	XVT_LAUNCH_PIN_CAPACITY = 53,
 	XVT_LAUNCH_WHY_CAPACITY = 256,
 	/* Seats in a network battle, as many as the game's lobby holds. */
 	XVT_LAUNCH_SEAT_CAPACITY = 8
@@ -40,6 +42,10 @@ struct xvt_launch_network {
 	int role;
 	/* The matchmaker's address, as the description gives it. */
 	char lobby[XVT_LAUNCH_PATH_CAPACITY];
+	/* The pin of the matchmaker's public key, as the matchmaker prints it;
+	 * empty when the description gives none, and the system's certificate
+	 * check is kept. */
+	char lobby_pin[XVT_LAUNCH_PIN_CAPACITY];
 	struct xvt_launch_game_id game;
 	/* The pilots in seat order, the host's first; seat is the index of
 	 * this machine's pilot among them. */
@@ -113,6 +119,8 @@ struct xvt_launch_description {
  * Easy cheat is for a campaign only. A network description also holds
  * "network", an object holding exactly "role" (host or join), "lobby" (the
  * matchmaker's address: "https://" and at most 511 characters in all),
+ * optionally "lobby_pin" (the matchmaker's key pin: "sha256//", 43 base64
+ * digits and "="; given, the game trusts the matchmaker by that key alone),
  * "game" (the application id: 36 characters, lowercase hex digits in groups
  * of 8, 4, 4, 4 and 12 joined by hyphens, as the directory writes it) and
  * "players" (2 to 8 names, each passing xvt_launch_name_check, no two alike

@@ -381,7 +381,8 @@ static void check_frame_systems_pump(void)
 	 * close returns it to idle, and after a failed Begin. */
 	fresh();
 	XVT_ASSERT_INT_EQ(
-		xvt_network_session_use_door("http://plain.invalid", &game), 1);
+		xvt_network_session_use_door("http://plain.invalid", "", &game),
+		1);
 	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
 			  XVT_NETWORK_PENDING);
 	XVT_ASSERT_INT_EQ(xvt_network_session_door_is_opening(), 1);
