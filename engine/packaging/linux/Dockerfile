@@ -187,6 +187,7 @@ COPY --from=ffmpeg-build /deps/FFmpeg/COPYING.LGPLv2.1 /opt/xvt-licenses/FFmpeg-
 COPY --from=shader-tools /opt/xvt-tools /opt/xvt-tools
 COPY CMakeLists.txt /src/CMakeLists.txt
 COPY README.md /src/README.md
+COPY LICENSE /src/LICENSE
 COPY aeron /src/aeron
 COPY cmake /src/cmake
 COPY licenses /src/licenses
@@ -212,6 +213,7 @@ RUN case "${XVT_BUILD_TYPE}" in \
         -DXVT_ENABLE_UBSAN=OFF \
         -DXVT_ENABLE_DEBUG_UI="${xvt_debug_ui}" \
         -DXVT_VERSION="${XVT_VERSION}" \
+        -DXVT_FFMPEG_VERSION="${FFMPEG_VERSION}" \
     && cmake --build /build/xvt --target xvt --parallel
 
 # The AI program joins after the compile, so a change to it alone leaves the

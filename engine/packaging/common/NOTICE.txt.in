@@ -1,0 +1,29 @@
+jedimaster-XVT game, build @XVT_VERSION@
+
+This program is a modified version of OpenXvT and Aeron, two open-source
+projects by Adrien Moulin (https://github.com/elyosh/OpenXvT and
+https://github.com/elyosh/Aeron). It was built from jedimaster-XVT, which
+began as a copy of OpenXvT up to commit 51dfbfb (1 October 2026) and of
+Aeron up to commit af5370d (29 September 2026), and has changed both
+since. It is not an OpenXvT or Aeron release. Where the code came from,
+and where to report a problem:
+  https://github.com/evanleeturner/jedimaster-XVT/blob/main/ATTRIBUTION.md
+
+This program is free software under the GNU General Public License,
+version 3 (licenses/GPL-3.0.txt). It comes with no warranty, to the
+extent the law allows. The other files in licenses/ are the licenses of
+the libraries this build includes.
+
+Complete source code for this build:
+  @XVT_SOURCE_URL@
+
+The FFmpeg libraries in this build are FFmpeg @XVT_FFMPEG_VERSION@, under the
+GNU Lesser General Public License, version 2.1 or later
+(licenses/FFmpeg-LGPL-2.1.txt). Their source code:
+  https://github.com/evanleeturner/jedimaster-XVT/releases/tag/ffmpeg-n@XVT_FFMPEG_VERSION@-source
+The settings they were built with are in engine/packaging/ in the source
+code for this build.
+
+libjuice is part of this build under the Mozilla Public License 2.0
+(licenses/libjuice.txt). Its source code is in
+engine/aeron/third_party/libjuice/ in the source code for this build.

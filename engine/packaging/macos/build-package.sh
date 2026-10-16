@@ -225,6 +225,7 @@ build_application() {
         "-DXVT_MACOS_BUILD_VERSION=${build_version}" \
         "-DXVT_MACOS_BUNDLE_IDENTIFIER=${bundle_identifier}" \
         "-DXVT_VERSION=${application_version}" \
+        "-DXVT_FFMPEG_VERSION=${ffmpeg_version}" \
         "-DXVT_AI_PROGRAM_DIR=${ai_stage}"
     cmake --build "${build_root}/xvt-${build_variant}" --target xvt \
         --parallel "${jobs}"

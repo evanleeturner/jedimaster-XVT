@@ -184,6 +184,11 @@ jobs:
                 -L/opt/xvt-windows/lib -lSDL3 -o /work/out/test_ai_program.exe
               cp /opt/xvt-windows/bin/SDL3.dll /work/out/'
 
+      - name: Put the engine's license beside the test programs
+        # The test programs are built from the GPLv3 engine; the license text
+        # travels with them.
+        run: cp engine/LICENSE "${RUNNER_TEMP}/windows-tests/LICENSE.txt"
+
       - name: Keep the test programs for the Windows job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:

@@ -87,10 +87,36 @@ endif()
 
 install(FILES "${CMAKE_SOURCE_DIR}/README.md"
     DESTINATION "${XVT_PACKAGE_RESOURCE_DIR}" COMPONENT Runtime)
+
+# The package's notice: the engine's license, where its code came from, and
+# where to get the source of this build and of the libraries it includes.
+# XVT_VERSION is a commit hash in CI and a release number when a v-tag builds
+# the package; the package builds pass the FFmpeg version they compile, whose
+# source is the repository's release tagged ffmpeg-n<version>-source.
+set(XVT_FFMPEG_VERSION "8.0.1" CACHE STRING "The FFmpeg version the package carries, named in its notice")
+set(XVT_SOURCE_REPOSITORY "https://github.com/evanleeturner/jedimaster-XVT")
+if(XVT_VERSION STREQUAL "0.0.0-dev")
+    set(XVT_SOURCE_URL "${XVT_SOURCE_REPOSITORY} (a local build: the checkout it was built from)")
+elseif(XVT_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+")
+    set(XVT_SOURCE_URL "${XVT_SOURCE_REPOSITORY}/tree/v${XVT_VERSION}")
+else()
+    set(XVT_SOURCE_URL "${XVT_SOURCE_REPOSITORY}/tree/${XVT_VERSION}")
+endif()
+configure_file("${CMAKE_SOURCE_DIR}/packaging/common/NOTICE.txt.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/NOTICE.txt" @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/NOTICE.txt"
+    DESTINATION "${XVT_PACKAGE_RESOURCE_DIR}" COMPONENT Runtime)
+install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
+    DESTINATION "${XVT_PACKAGE_RESOURCE_DIR}/licenses" RENAME "GPL-3.0.txt" COMPONENT Runtime)
+
 install(FILES "${CMAKE_SOURCE_DIR}/licenses/undither.txt"
     DESTINATION "${XVT_PACKAGE_RESOURCE_DIR}/licenses" COMPONENT Runtime)
-foreach(license IN ITEMS "bc7enc/LICENSE" "fidelityfx-fsr3/LICENSE.txt"
-        "libjuice/LICENSE" "libyaml/License")
+set(XVT_BUNDLED_LICENSES "bc7enc/LICENSE" "cgltf/LICENSE" "cjson/LICENSE"
+    "fidelityfx-fsr3/LICENSE.txt" "libjuice/LICENSE" "libyaml/License")
+if(XVT_ENABLE_DEBUG_UI)
+    list(APPEND XVT_BUNDLED_LICENSES "imgui/LICENSE.txt")
+endif()
+foreach(license IN LISTS XVT_BUNDLED_LICENSES)
     get_filename_component(library "${license}" DIRECTORY)
     install(FILES "${CMAKE_SOURCE_DIR}/aeron/third_party/${license}"
         DESTINATION "${XVT_PACKAGE_RESOURCE_DIR}/licenses" RENAME "${library}.txt" COMPONENT Runtime)
