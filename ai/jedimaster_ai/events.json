@@ -41,7 +41,7 @@
     "attack.target": {
       "level": "I",
       "fields": ["object", "target", "distance"],
-      "text": "Craft {object} attacks object {target} (a craft, or a static object its order names), {distance} units away"
+      "text": "Craft {object} attacks object {target} (a craft, or a static object its order names), {distance} units from its nearest part (its hull for a starship or platform)"
     },
     "attack.unguided": {
       "level": "I",
@@ -61,7 +61,7 @@
     "avoidance.steer": {
       "level": "D",
       "fields": ["object", "around", "distance", "clearance", "yaw", "searched"],
-      "text": "Craft {object} steered clear of craft {around}, {distance} units away with a clearance of {clearance}, to yaw {yaw}; searched {searched} (1 when the way past the nearest was not free and it searched the headings its nose could reach)"
+      "text": "Craft {object} steered clear of craft {around}, {distance} units from its nearest part (its hull for a starship or platform), with a clearance of {clearance} from there, to yaw {yaw}; searched {searched} (1 when the way past the nearest was not free and it searched the headings its nose could reach)"
     },
     "board.approach": {
       "level": "D",
