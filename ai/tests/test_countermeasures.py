@@ -93,6 +93,16 @@ def test_the_range_grows_with_skill(fighter, me, skill, reach) -> None:
     assert not launches(fighter((20, TORPEDO, reach, False), skill=skill), me())
 
 
+@pytest.mark.parametrize(
+    ("level", "reach"), [(6, 8192), (7, 10240)], ids=["apprentice", "lord"]
+)
+def test_the_sith_answer_from_farther_than_a_jedi(fighter, me, level, reach) -> None:
+    """The Sith ranks carry a Jedi's skill; their level sets the range."""
+    sith = {"skill": 0xFFFF, "skill_level": level}
+    assert launches(fighter((20, TORPEDO, reach - 1, False), **sith), me())
+    assert not launches(fighter((20, TORPEDO, reach, False), **sith), me())
+
+
 @pytest.mark.parametrize("missile", [MISSILE, ADVANCED_MISSILE])
 def test_a_concussion_missile_is_answered_from_three_times_as_far(
     fighter, me, missile

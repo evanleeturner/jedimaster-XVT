@@ -207,6 +207,14 @@ def test_a_dive_asks_for_attacks_think_interval(craft, foe, ask) -> None:
     assert slow.actions.think_interval == attack.FIGHT_INTERVAL
 
 
+def test_a_sith_lords_dive_thinks_every_8_ticks(craft, foe, ask) -> None:
+    assert ask(craft(skill_level=7), foe()).actions.think_interval == 8
+    assert (
+        ask(craft(skill_level=7, think_interval=8), foe()).actions.think_interval
+        is None
+    )
+
+
 def test_it_never_breaks_off_inside_a_bulky_targets_clearance(
     craft, foe, ask, shown
 ) -> None:
@@ -476,6 +484,12 @@ def test_an_evade_command_drops_the_target_and_weaves(craft, foe, ask, caplog) -
     assert memory_of(decision).ordered == 1
     assert memory_of(decision).weave.flying
     assert f"kamikaze.evade_ordered object={ME} chaser={NO_OBJECT}" in caplog.text
+
+
+def test_a_sith_lord_ordered_to_evade_weaves_every_8_ticks(craft, foe, ask) -> None:
+    first = ask(craft(skill_level=7), foe())
+    lord = craft(skill_level=7, notebook=first.notebook, commands=Commands.EVADE)
+    assert ask(lord, foe()).actions.think_interval == 8
 
 
 def test_the_evade_weave_is_flown_out_unchased_then_it_dives(craft, foe, ask) -> None:

@@ -94,7 +94,7 @@ def answer(view: CraftView, question: Question, decision: Decision) -> Decision:
 def threat_range(view: CraftView) -> int:
     """Return how close a homing shot other than a concussion missile comes
     before the craft answers it."""
-    return THREAT_RANGE[tactics.skill_tier(view.skill)]
+    return THREAT_RANGE[tactics.skill_tier(view)]
 
 
 def _calls_for_one(view: CraftView, threat: Threat) -> bool:

@@ -107,3 +107,23 @@ def test_only_the_ignored_craft_leaves_the_targets(view, contact) -> None:
     craft = view(enemy_mask=0b11110, avoid_target=31)
     kept = tactics.commanded(craft, question, list(question.contacts[1:]))
     assert [c.object_index for c in kept] == [30, 1, 32]
+
+
+# The engine's skill by AI level, 0 to 7 (ai_brain.c), and the tier each takes.
+@pytest.mark.parametrize(
+    ("level", "skill", "tier"),
+    [
+        (0, 0x0000, 0),
+        (1, 0x4000, 0),
+        (2, 0x8000, 1),
+        (3, 0xC000, 2),
+        (4, 0xFFFF, 2),
+        (5, 0xFFFF, 2),
+        (6, 0xFFFF, 3),
+        (7, 0xFFFF, 4),
+    ],
+)
+def test_the_sith_levels_take_the_two_tiers_above_a_jedi(
+    view, level, skill, tier
+) -> None:
+    assert tactics.skill_tier(view(skill=skill, skill_level=level)) == tier

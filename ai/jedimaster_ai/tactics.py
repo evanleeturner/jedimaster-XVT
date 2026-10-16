@@ -27,6 +27,12 @@ from .world import Question
 # above that tier 2, as the game's AI levels map onto them.
 _TIER_1_SKILL = 0x8000
 _TIER_2_SKILL = 0xC000
+# The Sith skill levels carry a Jedi's skill, 0xFFFF, and take the two tiers
+# above a Jedi's: Apprentice, then Lord.
+SITH_APPRENTICE_LEVEL = 6
+SITH_LORD_LEVEL = 7
+SITH_APPRENTICE_TIER = 3
+SITH_LORD_TIER = 4
 # The engine's craft object kinds a craft may be fought in (craft.h): active
 # and disabled; breaking up, exploding and the hyperspace kinds are not.
 OBJECT_KIND_ACTIVE = 0
@@ -49,11 +55,16 @@ CLEARANCE_MARGIN = 0x1000
 FULL_THROTTLE = 0xFFFF
 
 
-def skill_tier(skill: int) -> int:
-    """Return a skill's tier: 0, 1 or 2."""
-    if skill < _TIER_1_SKILL:
+def skill_tier(view: CraftView) -> int:
+    """Return a craft's skill tier, 0 to 4: SITH_APPRENTICE_TIER and
+    SITH_LORD_TIER at the Sith skill levels, else 0, 1 or 2 by its skill."""
+    if view.skill_level == SITH_APPRENTICE_LEVEL:
+        return SITH_APPRENTICE_TIER
+    if view.skill_level == SITH_LORD_LEVEL:
+        return SITH_LORD_TIER
+    if view.skill < _TIER_1_SKILL:
         return 0
-    return 1 if skill < _TIER_2_SKILL else 2
+    return 1 if view.skill < _TIER_2_SKILL else 2
 
 
 def own_contact(view: CraftView, question: Question) -> Contact | None:

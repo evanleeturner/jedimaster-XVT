@@ -185,7 +185,7 @@ def _dive(
         )
     if memory.fresh and view.lock_state != Lock.DECLARED:
         memory = dataclasses.replace(memory, fresh=0)
-    tier = tactics.skill_tier(view.skill)
+    tier = tactics.skill_tier(view)
     yaw, pitch = geometry.bearing(dx, dy, dz)
     off_nose = geometry.angle_between(yaw, view.yaw)
     off_level = geometry.angle_between(pitch, view.pitch)

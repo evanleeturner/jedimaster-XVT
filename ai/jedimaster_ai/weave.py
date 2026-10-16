@@ -212,7 +212,7 @@ def _swerve_pitch(state: int) -> tuple[int, int]:
 def _flare(view: CraftView, state: int) -> tuple[bool, int]:
     """Return whether the craft drops a flare at a swerve, and the dice after;
     as in 1997, only a pilot of FLARE_TIER draws."""
-    if tactics.skill_tier(view.skill) < FLARE_TIER:
+    if tactics.skill_tier(view) < FLARE_TIER:
         return False, state
     draw, state = dice.roll(state, FLARE_ODDS)
     hit = draw == 0

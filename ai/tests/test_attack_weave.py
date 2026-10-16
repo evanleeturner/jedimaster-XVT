@@ -236,6 +236,11 @@ def test_an_evade_command_drops_the_target_and_weaves(craft, foe, ask, caplog) -
     assert f"attack.evade_ordered object={ME} chaser=12" in caplog.text
 
 
+def test_a_sith_lord_ordered_to_evade_thinks_every_8_ticks(craft, foe, ask) -> None:
+    lord = craft(commands=Commands.EVADE, skill_level=7)
+    assert ask(lord, foe(y=0x2000)).actions.think_interval == 8
+
+
 def test_an_ordered_weave_flies_every_swerve_with_no_chaser(
     craft, foe, ask, caplog
 ) -> None:

@@ -130,6 +130,33 @@ def test_it_keeps_its_target_until_it_looks_again(craft, foe, ask) -> None:
     assert moved.actions.target == 15
 
 
+@pytest.mark.parametrize(("level", "ticks"), [(6, 125), (7, 64)], ids=["app", "lord"])
+def test_a_sith_looks_again_sooner_than_a_jedi(craft, foe, ask, level, ticks) -> None:
+    """A Sith Apprentice looks again for a nearer target after 125 ticks, a
+    Sith Lord after 64; a Jedi keeps its target for 250."""
+    first = ask(craft(skill_level=level), foe(y=0x6000), tick=1000)
+    nearer = foe(object_index=15, y=0x2000)
+
+    def target_at(tick: int) -> int:
+        me = craft(skill_level=level, notebook=first.notebook, order_target_mask=0b110)
+        return ask(me, foe(y=0x6000), nearer, tick=tick).actions.target
+
+    assert target_at(1000 + ticks - 1) == FOE
+    assert target_at(1000 + ticks) == 15
+
+
+@pytest.mark.parametrize(
+    ("level", "thinks_at", "asks"),
+    [(5, 16, None), (6, 16, None), (7, 16, 8), (7, 8, None)],
+    ids=["jedi", "apprentice", "lord-asks", "lord-thinks-at-it"],
+)
+def test_a_sith_lord_fights_at_8_ticks(craft, foe, ask, level, thinks_at, asks) -> None:
+    """A Sith Lord thinks every 8 ticks in a fight; a Jedi and an Apprentice
+    every 16. The craft asks only for an interval it is not at already."""
+    me = craft(skill_level=level, think_interval=thinks_at)
+    assert ask(me, foe()).actions.think_interval == asks
+
+
 @pytest.mark.parametrize(("fighter_y", "picked"), [(20000, FOE), (9000, 15)])
 def test_the_nearest_target_is_measured_to_a_big_ships_hull(
     craft, foe, ask, caplog, fighter_y, picked

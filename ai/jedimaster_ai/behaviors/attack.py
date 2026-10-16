@@ -252,7 +252,7 @@ def fight(
         memory = Memory(weave=memory.weave, route=memory.route)
     if memory.fresh and view.lock_state != Lock.DECLARED:
         memory = dataclasses.replace(memory, fresh=0)
-    tier = tactics.skill_tier(view.skill)
+    tier = tactics.skill_tier(view)
     interval = fight_interval(view)
 
     if book.phase == BREAK and break_holds(view, question, book, memory):
@@ -505,7 +505,7 @@ def break_holds(
 def fight_interval(view: CraftView) -> int | None:
     """Return the think interval a fighting craft asks for, FIGHT_INTERVALS
     by its skill tier, or None when it thinks at that already."""
-    wanted = FIGHT_INTERVALS[tactics.skill_tier(view.skill)]
+    wanted = FIGHT_INTERVALS[tactics.skill_tier(view)]
     return None if view.think_interval == wanted else wanted
 
 
