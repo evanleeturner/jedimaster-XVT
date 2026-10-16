@@ -914,6 +914,7 @@ static void check_countermeasure_action(void)
 	g_projectile_object_slot_end = 32;
 	g_test_objects[31].object_type = WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
 	g_test_mobiles[31].p_warhead_guidance = &guidance;
+	g_test_mobiles[31].family = 1;
 	guidance.target_obj_idx = 1;
 	guidance.homing_tier = 2;
 	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
@@ -1068,6 +1069,7 @@ static void check_view_lock_and_warheads_coming(void)
 	g_projectile_object_slot_end = 32;
 	g_test_objects[31].object_type = WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
 	g_test_mobiles[31].p_warhead_guidance = &guidance;
+	g_test_mobiles[31].family = 1;
 	g_test_mobiles[31].damage_amount = 3225;
 	guidance.target_obj_idx = 1;
 	guidance.homing_tier = 2;

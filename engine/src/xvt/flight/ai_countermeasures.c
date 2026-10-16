@@ -85,7 +85,8 @@ void ai_countermeasures_view_craft(uint16_t object_index,
 		const struct warhead_guidance_state *guidance =
 			homing_guidance(slot);
 		if (guidance == NULL ||
-		    guidance->target_obj_idx != object_index) {
+		    guidance->target_obj_idx != object_index ||
+		    g_object_table[slot].mobj->family != 1) {
 			continue;
 		}
 		const struct object_record *shot = &g_object_table[slot];

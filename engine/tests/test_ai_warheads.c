@@ -350,12 +350,13 @@ static void check_view_skill_level(void)
 	XVT_ASSERT_INT_EQ(view_of(LOCKER).skill_level, 7);
 }
 
-/* A shot of the given type homing at strength tier on target, in the given
- * shot slot, with the given damage. */
+/* A live shot (family 1) of the given type homing at strength tier on
+ * target, in the given shot slot, with the given damage. */
 static void place_shot(int slot, int type, int tier, uint16_t target,
 		       unsigned int damage)
 {
 	g_test_objects[slot].object_type = (uint8_t)type;
+	g_test_mobiles[slot].family = 1;
 	g_test_mobiles[slot].damage_amount = damage;
 	g_test_guidance[slot - SHOT_START].homing_tier = (uint8_t)tier;
 	g_test_guidance[slot - SHOT_START].target_obj_idx = target;
@@ -382,6 +383,22 @@ static void check_view_contact_warheads_coming(void)
 	ai_warheads_view_contact(LOCKER, &contact);
 	XVT_ASSERT_INT_EQ(contact.warheads_coming, 0);
 	XVT_ASSERT_INT_EQ(contact.warheads_coming_damage, 0);
+}
+
+/* A warhead that has blown up (family 5) keeps its homing data for a
+ * moment; a contact does not count it or its damage, and a live warhead
+ * (family 1) still counts. */
+static void check_view_contact_skips_blown_up_warheads(void)
+{
+	fresh_world();
+	place_shot(SHOT_START, MISSILE, 2, TARGET, 3200);
+	g_test_mobiles[SHOT_START].family = 5;
+	place_shot(SHOT_START + 1, MISSILE, 3, TARGET, 3000);
+	struct ai_wire_contact contact;
+	memset(&contact, 0xFF, sizeof contact);
+	ai_warheads_view_contact(TARGET, &contact);
+	XVT_ASSERT_INT_EQ(contact.warheads_coming, 1);
+	XVT_ASSERT_INT_EQ(contact.warheads_coming_damage, 3000);
 }
 
 /* The count stops at 255; the damage keeps summing. */
@@ -421,6 +438,7 @@ int main(void)
 	check_half_carries_odd_tick();
 	check_view_skill_level();
 	check_view_contact_warheads_coming();
+	check_view_contact_skips_blown_up_warheads();
 	check_view_contact_count_cap();
 	check_past_craft_slots();
 	return 0;

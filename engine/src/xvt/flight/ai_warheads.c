@@ -268,7 +268,8 @@ void ai_warheads_view_contact(uint16_t object_index,
 		const struct warhead_guidance_state *guidance =
 			shot->mobj->p_warhead_guidance;
 		if (guidance == NULL || guidance->homing_tier == 0 ||
-		    guidance->target_obj_idx != object_index) {
+		    guidance->target_obj_idx != object_index ||
+		    shot->mobj->family != 1) {
 			continue;
 		}
 		if (contact->warheads_coming < UINT8_MAX) {

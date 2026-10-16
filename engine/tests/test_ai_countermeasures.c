@@ -222,6 +222,24 @@ static void check_view_takes_first_shots(void)
 	}
 }
 
+/* A warhead that has blown up (an impact effect or an explosion in place,
+ * family 5) keeps its homing data for a moment; the view does not list it as
+ * a threat, and a live shot in a later slot is still listed. */
+static void check_view_skips_blown_up_warheads(void)
+{
+	fresh_world();
+	place_craft(OWNER, 0, 2, 4);
+	place_shot(8, MISSILE, 0, 0, 0, OWNER, 2);
+	g_test_mobiles[8].family = 5;
+	place_shot(9, ROCKET, 0, 0, 0, OWNER, 3);
+	g_test_mobiles[9].family = 5;
+	place_shot(10, MISSILE, 7, 8, 9, OWNER, 2);
+	struct ai_wire_craft_view view = view_of_owner();
+	XVT_ASSERT_INT_EQ(view.threat_count, 1);
+	XVT_ASSERT_INT_EQ(view.threat_object[0], 10);
+	XVT_ASSERT_INT_EQ(view.threat_x[0], 7);
+}
+
 /* Chaff adds 10 simulated seconds when none are left and uses a
  * countermeasure, none while chaff still runs, and none under a flight
  * group status of 21 in either status. Nothing launches from a craft that
@@ -317,6 +335,7 @@ int main(void)
 {
 	check_view_names_homing_shots();
 	check_view_takes_first_shots();
+	check_view_skips_blown_up_warheads();
 	check_chaff_launch();
 	check_flare_launch();
 	return 0;
