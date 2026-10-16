@@ -14,6 +14,8 @@ Purpose:
     1997 did; ``keep`` is how near it a craft comes before it breaks off.
     ``seen`` is how the box, grown by a margin, lies from a craft: the
     headings that reach it, which avoidance steers clear of (ruling 94).
+    ``off_box`` is how a point lies off the box, which avoidance measures a
+    Drop Off approach's straight line by (issue #311).
 
 The box comes from the engine: its smallest and largest corners in the
 model's own axes (``Contact.box_min``, ``Contact.box_max``) and the craft's
@@ -169,6 +171,13 @@ def axes(yaw: int, pitch: int, roll: int) -> tuple[Vector, Vector, Vector]:
             _turned(up, cos_roll, side, -sin_roll),
         )
     return side, up, forward
+
+
+def off_box(contact: Contact, point: Vector) -> Vector:
+    """Return the offset to a point in the contact's model axes from the
+    nearest point of its box: (0, 0, 0) for a point inside it."""
+    near = _clamped(point, contact.box_min, contact.box_max)
+    return point[0] - near[0], point[1] - near[1], point[2] - near[2]
 
 
 def to_model(contact: Contact, offset: Vector) -> Vector:

@@ -21,6 +21,7 @@ from jedimaster_ai.geometry import sweeps
 from jedimaster_ai.geometry import TURN
 from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
+from jedimaster_ai.world import Books
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import NOTEBOOK_BYTES
 from jedimaster_ai.world import Question
@@ -400,3 +401,199 @@ def test_past_a_hulls_edge_a_heading_passes_at_its_keep(
     inside = Question(1000, (me,), (own, destroyer(3000)))
     wall = avoidance.in_the_way(me, inside, EAST.yaw, LEVEL, NO_OBJECT)
     assert max(wall.passes(yaw) for yaw in range(0, TURN, 0x100)) == 3000
+
+
+# Retail 8xicw12's parked hangar starship (type 53, flight group 8) and its two
+# Drop Off carriers' points, as the W4-0c landing flight logged them (issue
+# #311): fg 9's point lies 6,817 under its box, fg 10's 3,033 off it, under it
+# and past its side, both inside its keep of 4,096 and a carrier's reach.
+PARKED = {
+    "object_index": 8,
+    "genus": STARSHIP,
+    "size": 65396,
+    "x": 0,
+    "y": -10240,
+    "z": 3072,
+    "yaw": 0,
+    "pitch": LEVEL,
+    "roll": 0,
+    "box_min": (-19139, -40940, -7132),
+    "box_max": (19140, 24456, 12569),
+}
+FG9_POINT = (12288, -8192, -10877)
+FG10_POINT = (20480, -6144, -6781)
+# The parked starship's box in the world: its east, north and south faces,
+# its floor.
+EAST_FACE = 19140
+NORTH_FACE = 30700
+SOUTH_FACE = -34696
+FLOOR = -4060
+# Where obj 3 (fg 9's carrier) first turned off toward the keep's edge, t77,751.
+OBJ3_TURNED = (32264, -24764, -10264)
+
+
+@pytest.fixture
+def approach(view, contact):
+    """Return the heading and the decision after avoidance of a bulk
+    freighter at a place on Drop Off's approach, steering dead on its drop
+    point as ``dropoff`` does (``off`` turns it aside), its nose on that
+    heading unless named; the parked starship and the others given about."""
+
+    def decide(at, point, *others, books=Books.DROP_POINT, off=(0, 0), nose=None):
+        yaw, pitch = bearing(point[0] - at[0], point[1] - at[1], point[2] - at[2])
+        heading = Steer((yaw + off[0]) % TURN, pitch + off[1], 0)
+        me = view(
+            object_index=ME,
+            x=at[0],
+            y=at[1],
+            z=at[2],
+            yaw=heading.yaw if nose is None else nose,
+            pitch=pitch,
+            roll=0,
+            books=books,
+            drop_point=point,
+        )
+        own = contact(
+            object_index=ME,
+            genus=FREIGHTER,
+            size=BULK_FREIGHTER_SIZE,
+            x=at[0],
+            y=at[1],
+            z=at[2],
+        )
+        actions = Actions(steer=heading, throttle=0xFFFF, target=NO_OBJECT)
+        question = Question(1000, (me,), (own, contact(**PARKED), *others))
+        decision = avoidance.steer_clear(me, question, Decision(NOTEBOOK, actions))
+        return heading, decision
+
+    return decide
+
+
+def test_a_drop_off_carrier_flies_straight_in_under_a_parked_starship(
+    approach, caplog
+) -> None:
+    """Where the W4-0c landing flight's carrier for fg 9 first turned off
+    toward the parked starship's keep, its straight line to its point keeps
+    6,603 off the box, past its reach of 3,720: it flies in. Without the
+    drop point booked it turns aside, as every carrier did."""
+    caplog.set_level("DEBUG")
+    heading, flown = approach(OBJ3_TURNED, FG9_POINT)
+    assert flown.actions.steer == heading
+    assert (
+        f"avoidance.way_in object={ME} around=8 off=6817 least=6603 clear=1"
+        in caplog.text
+    )
+    heading, turned = approach(OBJ3_TURNED, FG9_POINT, books=0)
+    assert turned.actions.steer != heading
+
+
+def test_a_point_nearer_the_hull_than_the_carriers_reach_is_flown_to(
+    approach, caplog
+) -> None:
+    """fg 10's point lies 3,033 off the box, less than the carrier's reach: a
+    line closing on the box all the way there flies in (its carrier where it
+    first came near the keep, t92,418); one that passes 2,722 under the box
+    first, from the ship's far side (t119,313), steers round."""
+    caplog.set_level("DEBUG")
+    heading, flown = approach((33919, 9822, -6782), FG10_POINT)
+    assert flown.actions.steer == heading
+    assert "off=3033 least=3033 clear=1" in caplog.text
+    heading, turned = approach((5162, -45215, -6782), FG10_POINT)
+    assert turned.actions.steer != heading
+    assert "off=3033 least=2722 clear=0" in caplog.text
+
+
+def test_a_line_past_a_hulls_edge_is_measured_straight_off_it(approach, caplog) -> None:
+    """A line passing the box's lower east edge 2,700 out from each of its
+    two faces passes 3,818 off the box, past the carrier's reach, though
+    nearer than that to each face's plane: it flies in to a point 7,200 off
+    the east face."""
+    caplog.set_level("DEBUG")
+    edge = (EAST_FACE + 2700, -20000, FLOOR - 2700)
+    start = (edge[0] - 10000, edge[1], edge[2] - 10000)
+    point = (edge[0] + 4500, edge[1], edge[2] + 4500)
+    heading, flown = approach(start, point)
+    assert flown.actions.steer == heading
+    assert "off=7200 least=3818 clear=1" in caplog.text
+
+
+def test_a_line_through_the_hull_steers_round(approach, caplog) -> None:
+    """From off the parked starship's north face the line to fg 9's point
+    enters its box: the carrier steers round."""
+    caplog.set_level("DEBUG")
+    heading, turned = approach((15000, NORTH_FACE + 6000, 15000), FG9_POINT)
+    assert turned.actions.steer != heading
+    assert "off=6817 least=0 clear=0" in caplog.text
+
+
+def test_only_a_heading_dead_on_the_point_goes_in(approach) -> None:
+    """A carrier whose decision steers elsewhere, as one sent home with its
+    drop point still booked, keeps the parked starship's keep: a yaw or a
+    pitch 5 units off the point is not the approach, 4 is."""
+    for off in ((4, 0), (0, 4)):
+        heading, flown = approach(OBJ3_TURNED, FG9_POINT, off=off)
+        assert flown.actions.steer == heading
+    for off in ((5, 0), (0, 5)):
+        heading, turned = approach(OBJ3_TURNED, FG9_POINT, off=off)
+        assert turned.actions.steer != heading
+
+
+def test_another_bulky_craft_on_the_line_is_steered_round(approach, ship) -> None:
+    """A freighter halfway along the line, its clearance short of the point,
+    turns the carrier aside: only a craft whose clearance holds the point is
+    passed."""
+    half = [(a + b) // 2 for a, b in zip(OBJ3_TURNED, FG9_POINT, strict=True)]
+    crossing = ship(half[1], x=half[0], z=half[2], object_index=21)
+    heading, turned = approach(OBJ3_TURNED, FG9_POINT, crossing)
+    assert turned.actions.steer != heading
+
+
+def test_a_craft_whose_clearance_misses_the_point_is_steered_round(
+    approach, ship
+) -> None:
+    """A freighter 7,600 beside the line's middle: the heading clips its
+    clearance, though the line passes 3,878 off its body, past the carrier's
+    reach; its clearance does not hold the point, so the carrier steers
+    round it."""
+    beside = ship(-22327, x=17424, z=-10571, object_index=21)
+    heading, turned = approach(OBJ3_TURNED, FG9_POINT, beside)
+    assert turned.actions.steer != heading
+
+
+def test_every_craft_whose_clearance_holds_the_point_is_passed(
+    approach, ship, caplog
+) -> None:
+    """A carrier parked 5,000 beside fg 9's point holds it in its clearance
+    too: 15,000 short of the point on obj 3's line, both are in the way, and
+    a line keeping 6,603 off the starship's box and 1,279 off the parked
+    carrier's ball, its point's own distance, flies in past both."""
+    caplog.set_level("DEBUG")
+    parked = ship(-4344, x=15480, z=-10877, object_index=21)
+    heading, flown = approach((23829, -17767, -10523), FG9_POINT, parked)
+    assert flown.actions.steer == heading
+    assert "around=8 off=6817 least=6603 clear=1" in caplog.text
+    assert "around=21 off=1279 least=1279 clear=1" in caplog.text
+
+
+def test_a_point_inside_the_box_is_never_flown_to(approach, caplog) -> None:
+    """A point inside the parked starship's box lies 0 off it: a carrier off
+    its south face steers round."""
+    caplog.set_level("DEBUG")
+    heading, turned = approach(
+        (3000, SOUTH_FACE - 6000, -9000), (0, -10240, FLOOR + 1000)
+    )
+    assert turned.actions.steer != heading
+    assert "off=0 least=0 clear=0" in caplog.text
+
+
+def test_the_turn_in_never_swings_the_nose_across_the_hull(approach) -> None:
+    """5,000 off the parked starship's east face, inside its keep, a carrier
+    nosed south turns in to a point 3,000 off the face to its south-west;
+    nosed north-north-west, the shortest turn there swings its nose across
+    the hull, due west, and it steers round instead."""
+    at = (EAST_FACE + 5000, -20000, 0)
+    point = (EAST_FACE + 3000, -22000, 0)
+    heading, flown = approach(at, point, nose=QUARTER_TURN * 2)
+    assert flown.actions.steer == heading
+    heading, turned = approach(at, point, nose=0xF000)
+    assert turned.actions.steer != heading

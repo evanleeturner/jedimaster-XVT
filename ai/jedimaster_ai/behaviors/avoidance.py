@@ -34,6 +34,19 @@ Purpose:
     from one into the other, or turned back to its target across the other
     (AI5e-3, the escort network game's bombers).
 
+    A Drop Off approach whose drop point lies inside a bulky craft's
+    clearance flies straight in while its line there keeps clear of that
+    craft's body (issue #311): the box itself for a starship or platform,
+    the ball of three quarters of its size for a freighter, grown by the
+    craft's reach, or by the point's own distance off the body where that
+    is less. Only a heading dead on the point (``DEAD_ON``) goes in, past
+    only the craft whose clearance holds the point; another bulky craft in
+    the way, a line that comes nearer, or a turn there that swings the nose
+    across one it passes while inside its clearance, and the craft steers
+    round them all as before. Without it, every heading at a point under a
+    parked starship entered its clearance, and the carriers circled the
+    ship to the end of the flight.
+
     ``in_the_way`` is the test itself, for a behavior that weighs a heading
     before it steers (the attack's break), and ``clear_yaw`` the turn, for
     one that reads its throttle from the heading it will fly (a starship's
@@ -44,6 +57,9 @@ Invariants:
       drifting keeps drifting (ruling 9). The notebook never changes.
     - Every craft steers clear of bulky craft, a bulky craft of the others
       too; no craft steers clear of a small one.
+    - A craft enters a bulky craft's clearance only on a Drop Off approach
+      to a point inside it, on a straight line that comes no nearer the
+      body than its reach, or than the point itself where that is nearer.
     - The craft's target is its behavior's to handle while the heading
       asked enters the target's clearance (the attack aims at it); a heading
       that does not (a break) steers clear of the target too.
@@ -66,6 +82,7 @@ import typing as t
 from .. import geometry
 from .. import hull
 from .. import tactics
+from ..world import Books
 from ..world import Contact
 from ..world import CraftView
 from ..world import NO_OBJECT
@@ -85,6 +102,10 @@ EDGE_PAD = 0x400
 DEAD_ON = 4
 # The headings the search weighs lie a 128th of a turn apart.
 SEARCH_STEP = 0x200
+# A Drop Off approach's straight line is weighed at this many steps along it.
+SEGMENT_STEPS = 0x10000
+
+Vector = hull.Vector
 
 
 @dataclasses.dataclass(frozen=True)
@@ -139,6 +160,8 @@ def steer_clear(view: CraftView, question: Question, decision: Decision) -> Deci
     target = own.target if decision.actions.target is None else decision.actions.target
     if not _aims_at(view, question, steer, target):
         target = NO_OBJECT
+    if _flies_in(view, question, steer, target, own.size * 3 // 4):
+        return decision
     yaw = clear_yaw(view, question, steer.yaw, steer.pitch, target)
     if yaw == steer.yaw:
         return decision
@@ -275,6 +298,123 @@ def _aims_at(view: CraftView, question: Question, steer: Steer, target: int) -> 
         if obstacle.contact.object_index == target:
             return geometry.angle_between(steer.yaw, obstacle.yaw) < obstacle.edge
     return True
+
+
+def _flies_in(
+    view: CraftView, question: Question, steer: Steer, skip: int, reach: int
+) -> bool:
+    """Whether a Drop Off approach flies straight in to its drop point: it
+    steers dead on the point, every bulky craft in its way but those it may
+    pass (``_way_in``) leaves the heading free, and the turn there swings
+    the nose across none of those whose clearance the craft is inside."""
+    if not view.books & Books.DROP_POINT:
+        return False
+    px, py, pz = view.drop_point
+    point = (px - view.x, py - view.y, pz - view.z)
+    yaw, pitch = geometry.bearing(*point)
+    if (
+        geometry.angle_between(steer.yaw, yaw) > DEAD_ON
+        or geometry.angle_between(steer.pitch, pitch) > DEAD_ON
+    ):
+        return False
+    near = nearby(view, question, steer.pitch, skip)
+    passed = [o for o in near if _way_in(view, o.contact, point, reach)]
+    if not passed:
+        return False
+    others = [o for o in near if o not in passed]
+    return _free(view.yaw, steer.yaw, others) and not any(
+        o.distance < o.clearance and geometry.sweeps(view.yaw, steer.yaw, o.yaw)
+        for o in passed
+    )
+
+
+@dataclasses.dataclass(frozen=True)
+class _Body:
+    """A bulky craft's body and the line to a drop point, in the body's own
+    frame: a starship's or platform's box in its model axes (``hull``), a
+    freighter's ball of radius round its position; the craft at start, the
+    point at end, and how far off the body the clearance reaches."""
+
+    contact: Contact
+    start: Vector
+    end: Vector
+    radius: int
+    keep: int
+
+    @classmethod
+    def of(cls, view: CraftView, contact: Contact, point: Vector, reach: int) -> _Body:
+        """Return a contact's body and the line from the craft to a point
+        offset from it; a hull keeps ``hull.KEEP`` and the craft's reach."""
+        start = (view.x - contact.x, view.y - contact.y, view.z - contact.z)
+        end = (start[0] + point[0], start[1] + point[1], start[2] + point[2])
+        if hull.by_hull(contact):
+            return cls(
+                contact,
+                hull.to_model(contact, start),
+                hull.to_model(contact, end),
+                0,
+                hull.KEEP + reach,
+            )
+        radius = tactics.clearance(contact) - tactics.CLEARANCE_MARGIN
+        return cls(contact, start, end, radius, tactics.CLEARANCE_MARGIN)
+
+    def gap(self, at: Vector) -> Vector:
+        """Return the offset from the body to a point, along which its
+        distance off the body grows: from the box's nearest point, or from
+        the ball's middle."""
+        return hull.off_box(self.contact, at) if hull.by_hull(self.contact) else at
+
+    def off(self, at: Vector) -> int:
+        """Return how far a point lies off the body, 0 inside it."""
+        return max(geometry.distance(*self.gap(at)) - self.radius, 0)
+
+    def least(self) -> int:
+        """Return how near the line comes to the body: the point's own
+        distance off it when the line still closes on the body there, else
+        the least a ternary search over SEGMENT_STEPS finds, the distance
+        off a box or a ball being convex along a line."""
+        way = tuple(e - s for e, s in zip(self.end, self.start, strict=True))
+        if sum(g * w for g, w in zip(self.gap(self.end), way, strict=True)) <= 0:
+            return self.off(self.end)
+        low, high = 0, SEGMENT_STEPS
+        while high - low > 2:
+            first = low + (high - low) // 3
+            second = high - (high - low) // 3
+            if self._off_at(way, first) <= self._off_at(way, second):
+                high = second
+            else:
+                low = first
+        return min(self._off_at(way, step) for step in range(low, high + 1))
+
+    def _off_at(self, way: tuple[int, ...], step: int) -> int:
+        """Return how far off the body the line's point step lies."""
+        at = tuple(
+            s + w * step // SEGMENT_STEPS for s, w in zip(self.start, way, strict=True)
+        )
+        return self.off(at)
+
+
+def _way_in(view: CraftView, contact: Contact, point: Vector, reach: int) -> bool:
+    """Whether a craft may pass inside a bulky craft's clearance to a point
+    offset from it: the clearance holds the point, the point lies off the
+    body, and the straight line there comes no nearer the body than the
+    craft's reach, or than the point's own distance off it where that is
+    less. Logs the line for every craft whose clearance holds the point."""
+    body = _Body.of(view, contact, point, reach)
+    off = body.off(body.end)
+    if off >= body.keep:
+        return False
+    least = body.least() if off else 0
+    clear = off > 0 and least >= min(reach, off)
+    logger.debug(
+        "avoidance.way_in object=%d around=%d off=%d least=%d clear=%d",
+        view.object_index,
+        contact.object_index,
+        off,
+        least,
+        int(clear),
+    )
+    return clear
 
 
 def _free(nose: int, heading: int, near: list[Obstacle]) -> bool:

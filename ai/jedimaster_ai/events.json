@@ -83,6 +83,11 @@
       "fields": ["object", "around", "distance", "clearance", "yaw", "searched"],
       "text": "Craft {object} steered clear of craft {around}, {distance} units from its nearest part (its hull for a starship or platform), with a clearance of {clearance} from there, to yaw {yaw}; searched {searched} (1 when the way past the nearest was not free and it searched the headings its nose could reach)"
     },
+    "avoidance.way_in": {
+      "level": "D",
+      "fields": ["object", "around", "off", "least", "clear"],
+      "text": "Craft {object}, steering dead on its drop point inside the clearance of craft {around}, finds the point {off} units off that craft's body (its box for a starship or platform, else the ball of three quarters of its size) and the straight line there {least} units off it at its nearest; clear {clear} (1 when the line keeps the craft's reach off the body, or the point's own distance where that is less, so the craft may fly in)"
+    },
     "board.approach": {
       "level": "D",
       "fields": ["object", "target", "left", "throttle", "pointed", "there"],

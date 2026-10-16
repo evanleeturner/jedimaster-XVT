@@ -113,6 +113,15 @@ def test_inside_the_box_it_is_0_from_the_hull_and_points_at_the_position(
     )
 
 
+def test_a_point_off_the_box_is_offset_from_its_nearest_point(ship) -> None:
+    """In the model's axes: past a corner, off by its overhang on every axis;
+    past one face, on that axis alone; inside, by nothing."""
+    isd = ship()
+    assert hull.off_box(isd, (19150, 24476, -7162)) == (10, 20, -30)
+    assert hull.off_box(isd, (0, -41940, 0)) == (0, -1000, 0)
+    assert hull.off_box(isd, (19140, -40940, 12570)) == (0, 0, 0)
+
+
 @pytest.mark.parametrize("genus", [0, 1, FREIGHTER])
 def test_any_other_craft_is_measured_from_its_position(me, ship, genus) -> None:
     assert not hull.by_hull(ship(genus=genus))
