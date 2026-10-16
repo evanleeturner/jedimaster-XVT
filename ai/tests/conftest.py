@@ -16,6 +16,8 @@ from jedimaster_ai.world import CraftView
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import NOTEBOOK_BYTES
 
+pytest_plugins = ("attack_setup",)
+
 ENGINE = pathlib.Path(__file__).resolve().parents[2] / "engine"
 
 VIEW = CraftView(
