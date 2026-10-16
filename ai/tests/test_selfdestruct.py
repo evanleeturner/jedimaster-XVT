@@ -11,18 +11,22 @@ from jedimaster_ai import dice
 from jedimaster_ai import notebook
 from jedimaster_ai.behaviors import attack
 from jedimaster_ai.behaviors import BehaviorCode
+from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.behaviors import selfdestruct
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
+from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Books
 from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import NO_OBJECT
+from jedimaster_ai.world import NOTEBOOK_BYTES
 from jedimaster_ai.world import Question
 from jedimaster_ai.world import Turret
 
 ME = 4
+NOTEBOOK = bytes(range(NOTEBOOK_BYTES))
 CHASER = 12
 TICK = 5000
 # The ticks in one unit of the order's variable1, 1997's five simulated
@@ -30,6 +34,11 @@ TICK = 5000
 UNIT_TICKS = 1180
 # A hull below three quarters of its strength: the craft may not fight back.
 HURT = {"hull_strength": 400, "hull_damage": 101}
+
+
+def stopped(**changes) -> Actions:
+    """Return the actions of a craft sitting still under its status line."""
+    return Actions(throttle=0, activity=Activity.SELF_DESTRUCTING, **changes)
 
 
 @pytest.fixture
@@ -55,7 +64,7 @@ def ask(view, tick=TICK):
 
 
 def test_the_first_think_stops_and_asks_for_the_orders_delay(scuttling) -> None:
-    assert ask(scuttling()).actions == Actions(throttle=0, self_destruct=3)
+    assert ask(scuttling()).actions == stopped(self_destruct=3)
 
 
 def test_the_notebook_names_the_slot_answered_and_keeps_the_dice(scuttling) -> None:
@@ -74,27 +83,27 @@ def test_a_later_think_sits_still_and_asks_nothing_more(scuttling, caplog) -> No
     caplog.set_level(logging.DEBUG)
     later = ask(scuttling(notebook=first.notebook), TICK + 16)
     assert later.notebook == first.notebook
-    assert later.actions == Actions(throttle=0)
+    assert later.actions == stopped()
     assert "selfdestruct" not in caplog.text
 
 
 @pytest.mark.parametrize("variable1", [1, 36, 55])
 def test_the_delay_is_the_orders_variable1_up_to_55_units(scuttling, variable1) -> None:
     decision = ask(scuttling(order_variable1=variable1))
-    assert decision.actions == Actions(throttle=0, self_destruct=variable1)
+    assert decision.actions == stopped(self_destruct=variable1)
 
 
 @pytest.mark.parametrize("variable1", [56, 255])
 def test_a_delay_past_55_units_is_never_asked_for(scuttling, caplog, variable1) -> None:
     caplog.set_level(logging.DEBUG)
     first = ask(scuttling(order_variable1=variable1))
-    assert first.actions == Actions(throttle=0)
+    assert first.actions == stopped()
     assert [(record.levelname, record.getMessage()) for record in caplog.records] == [
         ("WARNING", f"selfdestruct.too_long object={ME} slot=3 units={variable1}")
     ]
     caplog.clear()
     later = ask(scuttling(order_variable1=variable1, notebook=first.notebook))
-    assert later.actions == Actions(throttle=0)
+    assert later.actions == stopped()
     assert later.notebook == first.notebook
     assert caplog.records == []
 
@@ -103,7 +112,7 @@ def test_a_variable1_of_0_rolls_the_delay_on_the_crafts_dice(scuttling) -> None:
     me = scuttling(order_variable1=0)
     decision = ask(me)
     roll, state = dice.roll(dice.seed(me.random_seed, ME), 4)
-    assert decision.actions == Actions(throttle=0, self_destruct=2 + roll)
+    assert decision.actions == stopped(self_destruct=2 + roll)
     assert notebook.decode(decision.notebook).dice == state
 
 
@@ -118,9 +127,9 @@ def test_the_rolled_delays_are_2_to_5_units_and_nothing_else(scuttling) -> None:
 def test_a_new_order_slot_asks_again(scuttling) -> None:
     earlier = scuttling(order_slot=0, order_codes=(36, 0, 0, 36))
     first = ask(earlier)
-    assert first.actions == Actions(throttle=0, self_destruct=3)
+    assert first.actions == stopped(self_destruct=3)
     again = ask(scuttling(notebook=first.notebook))
-    assert again.actions == Actions(throttle=0, self_destruct=3)
+    assert again.actions == stopped(self_destruct=3)
     assert notebook.decode(again.notebook).scratch[0] == 3
 
 
@@ -130,7 +139,7 @@ def test_another_behaviors_notebook_is_started_again_with_its_dice(scuttling) ->
     )
     decision = ask(scuttling(order_variable1=0, notebook=attack.encode()))
     roll, state = dice.roll(0x1234567, 4)
-    assert decision.actions == Actions(throttle=0, self_destruct=2 + roll)
+    assert decision.actions == stopped(self_destruct=2 + roll)
     book = notebook.decode(decision.notebook)
     assert (book.behavior, book.phase, book.dice, book.phase_tick) == (
         12,
@@ -184,7 +193,7 @@ def test_a_running_lifetime_timer_is_never_asked_again(
     me = scuttling(lifetime_timer=timer)
     decision = ask(me)
     assert decision == ask(scuttling(lifetime_timer=timer))
-    assert decision.actions == Actions(throttle=0)
+    assert decision.actions == stopped()
     assert decision.notebook == me.notebook
     assert "selfdestruct" not in caplog.text
 
@@ -195,7 +204,7 @@ def test_a_later_self_destruct_slot_keeps_the_running_countdown(scuttling) -> No
     earlier = scuttling(order_slot=0, order_codes=(36, 0, 0, 36))
     first = ask(earlier)
     running = scuttling(notebook=first.notebook, lifetime_timer=2 * UNIT_TICKS)
-    assert ask(running).actions == Actions(throttle=0)
+    assert ask(running).actions == stopped()
 
 
 @pytest.fixture
@@ -273,12 +282,12 @@ def test_clear_of_enemies_it_lets_go_then_stops(fighter, chaser, fly) -> None:
     first = fly(fighter(), chaser)
     timer = {"lifetime_timer": 3 * UNIT_TICKS - 16}
     letting_go = fly(fighter(notebook=first.notebook, **timer), tick=TICK + 16)
-    assert letting_go.actions == Actions(
-        throttle=0, target=NO_OBJECT, lasers=(HOLD_FIRE, HOLD_FIRE)
+    assert letting_go.actions == stopped(
+        target=NO_OBJECT, lasers=(HOLD_FIRE, HOLD_FIRE)
     )
     after = fighter(notebook=letting_go.notebook, **timer)
     held = fly(after, tick=TICK + 32)
-    assert held.actions == Actions(throttle=0)
+    assert held.actions == stopped()
     assert held.notebook == after.notebook
 
 
@@ -308,13 +317,13 @@ def test_a_delay_past_55_units_is_warned_of_once_clear_of_the_fight(
     clear = fly(
         fighter(order_variable1=56, notebook=letting_go.notebook), tick=TICK + 32
     )
-    assert clear.actions == Actions(throttle=0)
+    assert clear.actions == stopped()
     assert _own_lines(caplog) == [
         ("WARNING", f"selfdestruct.too_long object={ME} slot=3 units=56")
     ]
     caplog.clear()
     calm = fly(fighter(order_variable1=56, notebook=clear.notebook), tick=TICK + 48)
-    assert calm.actions == Actions(throttle=0)
+    assert calm.actions == stopped()
     assert _own_lines(caplog) == []
 
 
@@ -337,3 +346,21 @@ def _own_lines(caplog) -> list[tuple[str, str]]:
         for record in caplog.records
         if record.getMessage().startswith("selfdestruct.")
     ]
+
+
+def test_a_fighting_craft_keeps_its_status_line(fighter, chaser, fly) -> None:
+    assert fly(fighter(), chaser).actions.activity == Activity.SELF_DESTRUCTING
+
+
+def test_another_behavior_gives_the_line_back(view) -> None:
+    """A craft still showing "Self-destructing" under a behavior that names no
+    line shows none; a line that behavior names, or another left behind,
+    stays."""
+    quiet = Decision(NOTEBOOK, Actions(throttle=0))
+    showing = view(activity=Activity.SELF_DESTRUCTING)
+    given_back = Decision(NOTEBOOK, Actions(throttle=0, activity=Activity.NONE))
+    assert selfdestruct.ended(showing, quiet) == given_back
+    named = Decision(NOTEBOOK, Actions(activity=Activity.GOING_HOME))
+    assert selfdestruct.ended(showing, named) == named
+    other = view(activity=Activity.KAMIKAZE_ATTACK)
+    assert selfdestruct.ended(other, quiet) == quiet

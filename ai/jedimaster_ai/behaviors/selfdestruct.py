@@ -23,6 +23,11 @@ Purpose:
     - The order has no goal: the craft never moves to a later order, and the
       engine keeps no books for it that would send it home.
 
+    Its status line, while it waits and while it fights: "Self-destructing"
+    (SELF_DESTRUCTING), 1997's line 190 for selfdestroypln (ruling 166).
+    ``ended`` gives the line back as NONE once another behavior flies the
+    craft and names none, as when a mission gives it a new order.
+
 The state, SLOT.size bytes at the start of the scratch: u8 the order slot
 the craft has answered, in phase ANSWERED: it asked for the countdown, or
 found the delay too long. A fight writes the attack notebook over it; the
@@ -46,6 +51,7 @@ import struct
 
 from .. import dice
 from .. import notebook
+from ..world import Activity
 from ..world import CraftView
 from ..world import Question
 from . import attack
@@ -70,6 +76,28 @@ ANSWERED = 1
 
 
 def think(view: CraftView, question: Question) -> Decision:
+    """Return the craft's step (``_flown``) under its status line,
+    SELF_DESTRUCTING, sent every think so ``ended`` tells it from a line
+    left behind."""
+    decision = _flown(view, question)
+    actions = dataclasses.replace(decision.actions, activity=Activity.SELF_DESTRUCTING)
+    return dataclasses.replace(decision, actions=actions)
+
+
+def ended(view: CraftView, decision: Decision) -> Decision:
+    """Return the decision of a craft another behavior now flies: its
+    activity NONE when it still showed SELF_DESTRUCTING and that behavior
+    names none."""
+    if (
+        view.activity != Activity.SELF_DESTRUCTING
+        or decision.actions.activity is not None
+    ):
+        return decision
+    actions = dataclasses.replace(decision.actions, activity=Activity.NONE)
+    return dataclasses.replace(decision, actions=actions)
+
+
+def _flown(view: CraftView, question: Question) -> Decision:
     """Return the craft's step: stopped or defending itself, and the
     countdown its order asks for while no lifetime timer runs."""
     defense = _defense(view, question)
