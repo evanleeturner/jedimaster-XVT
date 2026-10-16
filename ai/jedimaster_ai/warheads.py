@@ -7,11 +7,14 @@ Purpose:
     limits. A craft fires one guided warhead at its target once all of
     these hold, tested in this order:
 
-    kind      a launcher's warhead may go at the target (KINDS): a bulky
-              target, a freighter, starship or platform, takes every kind
-              but the pulses; a small one takes the concussion missiles, the
-              proton torpedoes and the pulses, never a space bomb, a heavy
-              rocket (slower than a proton torpedo) or type 154
+    kind      a launcher's warhead may go at the target (KINDS): a big
+              target (``big``), a freighter, starship or platform, and in a
+              version-14 mission a transport too, takes every kind but the
+              pulses; a small one takes the concussion missiles, the proton
+              torpedoes and the pulses, never a space bomb, a heavy rocket
+              (slower than a proton torpedo) or type 154. In a version-14
+              mission a big target takes the pulses too, while its weapon
+              inhibit timer is under PULSE_INHIBIT_LIMIT (``goes_at``)
     kept      a craft whose order names a bulky craft it may fight keeps
               its proton torpedoes, advanced ones too, for it (ruling 53)
     launcher  that launcher is ready: its cooldown run out, a warhead left
@@ -29,14 +32,21 @@ Purpose:
               of its launchers whose kind may go at the target: it fires to
               bring the shield down, never to destroy (1997's Disable plan)
     caps      fewer than 2 homing warheads already fly at a small target,
-              16 at a bulky one; fewer than 1 shot in this attack run at a
-              small target, 6 at a bulky one (1997)
+              16 at a big one, each homing pulse among them counting
+              PULSE_EXTRA_COUNT more at a big one in a version-14 mission;
+              fewer than 1 shot in this attack run at a small target, 6 at
+              a big one (1997)
 
     Of the launchers that pass kind, kept and launcher (only the Missile
-    Boat has two), a small target gets the fastest warhead and a bulky one
+    Boat has two), a small target gets the fastest warhead and a big one
     the heaviest: concussion missiles first at fighters, space bombs first
     at big ships. The shot homes with the lock the craft
     holds; the engine turns the lock into the shot's homing.
+
+    A craft at skill tier PAIRED_TIER or above whose hull damage has
+    reached its model's threshold (``Books.HURT``) fires both slots of the
+    launcher at once (``pairs``), as 1997's top tier did; the attack run
+    counts the pair as one shot, as 1997 counted it.
 
     The unguided shot (rulings 50 and 51): a small craft at skill level
     Jedi or above (UNGUIDED_SKILL_LEVEL, the Sith ranks too) fires at a
@@ -61,10 +71,12 @@ Purpose:
     cooldown, is what bounds the unguided shots.
 
 Invariants:
-    - A shot fires from one launcher, one slot at a time: 1997 fired a pair
-      only at tier 2 with the craft hurt, and the hull damage that made a
-      craft hurt is a model number the view does not carry.
+    - A shot fires from one launcher: both its slots only at skill tier
+      PAIRED_TIER or above with the craft hurt, else one.
     - A warhead type KINDS does not name never fires.
+    - The version-14 rules (a transport as a big target, the pulses at a
+      big one, their count toward the cap) hold only when the question's
+      ``mission_version`` is SPECIAL_WARHEADS_VERSION.
     - The decision follows from the view, the question, the target, the
       run's count and whether the craft disables the target alone;
       ``behaviors.attack`` keeps the count and the fresh-lock mark in its
@@ -82,6 +94,7 @@ import math
 
 from . import geometry
 from . import tactics
+from .world import Books
 from .world import Contact
 from .world import CraftView
 from .world import Lock
@@ -103,9 +116,21 @@ ION_PULSE = 153
 TYPE_154 = 154
 
 # The homing warheads already flying at a target below which another may
-# fire, and the shots one attack run may fire at it: small, bulky (1997).
+# fire, and the shots one attack run may fire at it: small, big (1997).
 COMING_CAP = (2, 16)
 RUN_CAP = (1, 6)
+# The mission file version whose rules send the pulses at a big target and
+# count a transport as one (1997's version-14 rules, Balance of Power's).
+SPECIAL_WARHEADS_VERSION = 14
+# In a version-14 mission a pulse goes at a big target only while the
+# target's weapon inhibit timer is under PULSE_INHIBIT_LIMIT ticks, and each
+# homing pulse flying at a big target counts PULSE_EXTRA_COUNT more toward
+# COMING_CAP (1997).
+PULSE_INHIBIT_LIMIT = 0x49C
+PULSE_EXTRA_COUNT = 7
+# The lowest skill tier (``tactics.skill_tier``) that fires both slots of a
+# launcher once hurt: 1997's top tier, 2, and the Sith tiers above it.
+PAIRED_TIER = 2
 # The damage of the warheads already flying at a starship or platform, and
 # at a freighter, is divided by these before the limit compares it (1997).
 LARGE_DIVISOR = 16
@@ -141,9 +166,9 @@ class Kind:
 
 
 # Speeds, damages and lives are the engine's table's (``laser.c`` 35-62;
-# no warhead's life has a part second). The pulses go at small craft alone,
-# as 1997's class rule sent them; type 154 at bulky craft alone, by the
-# same rule.
+# no warhead's life has a part second). The pulses go at small craft, as
+# 1997's class rule sent them, and at big ones only by the version-14 rule
+# (``fits``); type 154 at big craft alone, by the class rule.
 KINDS = {
     SPACE_BOMB: Kind("space_bomb", 25, 65_000, False, True, 120),
     HEAVY_ROCKET: Kind("heavy_rocket", 175, 35_000, False, True, 90),
@@ -161,6 +186,8 @@ KINDS = {
 }
 # The kinds a craft whose order names a bulky craft keeps for it (ruling 53).
 KEPT_FOR_BULKY = frozenset({PROTON_TORPEDO, ADVANCED_PROTON_TORPEDO})
+# The kinds the version-14 rules also send at a big target.
+PULSES = frozenset({MAGNETIC_PULSE, ION_PULSE})
 
 
 class Held(enum.IntEnum):
@@ -220,11 +247,12 @@ def choose(
     lock declared, a craft that may fire unguided (``fires_unguided``) is
     held by the aim (``aimed``) alone once every other test passes.
     """
-    bulky = tactics.is_bulky(target)
+    version = question.mission_version
+    bulky = big(question, target)
     allowed = [
         launcher
         for launcher in range(view.warhead_launcher_count)
-        if fits(view.warhead_type[launcher], bulky)
+        if goes_at(view.warhead_type[launcher], target, bulky, version)
     ]
     if not allowed:
         return Choice(None, Held.KIND)
@@ -244,13 +272,19 @@ def choose(
         return Choice(None, Held.LOCK)
     if fresh_needed:
         return Choice(None, Held.FRESH)
-    if not (outlasts_disabling(view, target) if disabling else outlasts(target)):
+    lasts = (
+        outlasts_disabling(view, target, bulky, version)
+        if disabling
+        else outlasts(target)
+    )
+    if not lasts:
         return Choice(None, Held.LIMIT)
-    if not under_caps(target, shots):
+    if not under_caps(target, shots, bulky, version):
         return Choice(None, Held.CAPS)
     launcher = first_choice(view, ready, bulky)
+    paired = pairs(view)
     if guided:
-        return Choice(Warhead(launcher), Held.NONE)
+        return Choice(Warhead(launcher, paired), Held.NONE)
     kind = KINDS[view.warhead_type[launcher]]
     point = lead(view, target, kind)
     on = aimed(point, target, kind)
@@ -271,15 +305,51 @@ def choose(
     )
     if not on:
         return Choice(None, Held.AIM, point)
-    return Choice(Warhead(launcher), Held.NONE, point)
+    return Choice(Warhead(launcher, paired), Held.NONE, point)
 
 
-def fits(warhead_type: int, bulky: bool) -> bool:
-    """Return whether a warhead type may go at a bulky or a small target."""
+def big(question: Question, target: Contact) -> bool:
+    """Return whether a target takes the big-target warhead rules: a
+    freighter, starship or platform, and in a version-14 mission a
+    transport too (1997)."""
+    if tactics.is_bulky(target):
+        return True
+    return (
+        target.genus == tactics.GENUS_TRANSPORT
+        and question.mission_version == SPECIAL_WARHEADS_VERSION
+    )
+
+
+def fits(warhead_type: int, bulky: bool, version: int) -> bool:
+    """Return whether a warhead type may go at a big or a small target by
+    its class; in a mission of version SPECIAL_WARHEADS_VERSION the pulses
+    may go at a big one too."""
     kind = KINDS.get(warhead_type)
     if kind is None:
         return False
-    return kind.at_bulky if bulky else kind.at_small
+    if not bulky:
+        return kind.at_small
+    return kind.at_bulky or (
+        version == SPECIAL_WARHEADS_VERSION and warhead_type in PULSES
+    )
+
+
+def goes_at(warhead_type: int, target: Contact, bulky: bool, version: int) -> bool:
+    """Return whether a launcher's warhead may fire at the target now: it
+    fits (``fits``), and a pulse at a big target only while the target's
+    weapon inhibit timer is under PULSE_INHIBIT_LIMIT (1997)."""
+    if not fits(warhead_type, bulky, version):
+        return False
+    if bulky and warhead_type in PULSES:
+        return target.weapon_inhibit_timer < PULSE_INHIBIT_LIMIT
+    return True
+
+
+def pairs(view: CraftView) -> bool:
+    """Return whether the craft fires both slots of a launcher at once: at
+    skill tier PAIRED_TIER or above, with its hull damage at its model's
+    threshold (``Books.HURT``), as 1997's top tier fired."""
+    return tactics.skill_tier(view) >= PAIRED_TIER and bool(view.books & Books.HURT)
 
 
 def keeps_for_bulky(view: CraftView, question: Question) -> bool:
@@ -361,19 +431,21 @@ def outlasts(target: Contact) -> bool:
     return left > target.warheads_coming_damage // limit_divisor(target)
 
 
-def outlasts_disabling(view: CraftView, target: Contact) -> bool:
+def outlasts_disabling(
+    view: CraftView, target: Contact, bulky: bool, version: int
+) -> bool:
     """Return whether the target's front shield, with a tenth of its hull
     once more than a tenth is damaged, outlasts the damage of the homing
     warheads already flying at it and of one warhead from each of the
-    craft's launchers whose kind may go at it, divided as ``outlasts``
-    divides."""
+    craft's launchers whose kind may go at it by its class (``fits``, the
+    weapon inhibit timer aside, as 1997 counted them), divided as
+    ``outlasts`` divides."""
     share = target.hull_strength // DISABLE_HULL_SHARE
     durability = target.front_shield + (share if target.hull_damage > share else 0)
-    bulky = tactics.is_bulky(target)
     salvo = sum(
         KINDS[kind].damage
         for kind in view.warhead_type[: view.warhead_launcher_count]
-        if fits(kind, bulky)
+        if fits(kind, bulky, version)
     )
     coming = (target.warheads_coming_damage + salvo) // limit_divisor(target)
     lasts = durability > coming
@@ -399,17 +471,20 @@ def limit_divisor(target: Contact) -> int:
     return FREIGHTER_DIVISOR if target.genus == tactics.GENUS_FREIGHTER else 1
 
 
-def under_caps(target: Contact, shots: int) -> bool:
+def under_caps(target: Contact, shots: int, bulky: bool, version: int) -> bool:
     """Return whether another warhead may fire at the target: fewer homing
-    warheads already fly at it than COMING_CAP, and the run fired fewer than
-    RUN_CAP."""
-    bulky = int(tactics.is_bulky(target))
-    return target.warheads_coming < COMING_CAP[bulky] and shots < RUN_CAP[bulky]
+    warheads already fly at it than COMING_CAP, each homing pulse counting
+    PULSE_EXTRA_COUNT more at a big target in a version-14 mission, and the
+    run fired fewer than RUN_CAP."""
+    coming = target.warheads_coming
+    if bulky and version == SPECIAL_WARHEADS_VERSION:
+        coming += PULSE_EXTRA_COUNT * target.pulses_coming
+    return coming < COMING_CAP[bulky] and shots < RUN_CAP[bulky]
 
 
 def first_choice(view: CraftView, launchers: list[int], bulky: bool) -> int:
     """Return the launcher to fire of those ready: the heaviest warhead at a
-    bulky target, the fastest at a small one, the lower launcher on a tie."""
+    big target, the fastest at a small one, the lower launcher on a tie."""
 
     def rank(launcher: int) -> tuple[int, int]:
         kind = KINDS[view.warhead_type[launcher]]

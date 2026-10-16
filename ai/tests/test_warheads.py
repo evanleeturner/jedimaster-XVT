@@ -20,6 +20,7 @@ import pytest
 from jedimaster_ai import geometry
 from jedimaster_ai import warheads
 from jedimaster_ai.warheads import Held
+from jedimaster_ai.world import Books
 from jedimaster_ai.world import Lock
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import Question
@@ -76,11 +77,21 @@ def decide(contact):
     """Return the choice at a target, the craft's own contact first naming
     ``aimed_at`` as its target, then the target and any others."""
 
-    def choose(me, target, *others, aimed_at=FOE, shots=0, fresh=False, own=True):
+    def choose(
+        me,
+        target,
+        *others,
+        aimed_at=FOE,
+        shots=0,
+        fresh=False,
+        own=True,
+        version=0,
+        disabling=False,
+    ):
         mine = contact(object_index=ME, team=1, target=aimed_at)
         contacts = ((mine,) if own else ()) + (target, *others)
-        question = Question(1000, (me,), contacts)
-        return warheads.choose(me, question, target, shots, fresh)
+        question = Question(1000, (me,), contacts, mission_version=version)
+        return warheads.choose(me, question, target, shots, fresh, disabling)
 
     return choose
 
@@ -288,13 +299,37 @@ def test_fresh_comes_before_the_limit(craft, foe, decide):
     assert decide(craft(), target, fresh=True).held == Held.FRESH
 
 
-def test_a_shot_never_fires_a_pair(craft, foe, contact, decide):
-    # Tier 2 and badly hurt: 1997's one case for a pair.
+HURT = Books.TARGETS_LEFT | Books.HURT
+
+
+@pytest.mark.parametrize(
+    ("skill", "level", "books", "paired"),
+    [
+        (0xC000, 4, HURT, True),
+        (0xFFFF, 4, Books.TARGETS_LEFT, False),
+        (0xBFFF, 3, HURT, False),
+        (0xFFFF, 6, HURT, True),
+        (0xFFFF, 7, HURT, True),
+    ],
+)
+def test_a_hurt_craft_at_tier_2_or_above_fires_a_pair(
+    craft, foe, decide, skill, level, books, paired
+):
+    me = craft(skill=skill, skill_level=level, books=books)
+    assert decide(me, foe()).warhead == Warhead(0, paired=paired)
+
+
+def test_the_hurt_book_makes_the_pair_not_the_hull_shown(craft, foe, contact):
     me = craft(skill=0xFFFF)
-    hurt = contact(object_index=ME, team=1, target=FOE, hull_damage=999)
-    question = Question(1000, (me,), (hurt, foe()))
+    battered = contact(object_index=ME, team=1, target=FOE, hull_damage=999)
+    question = Question(1000, (me,), (battered, foe()))
     choice = warheads.choose(me, question, foe(), 0, False)
     assert choice.warhead == Warhead(0, paired=False)
+
+
+def test_a_pair_is_held_as_a_single_shot_is(craft, foe, decide):
+    me = craft(books=HURT, launcher_cooldown=(5, 0))
+    assert decide(me, foe()) == warheads.Choice(None, Held.LAUNCHER)
 
 
 @pytest.mark.parametrize(
@@ -364,6 +399,10 @@ def test_a_jedi_fires_unguided_at_a_big_ship_dead_ahead(jedi, ship, decide):
     choice = decide(jedi(), ship())
     lead = warheads.Lead(0, 46_600, 0, 2_360, 0)
     assert choice == warheads.Choice(Warhead(0), Held.NONE, lead)
+
+
+def test_a_hurt_jedi_fires_its_unguided_shot_as_a_pair(jedi, ship, decide):
+    assert decide(jedi(books=HURT), ship()).warhead == Warhead(0, paired=True)
 
 
 @pytest.mark.parametrize(
@@ -627,3 +666,166 @@ def test_a_shot_aimed_at_a_crossing_ship_itself_misses(jedi, ship, decide, name,
     at_it = dataclasses.replace(me, yaw=yaw, pitch=pitch)
     assert decide(at_it, target).held == Held.AIM
     assert toy_flight(at_it, target, frame) >= target.size // 2
+
+
+# The version-14 rules (1997's ``paifight_fightershootorder``): a transport
+# is a big target, a pulse goes at a big one while its weapon inhibit timer
+# is under 0x49C, and each homing pulse at a big one counts 7 more.
+
+
+@pytest.mark.parametrize(
+    ("version", "held"),
+    [(0, Held.KIND), (12, Held.KIND), (13, Held.KIND), (14, Held.NONE)],
+)
+def test_a_transport_takes_a_bomb_only_in_a_version_14_mission(
+    craft, foe, decide, version, held
+):
+    me = craft(warhead_type=(warheads.SPACE_BOMB, 0))
+    target = foe(genus=TRANSPORT, hull_strength=90_000)
+    assert decide(me, target, version=version).held == held
+
+
+@pytest.mark.parametrize("genus", [STARFIGHTER, UTILITY])
+def test_no_other_small_genus_turns_big_in_version_14(craft, foe, decide, genus):
+    me = craft(warhead_type=(warheads.SPACE_BOMB, 0))
+    target = foe(genus=genus, hull_strength=90_000)
+    assert decide(me, target, version=14).held == Held.KIND
+
+
+@pytest.mark.parametrize(
+    ("version", "coming", "shots", "held"),
+    [
+        (14, 15, 5, Held.NONE),
+        (14, 16, 0, Held.CAPS),
+        (14, 0, 6, Held.CAPS),
+        (12, 2, 0, Held.CAPS),
+        (12, 0, 1, Held.CAPS),
+    ],
+)
+def test_a_version_14_transport_takes_the_big_caps(
+    craft, foe, decide, version, coming, shots, held
+):
+    target = foe(genus=TRANSPORT, hull_strength=90_000, warheads_coming=coming)
+    me = craft(warhead_type=(warheads.ADVANCED_PROTON_TORPEDO, 0))
+    assert decide(me, target, shots=shots, version=version).held == held
+
+
+@pytest.mark.parametrize(("version", "launcher"), [(12, 1), (14, 0)])
+def test_a_missile_boat_fires_its_heaviest_at_a_version_14_transport(
+    craft, foe, decide, version, launcher
+):
+    me = craft(
+        warhead_launcher_count=2,
+        warhead_type=(
+            warheads.ADVANCED_PROTON_TORPEDO,
+            warheads.ADVANCED_CONCUSSION_MISSILE,
+        ),
+        warheads_left=(4, 4),
+    )
+    target = foe(genus=TRANSPORT, hull_strength=90_000)
+    assert decide(me, target, version=version).warhead == Warhead(launcher)
+
+
+@pytest.mark.parametrize(("damage", "held"), [(1199, Held.NONE), (1200, Held.LIMIT)])
+def test_a_version_14_transport_divides_the_damage_coming_by_nothing(
+    craft, foe, decide, damage, held
+):
+    # Front shield 300 and 1,000 hull less 100 damage: 1,200 left.
+    me = craft(warhead_type=(warheads.ADVANCED_PROTON_TORPEDO, 0))
+    target = foe(
+        genus=TRANSPORT,
+        front_shield=300,
+        hull_damage=100,
+        warheads_coming_damage=damage,
+    )
+    assert decide(me, target, version=14).held == held
+
+
+@pytest.mark.parametrize("kind", [warheads.MAGNETIC_PULSE, warheads.ION_PULSE])
+@pytest.mark.parametrize(
+    ("version", "inhibit", "held"),
+    [
+        (12, 0, Held.KIND),
+        (13, 0, Held.KIND),
+        (14, 0, Held.NONE),
+        (14, 0x49B, Held.NONE),
+        (14, 0x49C, Held.KIND),
+        (14, 0xFFFF, Held.KIND),
+    ],
+)
+def test_a_pulse_goes_at_a_big_ship_in_version_14_while_its_weapons_are_free(
+    craft, foe, decide, kind, version, inhibit, held
+):
+    me = craft(warhead_type=(kind, 0))
+    target = foe(genus=STARSHIP, hull_strength=50_000, weapon_inhibit_timer=inhibit)
+    assert decide(me, target, version=version).held == held
+
+
+@pytest.mark.parametrize(("inhibit", "held"), [(0x49B, Held.NONE), (0x49C, Held.KIND)])
+def test_a_pulse_at_a_version_14_transport_reads_its_inhibit_timer(
+    craft, foe, decide, inhibit, held
+):
+    me = craft(warhead_type=(warheads.MAGNETIC_PULSE, 0))
+    target = foe(genus=TRANSPORT, weapon_inhibit_timer=inhibit)
+    assert decide(me, target, version=14).held == held
+
+
+def test_a_pulse_at_a_small_craft_never_reads_its_inhibit_timer(craft, foe, decide):
+    me = craft(warhead_type=(warheads.MAGNETIC_PULSE, 0))
+    target = foe(weapon_inhibit_timer=0xFFFF)
+    assert decide(me, target, version=14).held == Held.NONE
+
+
+@pytest.mark.parametrize(
+    ("version", "genus", "coming", "pulses", "held"),
+    [
+        (14, STARSHIP, 1, 1, Held.NONE),
+        (14, STARSHIP, 8, 1, Held.NONE),
+        (14, STARSHIP, 9, 1, Held.CAPS),
+        (14, STARSHIP, 2, 2, Held.CAPS),
+        (12, STARSHIP, 2, 2, Held.NONE),
+        (14, STARFIGHTER, 1, 1, Held.NONE),
+    ],
+)
+def test_each_pulse_at_a_big_ship_counts_8_toward_the_cap_in_version_14(
+    craft, foe, decide, version, genus, coming, pulses, held
+):
+    target = foe(
+        genus=genus, hull_strength=90_000, warheads_coming=coming, pulses_coming=pulses
+    )
+    me = craft(warhead_type=(warheads.ADVANCED_PROTON_TORPEDO, 0))
+    assert decide(me, target, version=version).held == held
+
+
+@pytest.mark.parametrize(
+    ("version", "shield", "held"),
+    [
+        (14, 4501, Held.NONE),
+        (14, 4500, Held.LIMIT),
+        (12, 4500, Held.NONE),
+        (12, 3750, Held.LIMIT),
+    ],
+)
+def test_a_disabling_craft_counts_its_pulse_at_a_big_ship_in_version_14(
+    craft, foe, decide, version, shield, held
+):
+    # Torpedo 15,000 and pulse 3,000, divided by 4 at a freighter: 4,500 in
+    # version 14, the torpedo's 3,750 alone before it. The pulse counts
+    # while the inhibit timer holds it back, as 1997 counted it.
+    me = craft(
+        warhead_launcher_count=2,
+        warhead_type=(warheads.ADVANCED_PROTON_TORPEDO, warheads.MAGNETIC_PULSE),
+        warheads_left=(4, 4),
+    )
+    target = foe(genus=FREIGHTER, front_shield=shield, weapon_inhibit_timer=0xFFFF)
+    assert decide(me, target, version=version, disabling=True).held == held
+
+
+def test_protons_are_not_kept_for_a_version_14_transport(craft, foe, contact, decide):
+    me = craft(warhead_type=(warheads.PROTON_TORPEDO, 0), order_target_mask=0b110)
+    named = contact(object_index=SHIP, genus=TRANSPORT, team=2)
+    assert decide(me, foe(), named, version=14).held == Held.NONE
+
+
+def test_a_jedi_fires_no_unguided_shot_at_a_version_14_transport(jedi, ship, decide):
+    assert decide(jedi(), ship(genus=TRANSPORT), version=14).held == Held.LOCK
