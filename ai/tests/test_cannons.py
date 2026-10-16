@@ -18,7 +18,9 @@ from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import LinkMode
 
 # Shot types (object/laser.h): PROJECTILE_OBJECT_TYPE_IMPERIAL_LASER and
-# _ION_LASER, the ion cannon; 142 and 147 are the ion turbolasers.
+# _ION_LASER, the ion cannon; 142 and 147 are the ion turbolasers, 137 the
+# rebel laser.
+REBEL_LASER = 137
 LASER = 139
 ION_CANNON = 141
 
@@ -106,6 +108,42 @@ def test_the_sith_tiers_burst_as_a_jedi(craft, tier) -> None:
     """Each answer sets the burst again, so the Sith keep a Jedi's 5 shots."""
     lasers = cannons.bursts(craft(cannon_type=(LASER, 0)), 0x5000, tier)
     assert lasers[0] == CannonGroup(LinkMode.ONE_AT_A_TIME, 5)
+
+
+# A shot's reach: placed 921 ahead, then (4,660 x speed + 128) / 256 a
+# simulated second over its life, its speed plus the craft's (laser.c's table).
+@pytest.mark.parametrize(
+    ("kinds", "speed", "reach"),
+    [
+        ((LASER, 0), 0, 921 + 32766),  # 1,800 for 236 ticks
+        ((LASER, 0), 249, 921 + 37298),  # a TIE Interceptor at full speed
+        ((REBEL_LASER, 0), 0, 921 + 36406),  # 2,000 for 236 ticks
+        ((ION_CANNON, 0), 0, 921 + 25484 * 354 // 236),  # 1,400 for 354
+        ((ION_CANNON, LASER), 0, 921 + 32766),  # the shorter group's
+        ((REBEL_LASER, 0), 225, 0xA000),  # an X-wing's 41,423: a Jedi's range
+    ],
+    ids=["imperial", "imperial-fast", "rebel", "ion", "shorter", "jedi-cap"],
+)
+def test_a_sith_fires_no_farther_than_its_shots_fly(
+    craft, foe, kinds, speed, reach
+) -> None:
+    me = craft(cannon_type=kinds, cannon_group_count=2, speed=speed)
+    for tier in (3, 4):
+        assert cannons.aim(me, foe(x=0, y=reach - 1, z=0), tier).lined_up
+        assert not cannons.aim(me, foe(x=0, y=reach, z=0), tier).lined_up
+
+
+def test_a_jedi_fires_past_its_shots_as_in_1997(craft, foe) -> None:
+    """A Jedi TIE fires from 0xA000, though its shots stop at 33,687."""
+    me = craft(cannon_type=(LASER, 0), cannon_group_count=1)
+    assert cannons.aim(me, foe(x=0, y=0x9FFF, z=0), 2).lined_up
+
+
+def test_a_group_the_craft_lacks_sets_no_reach(craft, foe) -> None:
+    """Only the groups the view counts: a second group's shorter shot, past
+    the count, leaves a Sith ion craft its own reach, 39,147."""
+    me = craft(cannon_type=(ION_CANNON, LASER), cannon_group_count=1)
+    assert cannons.aim(me, foe(x=0, y=39146, z=0), 3).lined_up
 
 
 @pytest.mark.parametrize(
