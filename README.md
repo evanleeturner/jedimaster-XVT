@@ -8,6 +8,8 @@ by elyosh, an open-source reimplementation of *Star Wars: X-Wing vs. TIE
 Fighter* and *Balance of Power*, and [Aeron](https://github.com/elyosh/Aeron),
 the platform library it runs on. Both came here with their full history and
 have been modified in this project since October 2026.
+[Where the engine came from](ATTRIBUTION.md) says which code came from them,
+under which license, and where to report a problem.
 
 ## The computer pilots
 
