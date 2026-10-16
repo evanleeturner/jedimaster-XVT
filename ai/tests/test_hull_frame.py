@@ -39,11 +39,16 @@ Q15_UNIT = 65536 / 32767
 # adds, with 1 for the shift's floor. Its z is one sine.
 PROGRAM_SINE_ERROR = 20
 PROGRAM_FORWARD_ERROR = 2 * PROGRAM_SINE_ERROR + 1
-# The engine truncates its sine and cosine to 1.15 (1 unit each), multiplies
-# them (1 unit of rounding), and the roll turn sums three rounded products per
-# component (3 units); the exact unit vector is the reference for both sides.
-ENGINE_FORWARD_UNITS = 2 + 1 + 3
-FORWARD_TOLERANCE = PROGRAM_FORWARD_ERROR + ENGINE_FORWARD_UNITS * Q15_UNIT
+# How far the engine's cached axes sit from the exact unit vectors, in 1.15
+# units, measured: the reference is the exact vector from double-precision sine
+# and cosine; the engine's path is fview_calcrotatemove then
+# fview_calcrotateorient, its sine and cosine truncated to 1.15, and the roll
+# turns all three rows through a matrix of rounded terms, so the forward axis
+# carries the roll's roundings too. Over 2.2 million random poses (three seeds)
+# the worst gap was 25.8 for forward, 10.9 for side and 10.8 for up; 32 is that
+# worst with a quarter's margin, and holds for every axis.
+ENGINE_AXIS_UNITS = 32
+FORWARD_TOLERANCE = PROGRAM_FORWARD_ERROR + ENGINE_AXIS_UNITS * Q15_UNIT
 # A world point is the position plus three products of a local coordinate and
 # an axis, each shifted down by 15 bits and rounded by at most 1.
 WORLD_POINT_TOLERANCE = 3
