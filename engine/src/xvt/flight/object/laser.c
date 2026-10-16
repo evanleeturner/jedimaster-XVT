@@ -2425,9 +2425,9 @@ uint16_t laser_createprojectilefromstatic(uint16_t source_obj_idx,
  * COUNTERMEASURE_PROJECTILE_OBJECT_TYPE homes at tier 6 on the nearest
  * warhead aimed at the owner or, with none, on the nearest active craft
  * closer than 0x8000 that is after the owner (an AI craft targeting it, or
- * a hostile player's craft). Its count of countermeasures already chasing
- * a warhead tests the outer warhead's type, not each shot's, so it is 0
- * unless that warhead is itself a countermeasure. A shot aimed at a craft
+ * a hostile player's craft). It prefers the nearest warhead that no
+ * countermeasure already chases, and takes a chased one only when there is
+ * none. A shot aimed at a craft
  * lives half as long. Queues voice 37 when the target is the local
  * player's, and plays the weapon sound for a player's shot. Writes
  * trig2_*movedist and the trig2 outputs. */
@@ -2643,7 +2643,8 @@ int laser_createcountermeasureprojectile(unsigned int owner_obj_idx,
 						     (unsigned int)
 							     g_projectile_object_slot_end;
 						     ++inner_index) {
-							if (candidate_type ==
+							if (g_object_table[inner_index]
+									    .object_type ==
 								    COUNTERMEASURE_PROJECTILE_OBJECT_TYPE &&
 							    g_projectile_guidance_states
 									    [inner_index -

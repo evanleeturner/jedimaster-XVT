@@ -461,14 +461,10 @@ static void check_flare_takes_pursuing_craft(void)
 			  laser_get_projectile_lifetime_ticks(FLARE));
 }
 
-/* Known failure second_flare_same_warhead, issue #182: the function promises
- * a flare goes for the nearest warhead after its owner that no flare chases
- * yet, and for a chased one only when there is none. Two warheads home on the
- * owner, the nearer one already chased by a flare; the new flare should go
- * for the farther one. The count of chasing flares tests the warhead's own
- * type instead of each shot's, so it is always 0 and the flare goes for the
- * nearer one. The function's comment describes the wrong test; this check
- * rests on the issue. */
+/* A flare goes for the nearest warhead after its owner that no flare chases
+ * yet, and for a chased one only when there is none (issue #182). Two
+ * warheads home on the owner, the nearer one already chased by a flare; the
+ * new flare goes for the farther one. */
 static void check_second_flare_takes_unchased_warhead(void)
 {
 	countermeasure_world();
@@ -1304,8 +1300,6 @@ int main(int argc, char **argv)
 		} known_failures[] = {
 			{"static_warhead_takes_impact_effect",
 			 check_static_skips_impact_effects},
-			{"second_flare_same_warhead",
-			 check_second_flare_takes_unchased_warhead},
 			{"charged_ion_turbo_fires_torpedo",
 			 check_charged_ion_turbo_laser_stays_cannon},
 			{"overdrive_message_to_local_player",
@@ -1328,6 +1322,7 @@ int main(int argc, char **argv)
 	check_static_no_slot();
 	check_flare_takes_nearest_warhead();
 	check_flare_takes_pursuing_craft();
+	check_second_flare_takes_unchased_warhead();
 	check_cannon_single_fire();
 	check_cannon_all_fire();
 	check_cannon_pair_fire();
