@@ -8,7 +8,8 @@ Purpose:
     no cannon fired at a Super Star Destroyer and the lowest skill tier
     never fired at a Star Destroyer (issue #302). A craft fights a starship
     or platform by its hull instead: the nearest point of the box around
-    its model (rulings 97 and 98). ``nearest`` gives that
+    its model (rulings 97 and 98), for its firing range, its break and its
+    pick of the nearest target (ruling 93). ``nearest`` gives that
     point for those targets, and the target's position for every other, as
     1997 did; ``keep`` is how near it a craft comes before it breaks off.
 

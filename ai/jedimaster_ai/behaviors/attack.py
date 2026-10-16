@@ -1,8 +1,8 @@
 """Attack: the dogfight a craft flies for the Attack order.
 
 Purpose:
-    A craft with the Attack order picks the nearest craft or static its order names,
-    turns toward it, closes, and fires its cannons while the target sits
+    A craft with the Attack order picks the nearest craft or static its order
+    names, measured to its nearest part (``hull.nearest``), turns toward it, closes, and fires its cannons while the target sits
     inside its aim cone and firing range. Inside the target's keep
     (``hull.keep``: within KEEP of a starship's or platform's hull, else
     inside the target's clearance, ``tactics.clearance``, which grows with
@@ -648,25 +648,25 @@ def _choose_target(
     view: CraftView, targets: list[Contact], memory: Memory, tier: int, tick: int
 ) -> tuple[Contact | None, Memory]:
     """Return the target to fight, kept or new, and the memory naming it; with
-    no target, a memory holding only the weave's state."""
+    no target, a memory holding only the weave's state. The nearest is
+    measured to each target's nearest part (``hull.nearest``), so a craft
+    beside a big ship's flank takes it before a craft whose position is
+    nearer (ruling 93)."""
     kept = _remembered(targets, memory)
     if kept is not None and tick < memory.look_again:
         return kept, memory
     if not targets:
         return None, Memory(weave=memory.weave, route=memory.route)
-    nearest = min(
-        targets,
-        key=lambda contact: (
-            geometry.distance(*tactics.offset(view, contact)),
-            contact.object_index,
-        ),
+    reach, nearest = min(
+        ((hull.nearest(view, contact).distance, contact) for contact in targets),
+        key=lambda measured: (measured[0], measured[1].object_index),
     )
     if kept is None or nearest.object_index != kept.object_index:
         logger.info(
             "attack.target object=%d target=%d distance=%d",
             view.object_index,
             nearest.object_index,
-            geometry.distance(*tactics.offset(view, nearest)),
+            reach,
         )
         memory = dataclasses.replace(memory, shots=0, fresh=0, held=warheads.Held.NONE)
     look_again = min(tick + LOOK_AGAIN_TICKS[tier], _U32_MAX)

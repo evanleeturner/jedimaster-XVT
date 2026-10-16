@@ -14,8 +14,10 @@ import pytest
 from attack_setup import BULK_FREIGHTER_SIZE
 from attack_setup import FOE
 from attack_setup import FREIGHTER
+from attack_setup import ISD_BOX
 from attack_setup import ME
 from attack_setup import phase_of
+from attack_setup import STARSHIP
 from attack_setup import TIER_SKILL
 
 from jedimaster_ai import cannons
@@ -126,6 +128,30 @@ def test_it_keeps_its_target_until_it_looks_again(craft, foe, ask) -> None:
         tick=later,
     )
     assert moved.actions.target == 15
+
+
+@pytest.mark.parametrize(("fighter_y", "picked"), [(20000, FOE), (9000, 15)])
+def test_the_nearest_target_is_measured_to_a_big_ships_hull(
+    craft, foe, ask, caplog, fighter_y, picked
+) -> None:
+    """Ruling 93: a Star Destroyer whose flank lies 10,000 off, its position
+    29,140 off, is nearer than a fighter 20,000 off, not than one 9,000 off."""
+    caplog.set_level("INFO")
+    flank = ISD_BOX["box_max"][0]
+    ship = foe(
+        y=flank + 10000, yaw=0x4000, pitch=LEVEL, genus=STARSHIP, size=65396, **ISD_BOX
+    )
+    fighter = foe(object_index=15, y=fighter_y)
+    decision = ask(craft(order_target_mask=0b110), ship, fighter)
+    assert decision.actions.target == picked
+    reach = 10000 if picked == FOE else fighter_y
+    assert f"attack.target object={ME} target={picked} distance={reach}" in caplog.text
+
+
+def test_of_two_targets_as_near_the_lower_index_is_picked(craft, foe, ask) -> None:
+    right, left = foe(object_index=15, x=0x3000, y=0), foe(x=-0x3000, y=0)
+    decision = ask(craft(order_target_mask=0b110), right, left)
+    assert decision.actions.target == FOE
 
 
 def test_a_target_gone_is_replaced_at_once(craft, foe, ask) -> None:
