@@ -149,8 +149,10 @@ named in the table.
 
 Gunboats rammed cruisers in test flights, and freighters and corvettes of
 one group collided with each other. Every craft now steers clear of big
-ships. The latest change (commit `9886841`) keeps a fighter that sits between two big ships from
-turning into either one. The code is in `ai/jedimaster_ai/behaviors/avoidance.py`.
+ships. Commit `9886841` keeps a fighter that sits between two big ships from
+turning into either one. The latest change (commit `50fb5fd6`) measures the
+distance from a starship's or platform's hull; before it, the distance ran
+from a ball round the ship's centre. The code is in `ai/jedimaster_ai/behaviors/avoidance.py`.
 
 | What the computer pilots do now | In the 1997 game | Kept, changed or new | Related issues |
 | --- | --- | --- | --- |
@@ -189,7 +191,7 @@ Escort leader keeps its place in formation.
 | Shift+E (evade): the wingman drops its target and weaves 3 swerves, chased or not (`behaviors/attack.py`). | Dropped its target and flew an evasive move that ignored the chaser. | Changed | |
 | Shift+H (home): the wingman is marked aborted and flies home (`ai/jedimaster_ai/progress.py`). | The same. | Kept | |
 | Shift+W (wait) and Shift+G (go): wait stops the craft and keeps its order, and the display reads "awaiting further orders". It fights a chaser at 75% hull or more, otherwise weaves; a disabled craft is never a chaser. Shift+G releases any craft, a starship too (`behaviors/wait.py`). | Wait stopped the craft and answered attackers; go resumed. | Kept, bug fixed | [#292](https://github.com/evanleeturner/jedimaster-XVT/issues/292) |
-| Shift+B (resupply): a craft on one of the eight boarding orders that is looking for a craft to board answers and takes your craft as its target, flies to the point beside your hatch and waits there; a craft already docking never answers. The reload itself comes with the dock in the pilot program's next round. | Switched the craft to another script. What else it did is unknown. | Changed: no reload yet | [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301) |
+| Shift+B (resupply): a craft on one of the eight boarding orders that is looking for a craft to board answers and takes your craft as its target, flies to the point beside your hatch and waits there; a craft already docking never answers. The engine can dock it and reload your craft (commit `ae59923a`), but the pilot program does not ask for the dock yet, so no reload happens. | Switched the craft to another script. What else it did is unknown. | Changed: no reload yet | [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301) |
 
 ## Waypoints, patrols and going home
 
@@ -213,7 +215,7 @@ start. Going home means flying to the mothership's hangar or jumping out.
 | SS Await Return: throttle 0 until every flight group that goes home into its group has arrived, with no waves and no craft left, then the next order; its turrets defend it (`behaviors/starship.py`). | The stop maneuver, which also halted a turn at once; the same test. | Kept, a begun turn runs on | |
 | SS Launch: throttle 0 until every flight group that comes out of its group has arrived, with no waves left, then the next order; its turrets defend it (`behaviors/starship.py`). | The stop maneuver; the same test. | Kept, a begun turn runs on | |
 | Self Destruct: throttle 0; on its first think the craft asks the engine for a countdown of the order's variable1 units of 1,180 ticks, or 2 to 5 units at random for 0, and the engine destroys it when the countdown ends. A delay over 55 units is never asked for, so the craft only waits (`behaviors/selfdestruct.py`). | The same delay and the same random 2 to 5; over 55 units the 16-bit timer wrapped to a short delay. | Kept, the wrap refused | [#53](https://github.com/evanleeturner/jedimaster-XVT/issues/53) |
-| Give, Take, Exchange, Capture, Destroy, Pick Up, SS Board and Board to Repair: stops to look for a craft to board, flies to the point beside its docking hatch and waits there; the dock comes with a later round. A boarder picks a player's command target first (Shift+B), else the nearest craft its order names that may be boarded now: one its order holds still, a platform, or a disabled craft; for all but Capture and Destroy also one waiting to be boarded or a boarder stopped to look. Two boarders never share a craft: the lower object number keeps it. It closes at full throttle past 16,384 units, half past 8,192, a quarter past 2,048. The order is done when its boardings reach the number it asks, and moves on with no target left (`behaviors/board.py`). | The same search and the same point, then the dock; it meant the same throttle bands, but a missing line left it at half throttle from far out. | Changed: no dock yet | [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47) |
+| Give, Take, Exchange, Capture, Destroy, Pick Up, SS Board and Board to Repair: stops to look for a craft to board, flies to the point beside its docking hatch and waits there. The engine's dock is built (commit `ae59923a`), but the pilot program does not ask for it yet. A boarder picks a player's command target first (Shift+B), else the nearest craft its order names that may be boarded now: one its order holds still, a platform, or a disabled craft; for all but Capture and Destroy also one waiting to be boarded or a boarder stopped to look. Two boarders never share a craft: the lower object number keeps it. It closes at full throttle past 16,384 units, half past 8,192, a quarter past 2,048. The order is done when its boardings reach the number it asks, and moves on with no target left (`behaviors/board.py`). | The same search and the same point, then the dock; it meant the same throttle bands, but a missing line left it at half throttle from far out. | Changed: no dock yet | [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47) |
 | A finished starship patrol goes to the next order, or jumps out. | The same. | Kept | |
 | Attack, Disable, Protect, and Escort before its charge arrives, with nothing to fight: cruise the waypoints as a patrol does, going on after a fight to the waypoint it was making for; a wingman keeps its place. With no waypoint: fly to the point the group arrived at and circle it; a starship or freighter stops there (`behaviors/seek.py`). | The same cruise; with no waypoint, to the point the group arrived at, then to waypoint 4's stored position, off or not, and back after each fight. | Changed: the trip to an off waypoint dropped | |
 | Go home at full throttle (`behaviors/home.py`). | Throttle was left as it was far out, and 113 order slots slowed to 5 times speed. | Changed | |
@@ -250,6 +252,7 @@ counts them by the 1997 rules, so goals are met as they were. The code is in
 | Count departures by the 1997 rules. A follower of a leader that skipped counts as departed (`engine/src/xvt/flight/ai_books.c`). | The same rules. | Kept | [#211](https://github.com/evanleeturner/jedimaster-XVT/issues/211), [#212](https://github.com/evanleeturner/jedimaster-XVT/issues/212), [#213](https://github.com/evanleeturner/jedimaster-XVT/issues/213) |
 | A target hit by a decoy beam still counts toward its order. | A decoyed craft dropped out of the order's count beyond some range, so attackers went home while it lived. A few missions leaned on that. | Changed | |
 | A craft waiting to be boarded gets no system restore when its group withdraws or aborts. | It got a full restore. A few missions leaned on that. | Changed: waits for the boarding orders | |
+| A group's special cargo is marked lost uncaptured only when the special cargo craft itself ends uncaptured (`engine/src/xvt/flight/mission/mission.c`). | Any craft of the group ending uncaptured marked it, so a goal to capture the special craft failed once another craft of its group was destroyed. | Changed, bug fixed | [#123](https://github.com/evanleeturner/jedimaster-XVT/issues/123) |
 
 ## Anything else
 
@@ -299,25 +302,29 @@ change how missions play and score.
 | A craft whose group left by hyperspace but used an alternate mothership flew to the alternate, then turned toward the departure mothership. | Fixed in commit `ae61462`. | [#213](https://github.com/evanleeturner/jedimaster-XVT/issues/213) |
 | A computer wingman that aborted because its cannons were down told its player "warheads out". | Fixed in commit `ae61462`. | [#214](https://github.com/evanleeturner/jedimaster-XVT/issues/214) |
 | Shift+G did not release a starship that Shift+W had put on hold. | Fixed in commit `bd95e2f`. | [#292](https://github.com/evanleeturner/jedimaster-XVT/issues/292) |
+| The boarding approach never used full throttle, because a half-throttle setting overwrote it. | Full throttle far out, then half and a quarter as the craft closes. Fixed in commit `0e18bb46`. | [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47) |
+| A self-destruct delay of 56 units or more wrapped the 16-bit timer to a short delay. | The craft never asks for such a delay and only waits. Fixed in commit `df373866`. | [#53](https://github.com/evanleeturner/jedimaster-XVT/issues/53) |
+| The dock forgot a craft's tenth docked target, restored a reloaded player's cockpit displays on that player's own machine only, and gave a craft boarded to be destroyed its countdown only when one was already running. | Fixed in the engine's dock, commit `ae59923a`. The pilot program does not ask for a dock yet. | [#54](https://github.com/evanleeturner/jedimaster-XVT/issues/54), [#203](https://github.com/evanleeturner/jedimaster-XVT/issues/203), [#206](https://github.com/evanleeturner/jedimaster-XVT/issues/206) |
+| A warhead that had blown up kept its homing data for about a second and a half and still counted as coming, so pilots spent chaff and flares on it. | Only a live warhead counts. Fixed in commit `57f7ffde`. | [#210](https://github.com/evanleeturner/jedimaster-XVT/issues/210) |
+| A second flare chased the warhead the first one took, a player's flares included. | A flare takes the nearest warhead no flare chases yet. Fixed in commit `e256ab86`. | [#182](https://github.com/evanleeturner/jedimaster-XVT/issues/182) |
+| Handing a player's craft back to the computer wrote its order slot and activity into the craft the engine had handled last. | Both now land on the released craft. Fixed in commit `bb81e413`. | [#170](https://github.com/evanleeturner/jedimaster-XVT/issues/170) |
+| When any craft of a group ended uncaptured, the group's special cargo was marked lost uncaptured, so a goal to capture the special craft failed early. | Only the special cargo craft sets the mark. Fixed in commit `a9acc62c`. | [#123](https://github.com/evanleeturner/jedimaster-XVT/issues/123) |
 | A craft waiting to be boarded got a full system restore at withdrawal or abort. A few missions leaned on it. | Not done until the boarding orders are built. | |
 
-Issues #205, #211, #212, #213, #214 and #292 are closed as fixed. Issue
-#190, about a mine's decoy test, is also closed.
+Issues #47, #53, #54, #203, #205, #206, #211, #212, #213, #214 and #292 are
+closed as fixed. Issue #190, about a mine's decoy test, is also closed.
 
 ### Problems you can meet today
 
 | What you may see | Related issues |
 | --- | --- |
 | Mines never fire. | [#300](https://github.com/evanleeturner/jedimaster-XVT/issues/300) |
-| Shift+B brings a boarding craft to your hatch, but the reload itself is not built yet. | [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301) |
+| Shift+B brings a boarding craft to your hatch, but the pilot program does not ask the engine to dock it yet, so no reload happens. | [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301) |
 | Craft on an order that is not built yet keep flying straight at their current speed. | |
 | A disabled craft's status line reads "Holding steady". | |
 | Below about 31 frames a second, arrivals, goal checks and messages come late. The cause is in the engine and is older than the new pilots. | [#297](https://github.com/evanleeturner/jedimaster-XVT/issues/297) |
 | A network host aborted once with a memory error. A replay of the game did not crash. | [#298](https://github.com/evanleeturner/jedimaster-XVT/issues/298) |
 | Launched craft do not form up on their leader. | [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296) |
-| A blown-up warhead keeps its homing data, so pilots may spend chaff or flares on it. Whether the new pilot program is still fooled has not been checked. | [#210](https://github.com/evanleeturner/jedimaster-XVT/issues/210) |
-| A second flare chases the same warhead as the first. This is in the engine's flare code. | [#182](https://github.com/evanleeturner/jedimaster-XVT/issues/182) |
-| Handing a player's craft back to the computer writes into another craft. | [#170](https://github.com/evanleeturner/jedimaster-XVT/issues/170) |
 | A round whose mothership is gone is still used up, and a seventh craft in a group takes the next formation's place. | [#137](https://github.com/evanleeturner/jedimaster-XVT/issues/137), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138) |
 | Super Star Destroyer turrets aim at the wrong point on the hull. | [#103](https://github.com/evanleeturner/jedimaster-XVT/issues/103) |
 | Wingman voice lines can come from the wrong speaker, and groups of more than 6 craft run past the voice tables. | [#94](https://github.com/evanleeturner/jedimaster-XVT/issues/94), [#255](https://github.com/evanleeturner/jedimaster-XVT/issues/255) |
@@ -326,17 +333,20 @@ Issues #205, #211, #212, #213, #214 and #292 are closed as fixed. Issue
 
 ### Issues filed against the 1997 pilot code
 
-The 1997 pilot code was deleted. Issues about it stay open on GitHub until
-the project's owner closes them. This table says what became of each one.
+The 1997 pilot code was deleted. This table says what became of each issue
+filed against it. All of them are closed except #48 and #209.
 
 | Issues | What became of them |
 | --- | --- |
 | [#205](https://github.com/evanleeturner/jedimaster-XVT/issues/205), [#211](https://github.com/evanleeturner/jedimaster-XVT/issues/211) to [#214](https://github.com/evanleeturner/jedimaster-XVT/issues/214), [#292](https://github.com/evanleeturner/jedimaster-XVT/issues/292) | Fixed in the new code (see the table above). |
 | [#50](https://github.com/evanleeturner/jedimaster-XVT/issues/50), [#51](https://github.com/evanleeturner/jedimaster-XVT/issues/51), [#52](https://github.com/evanleeturner/jedimaster-XVT/issues/52) | The wingman's attack order and target searches. The new search has a test for each case (`ai/jedimaster_ai/tactics.py`, `ai/tests/test_tactics.py`). |
 | [#46](https://github.com/evanleeturner/jedimaster-XVT/issues/46), [#49](https://github.com/evanleeturner/jedimaster-XVT/issues/49) | No counterpart: the new pilots have no speed-away move and starships have no missile defense. |
-| [#44](https://github.com/evanleeturner/jedimaster-XVT/issues/44), [#207](https://github.com/evanleeturner/jedimaster-XVT/issues/207), [#208](https://github.com/evanleeturner/jedimaster-XVT/issues/208), [#209](https://github.com/evanleeturner/jedimaster-XVT/issues/209) | The 1997 pilots read their behavior from script files. The new program has none. |
+| [#44](https://github.com/evanleeturner/jedimaster-XVT/issues/44), [#207](https://github.com/evanleeturner/jedimaster-XVT/issues/207), [#208](https://github.com/evanleeturner/jedimaster-XVT/issues/208) | The 1997 pilots read their behavior from script files. The new program has none. |
+| [#209](https://github.com/evanleeturner/jedimaster-XVT/issues/209) | Old and misleading names and comments, for a later renaming pass. Some of the names live on in the engine's code outside the deleted files. |
 | [#45](https://github.com/evanleeturner/jedimaster-XVT/issues/45), [#204](https://github.com/evanleeturner/jedimaster-XVT/issues/204) | The pilot program flies the Escort order. The game engine picks the escorted craft and its station: any craft may be escorted, and a station number of 28 or more gives no station (`engine/src/xvt/flight/ai_formation.c`). |
-| [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47), [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48), [#53](https://github.com/evanleeturner/jedimaster-XVT/issues/53), [#54](https://github.com/evanleeturner/jedimaster-XVT/issues/54), [#203](https://github.com/evanleeturner/jedimaster-XVT/issues/203), [#206](https://github.com/evanleeturner/jedimaster-XVT/issues/206), [#272](https://github.com/evanleeturner/jedimaster-XVT/issues/272) | Boarding, drop-off, self-destruct and reload orders are not built yet; each gets a check when it is. |
+| [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47), [#53](https://github.com/evanleeturner/jedimaster-XVT/issues/53), [#54](https://github.com/evanleeturner/jedimaster-XVT/issues/54), [#203](https://github.com/evanleeturner/jedimaster-XVT/issues/203), [#206](https://github.com/evanleeturner/jedimaster-XVT/issues/206) | Fixed (see the table above). The dock's three fixes act once the pilot program asks for a dock. |
+| [#272](https://github.com/evanleeturner/jedimaster-XVT/issues/272) | No counterpart: the new boarding orders board only craft, never a mission point. |
+| [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48) | The Drop Off order is not built yet; it gets a check when it is. |
 
 ## Planned, not in the game yet
 
@@ -347,9 +357,10 @@ the project's owner closes them. This table says what became of each one.
   Related issues: [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138).
 - The orders that still keep their speed and heading: Drop Off, Disabled,
   Await Boarding, Rendezvous and Attack Escorts. The boarding orders fly to
-  the craft they board but do not dock yet; the dock is the next round.
-- A warhead fired without a lock at a big ship, aimed ahead of it, at skill Jedi and above.
-- Two skill levels above Jedi, Sith Apprentice and Sith Lord (below).
+  the craft they board and wait there; the engine's dock is built, and the
+  pilot program asking for it comes in a later round, with Shift+B's reload.
+- The rest of the two skill levels above Jedi, Sith Apprentice and Sith Lord
+  (below).
 - Possible later work that has not started: capital ships, advanced fighters and
   turbolasers, ion cannons, and aiming at parts of a ship.
 
@@ -360,8 +371,10 @@ promotes the enemy's best computer fighter flight in a single-player
 battle, and the message at the end of the battle says how its craft
 fared. The cockpit's two target readouts mark these craft: "Sith"
 after a Sith Apprentice's name, "Sith Lord" after a Sith Lord's.
-The table's first and throttle rows are built; until the rest are, Sith
-craft fly the other behaviors with a Jedi's skill. A mission gives each computer craft a skill level
+Four of the table's rows are built: aim and fire, the warhead that fits the
+target, the warhead with no lock at a big ship, and the third throttle (not
+yet the turn by the player's rule). Until the rest are, Sith craft fly the
+other behaviors with a Jedi's skill. A mission gives each computer craft a skill level
 from 0 to 5, and the launcher's mission reader names them Rookie,
 Officer, Veteran, Ace, Top Ace and Jedi, and now Sith Apprentice and
 Sith Lord (`launcher/jedimaster/mission/names.py`). Two levels will sit above Jedi:
@@ -399,14 +412,11 @@ every capital ship, at every level.
 ## Open AI issues
 
 <!-- ai-issues:start -->
-On 2026-10-16 (UTC) the label `ai` was on 30 open issues and 21 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
+On 2026-10-16 (UTC) the label `ai` was on 26 open issues and 26 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
 
 - [#2](https://github.com/evanleeturner/jedimaster-XVT/issues/2): Research: enemy pilots that fight as a pack
 - [#3](https://github.com/evanleeturner/jedimaster-XVT/issues/3): Research: "Jev", a language-model commander for the enemy side
-- [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47): Boarding approach never uses full throttle because a half-throttle store overwrites it
 - [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48): Drop-off maneuver passes 255 as 'no basis craft' where the formation code expects 0xFFFF
-- [#53](https://github.com/evanleeturner/jedimaster-XVT/issues/53): Self-destruct delay of 56 or more units overflows the 16-bit lifetime timer
-- [#54](https://github.com/evanleeturner/jedimaster-XVT/issues/54): AI boarding craft forgets its tenth docked target: slot 9 is written but never read
 - [#94](https://github.com/evanleeturner/jedimaster-XVT/issues/94): Wingman voice line can be spoken by the very craft it is about
 - [#103](https://github.com/evanleeturner/jedimaster-XVT/issues/103): Super Star Destroyer turret aim picks the wrong hull vertex for ranks above 0
 - [#124](https://github.com/evanleeturner/jedimaster-XVT/issues/124): A drop-off order's flight group number is used unchecked as an index into the 48 group records
@@ -418,8 +428,6 @@ On 2026-10-16 (UTC) the label `ai` was on 30 open issues and 21 closed ones. Thi
 - [#170](https://github.com/evanleeturner/jedimaster-XVT/issues/170): Handing a player's craft back to the computer pilot writes its order slot and plan into another craft
 - [#182](https://github.com/evanleeturner/jedimaster-XVT/issues/182): A second flare chases the same warhead as the first, because the "already chased" count tests the wrong shot's type
 - [#187](https://github.com/evanleeturner/jedimaster-XVT/issues/187): A flight group's AI level and craft type, and an OPT hardpoint's type, index fixed tables unchecked
-- [#203](https://github.com/evanleeturner/jedimaster-XVT/issues/203): A reload craft restores a player's damaged cockpit displays only on that player's own machine, so the machines' world states differ
-- [#206](https://github.com/evanleeturner/jedimaster-XVT/issues/206): A craft boarded to be destroyed gets the boarding's 15-to-30-second self-destruct delay only when it already has a countdown running
 - [#209](https://github.com/evanleeturner/jedimaster-XVT/issues/209): AI code: stale names, misleading names, and comments that misstate or leave out what the code does, for the next renaming pass
 - [#210](https://github.com/evanleeturner/jedimaster-XVT/issues/210): A warhead that has blown up keeps its homing data, so computer pilots dodge it, spend chaff or flares on it, and fire defense warheads at it
 - [#255](https://github.com/evanleeturner/jedimaster-XVT/issues/255): A flight group of more than 6 craft runs the wingman voice code past its tables
@@ -431,6 +439,7 @@ On 2026-10-16 (UTC) the label `ai` was on 30 open issues and 21 closed ones. Thi
 - [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301): Shift+B resupply is always refused
 - [#305](https://github.com/evanleeturner/jedimaster-XVT/issues/305): Warhead fire: two 1997 rules need data the pilot program is not sent (pairs when hurt, pulses at big ships)
 - [#306](https://github.com/evanleeturner/jedimaster-XVT/issues/306): Three more engine rules read the removed 1997 pilot's maneuver, so they never act for computer-flown craft
+- [#308](https://github.com/evanleeturner/jedimaster-XVT/issues/308): AI: Jedi-level craft fire their cannons from farther than their shots fly
 <!-- ai-issues:end -->
 
 ## The work behind it
