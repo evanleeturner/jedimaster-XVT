@@ -2255,7 +2255,11 @@ void flight_process_player_actions(int player_idx)
 					struct ai_controller *controller =
 						&g_cur_craft->ai_controller;
 					if ((controller->activity ==
-					     AI_ACTIVITY_BOARDING) &&
+						     AI_ACTIVITY_LOOKING_TO_BOARD ||
+					     controller->activity ==
+						     AI_ACTIVITY_LOOKING_TO_CAPTURE ||
+					     controller->activity ==
+						     AI_ACTIVITY_LOOKING_TO_PICK_UP) &&
 					    ai_brain_order_targets_match_object(
 						    (uint16_t)g_players[player_idx]
 							    .object_index) !=

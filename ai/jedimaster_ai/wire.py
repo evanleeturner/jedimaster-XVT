@@ -24,8 +24,8 @@ Invariants:
       did not show, an order from a follower or to a slot the view does not
       allow, a depart or dock the view's books do not show, or both, a
       countermeasure the view does not show ready, an evaded with no
-      evade command shown, a turret ion past 1, and a maneuver timer past
-      0x7FFFFFFF.
+      evade command shown, a turret ion past 1, a maneuver timer past
+      0x7FFFFFFF, and a self destruct of 0 units or more than 55.
 """
 
 from __future__ import annotations
@@ -37,6 +37,7 @@ import typing as t
 from .world import Actions
 from .world import Answer
 from .world import Arrival
+from .world import BOARDED_MAX
 from .world import Books
 from .world import CannonGroup
 from .world import Commands
@@ -55,7 +56,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 15
+VERSION = 16
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -101,7 +102,7 @@ VIEW_LAYOUT = (
     ("order_variable2", "B", 1),
     ("order_speed", "B", 1),
     ("full_speed", "H", 1),
-    ("books", "H", 1),
+    ("books", "I", 1),
     ("mothership", "H", 1),
     ("outside_hangar", "i", 3),
     ("inside_hangar", "i", 3),
@@ -136,6 +137,10 @@ VIEW_LAYOUT = (
     ("start_point", "i", 3),
     ("targets_now", "B", 1),
     ("static_target_mask", "Q", 1),
+    ("board_point", "i", 3),
+    ("order_progress", "B", 4),
+    ("boarded_count", "B", 1),
+    ("boarded", "H", 10),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -172,6 +177,7 @@ CONTACT_LAYOUT = (
     ("box_min", "i", 3),
     ("box_max", "i", 3),
     ("roll", "H", 1),
+    ("boarder", "H", 1),
 )
 CONTACT_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in CONTACT_LAYOUT)
@@ -205,6 +211,7 @@ class ActionKind(enum.IntEnum):
     COUNTERMEASURE = 13
     EVADED = 14
     MANEUVER_TIMER = 15
+    SELF_DESTRUCT = 16
 
 
 class WireError(ValueError):
@@ -265,11 +272,30 @@ def _values_of(layout: tuple[tuple[str, str, int], ...], record: t.Any) -> list[
 
 
 def _view_from(values: tuple[int, ...], notebook: bytes) -> CraftView:
-    return CraftView(**_fields_from(VIEW_LAYOUT, values), notebook=notebook)
+    fields = _fields_from(VIEW_LAYOUT, values)
+    count = fields.pop("boarded_count")
+    if count > BOARDED_MAX:
+        raise WireError(f"a view says it boarded {count} craft, at most {BOARDED_MAX}")
+    fields["boarded"] = fields["boarded"][:count]
+    return CraftView(**fields, notebook=notebook)
 
 
 def _view_values(view: CraftView) -> list[int]:
-    return _values_of(VIEW_LAYOUT, view)
+    """Return the view's flat values; ``boarded`` is padded with 0 to its ten."""
+    if len(view.boarded) > BOARDED_MAX:
+        raise WireError(
+            f"a view boarded {len(view.boarded)} craft, at most {BOARDED_MAX}"
+        )
+    values: list[int] = []
+    for name, _, count in VIEW_LAYOUT:
+        if name == "boarded_count":
+            values.append(len(view.boarded))
+        elif name == "boarded":
+            values.extend(view.boarded + (0,) * (BOARDED_MAX - len(view.boarded)))
+        else:
+            value = getattr(view, name)
+            values.extend(value if count > 1 else (value,))
+    return values
 
 
 def _contact_from(values: tuple[int, ...]) -> Contact:
@@ -398,6 +424,9 @@ def _actions_bytes(actions: Actions) -> bytes:
         written += U8.pack(ActionKind.MANEUVER_TIMER)
         written += U32.pack(actions.maneuver_timer)
         count += 1
+    if actions.self_destruct is not None:
+        written += U8.pack(ActionKind.SELF_DESTRUCT) + U8.pack(actions.self_destruct)
+        count += 1
     return U8.pack(count) + bytes(written)
 
 
@@ -477,6 +506,8 @@ def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
         return True
     if kind == ActionKind.MANEUVER_TIMER:
         return reader.take(U32)[0]
+    if kind == ActionKind.SELF_DESTRUCT:
+        return reader.take(U8)[0]
     return reader.take(U16)[0]
 
 
@@ -488,7 +519,7 @@ def _read_actions(reader: _Reader) -> Actions:
         try:
             kind = ActionKind(code)
         except ValueError:
-            raise WireError(f"action kind {code} is not one of the fifteen") from None
+            raise WireError(f"action kind {code} is not one of the sixteen") from None
         name = kind.name.lower()
         if name in found:
             raise WireError(f"action kind {code} is sent twice")

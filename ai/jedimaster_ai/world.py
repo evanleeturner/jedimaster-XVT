@@ -43,6 +43,13 @@ THREATS_MAX = 4
 WAYPOINTS = 8
 # The longest maneuver timer an answer may set, in ticks: the engine's int.
 MANEUVER_TIMER_MAX = 0x7FFFFFFF
+# The self destruct delay's units, each 1,180 ticks: 1 to 55, as 56 units
+# would not fit the engine's 16-bit lifetime timer.
+SELF_DESTRUCT_UNITS_MAX = 55
+# Ticks in one unit of the self destruct delay.
+SELF_DESTRUCT_UNIT_TICKS = 1180
+# The signatures of docked craft a craft view holds.
+BOARDED_MAX = 10
 
 
 class Activity(enum.IntEnum):
@@ -61,6 +68,9 @@ class Activity(enum.IntEnum):
     GOING_HOME_EVADING = 10
     BOARDING = 11
     DISABLED = 12
+    LOOKING_TO_BOARD = 13
+    LOOKING_TO_CAPTURE = 14
+    LOOKING_TO_PICK_UP = 15
 
 
 # The activities only the engine sets: a round's arrival out of hyperspace or
@@ -146,9 +156,17 @@ class Books(enum.IntFlag):
       1997 test that ends SS Await Return
     - STATION: it escorts a craft, so ``escorted`` and ``station`` are given
     - START_POINT: its group has arrived, so ``start_point`` is given
+    - BOARD_POINT: its current order boards a craft and its target is a
+      craft with a model, so ``board_point`` is given
+    - AT_BOARD_POINT: BOARD_POINT, it is within 2,048 units of the point,
+      and its target is not a player's craft that moves
+    - ALL_LAUNCHED: every flight group that arrives from its group as its
+      mothership has arrived with no waves left, the 1997 test that ends
+      SS Launch
 
     ALL_RETURNED comes with wire version 13, STATION and START_POINT with
-    14; the engine sends none of them before.
+    14, BOARD_POINT, AT_BOARD_POINT and ALL_LAUNCHED with 16; the engine
+    sends none of them before.
     """
 
     ORDERS_DONE = 0x001
@@ -165,6 +183,9 @@ class Books(enum.IntFlag):
     ALL_RETURNED = 0x800
     STATION = 0x1000
     START_POINT = 0x2000
+    BOARD_POINT = 0x4000
+    AT_BOARD_POINT = 0x8000
+    ALL_LAUNCHED = 0x10000
 
 
 class ContactFlags(enum.IntFlag):
@@ -175,15 +196,21 @@ class ContactFlags(enum.IntFlag):
     - ATTACKED: a craft of some team, any of the ten, has hit it
     - STATIC: a static object, not a craft: a buoy, mine or other fixed
       object, listed in ``Question.statics``
+    - PARKED: its current order holds it still: Hold Steady or one of its
+      copies, or no order (codes 0, 28, 30, 33, 34, 35, 38, 39)
+    - AWAITING: its current order is Disabled or Await Boarding (5, 6), so
+      it waits to be boarded
 
-    DISABLED and ATTACKED come with wire version 13 and STATIC with 14; the
-    engine sends none of them before.
+    DISABLED and ATTACKED come with wire version 13, STATIC with 14, and
+    PARKED and AWAITING with 16; the engine sends none of them before.
     """
 
     PLAYER = 0x1
     DISABLED = 0x2
     ATTACKED = 0x4
     STATIC = 0x8
+    PARKED = 0x10
+    AWAITING = 0x20
 
 
 @dataclasses.dataclass(frozen=True)
@@ -251,6 +278,14 @@ class CraftView:
     targets of the craft's order. ``maneuver_timer`` comes with wire version
     13 and reads 0 before it; ``targets_now`` and ``static_target_mask`` come
     with 14 and read 0.
+
+    ``board_point`` is where the craft waits to dock with its target, 1997's
+    approach point above the target's docking hatch, a world position; it
+    comes with the BOARD_POINT book and reads (0, 0, 0) without it. Item n
+    of ``order_progress`` counts what the order in slot n has done: for a
+    boarding order, the craft's boardings. ``boarded`` holds the signatures
+    of the craft it has boarded, oldest first, at most 10. All three come
+    with wire version 16 and read (0, 0, 0), (0, 0, 0, 0) and () before it.
     """
 
     object_index: int
@@ -325,6 +360,9 @@ class CraftView:
     start_point: tuple[int, int, int] = (0, 0, 0)
     targets_now: int = 0
     static_target_mask: int = 0
+    board_point: tuple[int, int, int] = (0, 0, 0)
+    order_progress: tuple[int, int, int, int] = (0, 0, 0, 0)
+    boarded: tuple[int, ...] = ()
 
     @property
     def threats(self) -> tuple[Threat, ...]:
@@ -384,7 +422,10 @@ class Contact:
     at the craft, at most 255, and ``warheads_coming_damage`` sums their damage.
     ``flags`` holds ``ContactFlags`` bits. ``hit_by`` is the object whose
     shot last hit the craft, NO_OBJECT for none; it comes with wire version
-    13 and reads NO_OBJECT before it.
+    13 and reads NO_OBJECT before it. ``boarder`` is the craft that carries
+    it, else the lowest-numbered craft on a boarding order whose target it
+    is, else NO_OBJECT; it comes with wire version 16 and reads NO_OBJECT
+    before it.
 
     A static, flagged STATIC, has no craft record: its ``team`` is its
     flight group's, DISABLED means an ion hit took its working systems, and
@@ -427,6 +468,7 @@ class Contact:
     box_min: tuple[int, int, int] = (0, 0, 0)
     box_max: tuple[int, int, int] = (0, 0, 0)
     roll: int = 0
+    boarder: int = NO_OBJECT
 
     @property
     def player_flown(self) -> bool:
@@ -584,6 +626,10 @@ class Actions:
     ``maneuver_timer`` sets the craft's maneuver timer, 0 to
     MANEUVER_TIMER_MAX ticks; it comes with wire version 13, and before it
     ``wire`` refuses to write it.
+    ``self_destruct`` starts the craft's self destruct: its delay in units
+    of 1,180 ticks, 1 to SELF_DESTRUCT_UNITS_MAX; the engine sets the
+    craft's lifetime timer to it when none runs and keeps one that does. It
+    comes with wire version 16.
     ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
@@ -603,6 +649,7 @@ class Actions:
     countermeasure: bool = False
     evaded: bool = False
     maneuver_timer: int | None = None
+    self_destruct: int | None = None
 
     def __post_init__(self) -> None:
         if self.depart and self.dock:
@@ -630,6 +677,13 @@ class Actions:
             raise ValueError(
                 f"maneuver_timer {self.maneuver_timer!r} is outside 0 to "
                 f"{MANEUVER_TIMER_MAX}"
+            )
+        if self.self_destruct is not None and not (
+            1 <= self.self_destruct <= SELF_DESTRUCT_UNITS_MAX
+        ):
+            raise ValueError(
+                f"self_destruct {self.self_destruct!r} is outside 1 to "
+                f"{SELF_DESTRUCT_UNITS_MAX}"
             )
 
 

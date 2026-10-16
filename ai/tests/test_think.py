@@ -263,22 +263,26 @@ def test_debug_records_who_last_shot_a_contact(view, contact, caplog) -> None:
 
 def test_debug_records_a_contacts_model_box_and_roll(view, contact, caplog) -> None:
     caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
-    boxed = contact(box_min=(-3, -4, -5), box_max=(6, 7, 8), roll=0xC000)
+    boxed = contact(box_min=(-3, -4, -5), box_max=(6, 7, 8), roll=0xC000, boarder=12)
     think(Question(1000, (view(),), (boxed,)))
     (line,) = [line for line in caplog.text.splitlines() if "think.contact" in line]
     assert line.endswith(
-        "min_x=-3 min_y=-4 min_z=-5 max_x=6 max_y=7 max_z=8 roll=49152"
+        "min_x=-3 min_y=-4 min_z=-5 max_x=6 max_y=7 max_z=8 roll=49152 boarder=12"
     )
 
 
 def test_debug_records_the_timer_evaded_and_ion_actions(caplog) -> None:
     caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
     actions = Actions(
-        evaded=True, maneuver_timer=1180, turrets=(Turret(3, 9, True), Turret(5, 9))
+        evaded=True,
+        maneuver_timer=1180,
+        self_destruct=3,
+        turrets=(Turret(3, 9, True), Turret(5, 9)),
     )
     think_module._log_answer(CraftAnswer(4, bytes(NOTEBOOK_BYTES), actions))
-    # Bit n of the actions is action kind n: turrets 8, evaded 14, timer 15.
-    assert "think.answer object=4 actions=49408 " in caplog.text
+    # Bit n of the actions is action kind n: turrets 8, evaded 14, timer 15,
+    # self destruct 16.
+    assert "think.answer object=4 actions=114944 " in caplog.text
     assert "think.turret object=4 slot=3 target=9 ion=1" in caplog.text
     assert "think.turret object=4 slot=5 target=9 ion=0" in caplog.text
 
@@ -294,11 +298,16 @@ def test_debug_records_the_new_view_values_and_the_statics(
         start_point=(21, 22, 23),
         targets_now=5,
         static_target_mask=1,
+        board_point=(31, 32, 33),
+        order_progress=(1, 2, 3, 4),
+        boarded=(7, 8),
     )
     think(Question(1000, (craft,), (contact(),), (static,)))
     assert "think.question tick=1000 craft=1 contacts=1 statics=1" in caplog.text
     assert "think.contact object=40 " in caplog.text
     assert (
         " escorted=9 station_x=11 station_y=12 station_z=13 start_x=21 "
-        "start_y=22 start_z=23 targets_now=5 static_targets=1 " in caplog.text
+        "start_y=22 start_z=23 targets_now=5 static_targets=1 "
+        'board_x=31 board_y=32 board_z=33 progress="01020304" boarded="7,8" '
+        in caplog.text
     )

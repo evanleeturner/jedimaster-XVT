@@ -52,6 +52,7 @@ C_SIZES = {
     "AI_WIRE_POINT_AXES": world.POINT_AXES,
     "AI_WIRE_THREATS_MAX": world.THREATS_MAX,
     "AI_WIRE_WAYPOINTS": world.WAYPOINTS,
+    "AI_WIRE_BOARDED_MAX": world.BOARDED_MAX,
 }
 
 
@@ -103,6 +104,7 @@ def test_wire_constants_match() -> None:
         countermeasure=True,
         evaded=True,
         maneuver_timer=world.MANEUVER_TIMER_MAX,
+        self_destruct=world.SELF_DESTRUCT_UNITS_MAX,
     )
     answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
     assert constants == {
@@ -125,6 +127,9 @@ def test_wire_constants_match() -> None:
         "POINT_AXES": world.POINT_AXES,
         "THREATS_MAX": world.THREATS_MAX,
         "WAYPOINTS": world.WAYPOINTS,
+        "BOARDED_MAX": world.BOARDED_MAX,
+        "SELF_DESTRUCT_UNITS_MAX": world.SELF_DESTRUCT_UNITS_MAX,
+        "SELF_DESTRUCT_UNIT_TICKS": world.SELF_DESTRUCT_UNIT_TICKS,
     }
 
 
@@ -193,7 +198,14 @@ def test_contact_fields_match() -> None:
 
 def test_contact_flags_match() -> None:
     flags = c_enum(AI_WIRE_H, "ai_wire_contact_flag", "AI_WIRE_CONTACT_")
-    assert flags == {"PLAYER": 1, "DISABLED": 2, "ATTACKED": 4, "STATIC": 8}
+    assert flags == {
+        "PLAYER": 1,
+        "DISABLED": 2,
+        "ATTACKED": 4,
+        "STATIC": 8,
+        "PARKED": 16,
+        "AWAITING": 32,
+    }
     assert flags == {flag.name: flag.value for flag in world.ContactFlags}
     assert Contact(*([0] * 7), flags["PLAYER"], *([0] * 17)).player_flown
 

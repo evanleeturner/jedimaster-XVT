@@ -2830,8 +2830,8 @@ struct order_case {
 	const char *name;
 	const char *const *lines;
 	uint16_t key;
-	int presser; /* PILOT or MATE; the other one is the second player. */
-	int target;  /* Object slot the presser has targeted, or -1. */
+	int presser;  /* PILOT or MATE; the other one is the second player. */
+	int target;   /* Object slot the presser has targeted, or -1. */
 	int activity; /* What the commanded craft is doing: AI_ACTIVITY_. */
 	int flags;
 	int match;
@@ -3783,6 +3783,15 @@ static const struct order_case g_resupply_cases[] = {
 	 PILOT, SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST},
 	{"resupply_board3", k_resupply_board3, FLIGHT_KEY_SHIFT_B, PILOT,
 	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST},
+	{"resupply_looking_to_board", k_resupply_boardtogive,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_FIRST},
+	{"resupply_looking_to_capture", k_resupply_boardtogive,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_CAPTURE, 0,
+	 MATCH_FIRST},
+	{"resupply_looking_to_pick_up", k_resupply_boardtogive,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_PICK_UP, 0,
+	 MATCH_FIRST},
 	{"resupply_other_activity", k_resupply_other_activity,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_NONE, 0, MATCH_FIRST},
 	{"resupply_not_named", k_resupply_not_named, FLIGHT_KEY_SHIFT_B, PILOT,
@@ -3795,7 +3804,8 @@ static const struct order_case g_resupply_cases[] = {
 	 PILOT, SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_SECOND_PAIR},
 };
 
-/* Shift+B calls the targeted supply craft when it is boarding and its order
+/* Shift+B calls the targeted supply craft when it is looking for a craft to
+ * board, capture or pick up (not while it docks) and its order
  * names the pilot's craft: the radio and the tactical officer answer.
  * Whether the order names the pilot is the pilot program's to answer, and
  * until it does the answer is no: every call here gets the not-responding

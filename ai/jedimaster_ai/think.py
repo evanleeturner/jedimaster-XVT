@@ -97,7 +97,7 @@ def _log_contact(contact: Contact) -> None:
         "think.contact object=%d signature=%d type=%d genus=%d team=%d group=%d "
         "kind=%d flags=%d x=%d y=%d z=%d yaw=%d pitch=%d speed=%d target=%d "
         "attacker=%d front=%d rear=%d hull_damage=%d hull=%d activity=%d size=%d hit_by=%d "
-        "min_x=%d min_y=%d min_z=%d max_x=%d max_y=%d max_z=%d roll=%d",
+        "min_x=%d min_y=%d min_z=%d max_x=%d max_y=%d max_z=%d roll=%d boarder=%d",
         contact.object_index,
         contact.object_signature,
         contact.object_type,
@@ -128,6 +128,7 @@ def _log_contact(contact: Contact) -> None:
         contact.box_max[1],
         contact.box_max[2],
         contact.roll,
+        contact.boarder,
     )
 
 
@@ -147,7 +148,7 @@ def _log_view(view: CraftView) -> None:
         "commands=%d command_target=%d avoid_target=%d place_x=%d place_y=%d "
         "place_z=%d timer=%d escorted=%d station_x=%d station_y=%d station_z=%d "
         "start_x=%d start_y=%d start_z=%d targets_now=%d static_targets=%d "
-        'notebook="%s"',
+        'board_x=%d board_y=%d board_z=%d progress="%s" boarded="%s" notebook="%s"',
         view.object_index,
         view.object_signature,
         view.object_type,
@@ -222,6 +223,11 @@ def _log_view(view: CraftView) -> None:
         view.start_point[2],
         view.targets_now,
         view.static_target_mask,
+        view.board_point[0],
+        view.board_point[1],
+        view.board_point[2],
+        bytes(view.order_progress).hex(),
+        ",".join(str(signature) for signature in view.boarded),
         view.notebook.hex(),
     )
     for threat in view.threats:
@@ -267,6 +273,7 @@ def _log_answer(answer: CraftAnswer) -> None:
         | actions.countermeasure << 13
         | actions.evaded << 14
         | (actions.maneuver_timer is not None) << 15
+        | (actions.self_destruct is not None) << 16
     )
     first, second = actions.lasers or (HOLD_FIRE, HOLD_FIRE)
     warhead = actions.warhead

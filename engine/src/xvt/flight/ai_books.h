@@ -26,7 +26,8 @@ extern "C" {
  * throttle, variables and speed, the craft's full speed, the AI_WIRE_BOOKS_
  * bits, its mothership with that craft's two hangar points, its home
  * point, its group's start point once the group has arrived, and which of
- * its three orders have a target in the battle now. Call it before the view's order fields are read: a follower takes
+ * its three orders have a target in the battle now, and what a boarder
+ * sees: its board point and the boardings it has done and asked for. Call it before the view's order fields are read: a follower takes
  * its leader's order slot here. */
 void ai_books_view_craft(uint16_t object_index,
 			 struct ai_wire_craft_view *view);
@@ -42,6 +43,11 @@ int ai_books_pair_matches(const struct mission_order *order, int pair,
  * carries behavior flag 2 and it may count as a target left. Whether it
  * matches a particular order is a separate question. */
 int ai_books_static_is_target(uint16_t object_index);
+
+/* Whether the mission order code boards a craft: Give, Take, Exchange,
+ * Capture, Destroy and Pick Up cargo (12 to 17), SS Board (31) and Repair
+ * (32). */
+int ai_books_order_boards(int order_code);
 
 /* The order action: the craft works on slot from now, and the slot it worked
  * on takes completion state state when state is not 0; a move to slot 3 marks

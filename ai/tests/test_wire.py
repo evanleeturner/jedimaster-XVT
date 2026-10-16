@@ -43,7 +43,7 @@ DISTINCT = CraftView(
     0x14131211, -2, 0x1C1B1A19, 0x1E1D, 0x201F, 0x2221, 0x2423, -3,
     0x28272625, 0x2A29, 0x2B, 0x2C, (0x2D, 0x2E), (0x2F, 0x30), (0x31, 0x32),
     (0x3433, 0x3635), 0x3A393837, 0x3C3B, (0x3D, 0x3E, 0x3F, 0x40),
-    (0x41, 0x42, 0x43, 0x44), 0x4645, 0x47, 0x48, 0x49, 0x9291, 0x4B4A, 0x4D4C,
+    (0x41, 0x42, 0x43, 0x44), 0x4645, 0x47, 0x48, 0x49, 0x9291, 0xC2C14B4A, 0x4D4C,
     (0x51504F4E, 0x55545352, 0x59585756), (0x5D5C5B5A, 0x61605F5E, -6),
     (0x65646362, 0x69686766, 0x6D6C6B6A), 0x6E, 0x6F, 0x70, 0x71, 0x7372,
     0x7574, (0x7776, 0x7978, 0x7B7A, 0x7D7C), (0x7E, 0x7F, 0x80, 0x81),
@@ -61,6 +61,8 @@ DISTINCT = CraftView(
     escorted=0x4241, station=(0x46454443, 0x4A494847, -10),
     start_point=(0x4E4D4C4B, 0x5251504F, -11), targets_now=0x07,
     static_target_mask=0xA09F9E9D9C9B9A99,
+    board_point=(0x73727170, -13, 0x77767574), order_progress=(0xC0, 0xC1, 0xC2, 0xC3),
+    boarded=(0xD1D0, 0xD3D2, 0xD5D4, 0xD7D6, 0xD9D8, 0xDBDA, 0xDDDC, 0xDFDE, 0xE1E0, 0xE3E2),
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
@@ -69,7 +71,7 @@ DISTINCT_CONTACT = Contact(
     -4, 0x5453, 0x5655, 0x5857, 0x5A59, 0x5C5B, -5, 0x605F5E5D, 0x64636261,
     0x68676665, 0x69, 0x6D6C6B6A, 0x6E, 0x7271706F, 0x7473,
     box_min=(-6, 0x78777675, 0x7C7B7A79), box_max=(-7, 0x7F7E7D7C, 0x7B7A7978),
-    roll=0x8180,
+    roll=0x8180, boarder=0x8382,
 )  # fmt: skip
 # static_with_distinct_bytes in the C test: the contact's bytes, a static's
 # object index and flag.
@@ -112,6 +114,8 @@ def plain_view(index: int, **changes: object) -> CraftView:
     fields = {
         name: (0,) * count if count > 1 else 0 for name, _, count in wire.VIEW_LAYOUT
     }
+    del fields["boarded_count"]
+    fields["boarded"] = ()
     fields.update(object_index=index, **changes)
     return CraftView(**fields, notebook=bytes(NOTEBOOK_BYTES))
 
@@ -259,10 +263,10 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
 @pytest.mark.parametrize(
     ("actions", "match"),
     [
-        (b"\x01\x00", "not one of the fifteen"),
-        (b"\x01\x10", "not one of the fifteen"),
+        (b"\x01\x00", "not one of the sixteen"),
+        (b"\x01\x11", "not one of the sixteen"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
-        (b"\x01\x03\x0d", "out of range"),
+        (b"\x01\x03\x10", "out of range"),
         (b"\x01\x03\x05", "set by the engine alone"),
         (b"\x01\x03\x07", "set by the engine alone"),
         (b"\x01\x04\x00\x00", "out of range"),
@@ -296,9 +300,12 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
         (b"\x01\x0a\x01", "ends inside a value"),
         (b"\x01\x0b", "depart is not one the view's books allow"),
         (b"\x02\x0b\x0c", "depart and dock are both sent"),
+        (b"\x01\x10\x00", "out of range"),
+        (b"\x01\x10\x38", "out of range"),
+        (b"\x01\x10", "ends inside a value"),
     ],
     ids=[
-        "kind 0", "kind 16", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
+        "kind 0", "kind 17", "twice", "activity 16", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "target past the statics", "turret aimed at a static",
         "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
@@ -306,6 +313,7 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
         "turret target not shown", "turret cut off", "timer cut off", "arriving 2", "speed 3601", "arrival cut off",
         "order to an empty slot", "order to slot 3", "order slot 4",
         "order state 1", "order cut off", "depart not allowed", "depart and dock",
+        "self destruct 0", "self destruct 56", "self destruct cut off",
     ],
 )  # fmt: skip
 def test_answer_breaking_the_engines_rules_is_refused(
@@ -543,7 +551,7 @@ def test_a_question_carries_the_model_box_and_the_roll(contact) -> None:
     )
     question = Question(1, (), (boxed,), (dataclasses.replace(boxed, roll=0x2000),))
     message = wire.question_bytes(question)
-    assert len(message) == 4 + wire.HEADER.size + 2 * (4 + 86)
+    assert len(message) == 4 + wire.HEADER.size + 2 * (4 + 88)
     read = wire.read_question(message[wire.LENGTH.size :])
     assert read == question
     assert read.contacts[0].box_min == (-3000, -162468, -7)
@@ -605,3 +613,40 @@ def test_a_static_count_with_a_nonzero_pad_is_refused() -> None:
     body[wire.HEADER.size + wire.CONTACT_HEAD.size + 2] = 1
     with pytest.raises(wire.WireError, match="statics"):
         wire.read_question(bytes(body))
+
+
+@pytest.mark.parametrize("units", [1, 55])
+def test_self_destruct_is_read_and_written(units: int) -> None:
+    body = answer_with_actions(bytes([1, 0x10, units]))
+    answer = wire.read_answer(body, QUESTION_7)
+    assert answer.craft[0].actions == Actions(self_destruct=units)
+    assert wire.answer_bytes(answer)[4:] == body
+
+
+@pytest.mark.parametrize("units", [0, 56, 255])
+def test_self_destruct_outside_its_units_is_not_made(units: int) -> None:
+    with pytest.raises(ValueError, match="self_destruct"):
+        Actions(self_destruct=units)
+
+
+def test_boarded_is_padded_with_zeros_and_cut_to_its_count() -> None:
+    view = dataclasses.replace(CRAFT_7, boarded=(0x301, 0x302, 0x303))
+    question = Question(TEST_TICK, (view,), CONTACTS, STATICS)
+    message = wire.question_bytes(question)
+    assert wire.read_question(message[4:]) == question
+    # u8 count then ten u16, the last seven 0: the 21 bytes before the notebook.
+    tail = message[4 + wire.HEADER.size :][
+        wire.VIEW_FIELDS.size - 21 : wire.VIEW_FIELDS.size
+    ]
+    assert tail == bytes([3]) + struct.pack("<10H", 0x301, 0x302, 0x303, *[0] * 7)
+
+
+def test_a_view_that_boarded_too_many_is_not_written_or_read() -> None:
+    view = dataclasses.replace(CRAFT_7, boarded=tuple(range(11)))
+    with pytest.raises(wire.WireError, match="at most 10"):
+        wire.question_bytes(Question(TEST_TICK, (view,), CONTACTS, STATICS))
+    message = bytearray(wire.question_bytes(QUESTION_7))
+    count_at = 4 + wire.HEADER.size + wire.VIEW_FIELDS.size - 21
+    message[count_at] = 11
+    with pytest.raises(wire.WireError, match="at most 10"):
+        wire.read_question(bytes(message[4:]))

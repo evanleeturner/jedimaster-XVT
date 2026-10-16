@@ -5,8 +5,10 @@
  * port does not keep is checked gone. The last case drives a jump through
  * the think loop with a fake pilot program and replays its last step from a
  * saved world. */
+#include <SDL3/SDL_log.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -17,12 +19,14 @@
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
+#include "xvt/flight/hud/hud.h"
 #include "xvt/flight/hud/msg.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/math/math2.h"
 #include "xvt_runtime/ai/ai_wire.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/world_state.h"
 
 enum {
@@ -123,6 +127,7 @@ static struct craft_data *make_craft(int slot, int group)
 	craft->model_index = JUMP_MODEL;
 	craft->ai_flight.max_speed_cache = 100;
 	craft->carried_object_index = UINT16_MAX;
+	craft->carrier_obj_idx = UINT16_MAX;
 	craft->craft_ordinal = (uint8_t)(slot + 1);
 	craft->ai_controller.think_interval = TEST_INTERVAL;
 	return craft;
@@ -148,6 +153,41 @@ static struct ai_wire_craft_view view_of(int slot)
 static int has_bit(int slot, unsigned int bit)
 {
 	return (view_of(slot).books & bit) != 0;
+}
+
+/* The engine's log lines, kept without Aeron's "xvt: " prefix. */
+enum {
+	LOG_LINE_CAPACITY = 64,
+	LOG_LINE_SIZE = 200,
+};
+
+static char g_log_lines[LOG_LINE_CAPACITY][LOG_LINE_SIZE];
+static int g_log_line_count;
+
+static void catch_line(void *userdata, int category, SDL_LogPriority priority,
+		       const char *message)
+{
+	static const char prefix[] = "xvt: ";
+	(void)userdata;
+	(void)category;
+	(void)priority;
+	if (g_log_line_count >= LOG_LINE_CAPACITY) {
+		return;
+	}
+	if (strncmp(message, prefix, sizeof prefix - 1) == 0) {
+		message += sizeof prefix - 1;
+	}
+	snprintf(g_log_lines[g_log_line_count++], LOG_LINE_SIZE, "%s", message);
+}
+
+/* How many kept lines start with start. */
+static int lines_starting(const char *start)
+{
+	int found = 0;
+	for (int line = 0; line < g_log_line_count; ++line) {
+		found += strncmp(g_log_lines[line], start, strlen(start)) == 0;
+	}
+	return found;
 }
 
 static void clock_at(int hours, int minutes, int seconds)
@@ -492,8 +532,9 @@ static void check_view_orders_and_home(void)
 	XVT_ASSERT_INT_EQ(view.order_variable2, 8);
 	XVT_ASSERT_INT_EQ(view.order_speed, 9);
 	/* No group leaves into this one, so all have returned. */
-	XVT_ASSERT_INT_EQ(view.books,
-			  AI_WIRE_BOOKS_MAY_JUMP | AI_WIRE_BOOKS_ALL_RETURNED);
+	XVT_ASSERT_INT_EQ(view.books, AI_WIRE_BOOKS_MAY_JUMP |
+					      AI_WIRE_BOOKS_ALL_RETURNED |
+					      AI_WIRE_BOOKS_ALL_LAUNCHED);
 	XVT_ASSERT_INT_EQ(view.mothership, UINT16_MAX);
 	XVT_ASSERT_INT_EQ(view.inside_hangar[0], 0);
 	XVT_ASSERT_INT_EQ(view.home_point[2], 0);
@@ -501,22 +542,26 @@ static void check_view_orders_and_home(void)
 	XVT_ASSERT_INT_EQ(view_of(1).order_throttle, 0);
 
 	craft->model_index = NO_JUMP_MODEL;
-	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_ALL_RETURNED);
+	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_ALL_RETURNED |
+						    AI_WIRE_BOOKS_ALL_LAUNCHED);
 	craft->model_index = JUMP_MODEL;
 	craft->object_kind = CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE;
-	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_ALL_RETURNED);
+	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_ALL_RETURNED |
+						    AI_WIRE_BOOKS_ALL_LAUNCHED);
 	craft->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
 	/* No mothership here and none to come: it may jump (order 46). */
 	group->fg.departure_method = 1;
 	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_BY_MOTHERSHIP |
 						    AI_WIRE_BOOKS_MAY_JUMP |
-						    AI_WIRE_BOOKS_ALL_RETURNED);
+						    AI_WIRE_BOOKS_ALL_RETURNED |
+						    AI_WIRE_BOOKS_ALL_LAUNCHED);
 	group->fg.departure_method = 0;
 	craft->captured_by_flight_group = 1;
 	group->fg.captured_depart_via_mothership = 1;
 	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_BY_MOTHERSHIP |
 						    AI_WIRE_BOOKS_MAY_JUMP |
-						    AI_WIRE_BOOKS_ALL_RETURNED);
+						    AI_WIRE_BOOKS_ALL_RETURNED |
+						    AI_WIRE_BOOKS_ALL_LAUNCHED);
 	craft->captured_by_flight_group = 0;
 
 	group->fg.mission_point_enabled[13] = 1;
@@ -1257,8 +1302,316 @@ static void check_jump_and_replay(void)
 	ai_brain_set_exchange(NULL);
 }
 
+/* SS Launch's test, the 1997 order 33: every other group that arrives from
+ * the craft's group as its mothership has arrived with no waves left. A
+ * group that has not arrived, or has a wave left, makes it no. Unlike the
+ * return test, a craft of that group still in the battle does not. Left out:
+ * a group whose arrival is off and that no player owns, one that arrives
+ * another way or from another group, and the craft's own group. */
+static void check_all_launched(void)
+{
+	fresh_world();
+	make_craft(1, TEST_GROUP);
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	struct mission_flight_group *launched = &g_mission_flight_groups[5];
+	struct mission_fg_runtime_stats *stats = &g_mission_fg_stats[5];
+	launched->fg.arrival_method = 1;
+	launched->fg.arrival_mothership = TEST_GROUP;
+	stats->arrival_enabled = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	stats->has_arrived = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	stats->waves_remaining = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	stats->waves_remaining = 0;
+	/* Its craft still in the battle do not count. */
+	make_craft(2, 5);
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	/* Departure fields are the return test's, not this one's. */
+	stats->has_arrived = 0;
+	launched->fg.departure_method = 1;
+	launched->fg.departure_mothership = TEST_GROUP;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	/* Arrival off leaves the group out, unless a player owns it. */
+	stats->arrival_enabled = 0;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	launched->player_owner_idx = 0;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	launched->player_owner_idx = -1;
+	stats->arrival_enabled = 1;
+	/* Arriving another way, or from another group, leaves it out. */
+	launched->fg.arrival_method = 0;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	launched->fg.arrival_method = 1;
+	launched->fg.arrival_mothership = CARRIER_GROUP;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	/* The craft's own group is left out. */
+	launched->fg.arrival_mothership = 5;
+	g_objects[1].flight_group_idx = 5;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	g_objects[1].flight_group_idx = TEST_GROUP;
+	/* The last of two groups launched counts as well as the first. */
+	launched->fg.arrival_mothership = TEST_GROUP;
+	g_mission_flight_groups[4].fg.arrival_method = 1;
+	g_mission_flight_groups[4].fg.arrival_mothership = TEST_GROUP;
+	g_mission_fg_stats[4].arrival_enabled = 1;
+	stats->has_arrived = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+	g_mission_fg_stats[4].has_arrived = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_LAUNCHED));
+}
+
+/* Slot 1, group TEST_GROUP, a small craft (genus 1) of JUMP_MODEL, boards
+ * slot 2, group CARGO_GROUP, of CARRIER_MODEL, at (1000, 2000, 3000) level
+ * with zero yaw and roll, on a Capture order, aimed at it. The boarder's
+ * docking-to heights are -20 and -60; the target's docking-from heights 100
+ * and 300 and its forward offset 700. */
+static void boarding_world(void)
+{
+	fresh_world();
+	make_craft(1, TEST_GROUP);
+	make_craft(2, CARGO_GROUP);
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].order =
+		MISSION_ORDER_BOARD_AND_CAPTURE_CARGO;
+	g_craft[1].ai_controller.target_obj_idx = 2;
+	g_craft[2].model_index = CARRIER_MODEL;
+	g_objects[2].world_x = 1000;
+	g_objects[2].world_y = 2000;
+	g_objects[2].world_z = 3000;
+	g_objects[2].pitch = 0x4000;
+	g_mobiles[2].orient_matrix_dirty = 1;
+	g_model_defs[JUMP_MODEL].dock_to_up[0] = -20;
+	g_model_defs[JUMP_MODEL].dock_to_up[1] = -60;
+	g_model_defs[CARRIER_MODEL].dock_from_up[0] = 100;
+	g_model_defs[CARRIER_MODEL].dock_from_up[1] = 300;
+	g_model_defs[CARRIER_MODEL].dock_forward = 700;
+}
+
+/* The board point's offset from the target in world axes. The target is
+ * level with zero yaw and roll, so its forward axis is world y and its up
+ * axis world z; the Q15 product of a height with the axis (32767 over 32768)
+ * cuts each of 700, 840, 1,180, 1,380 and 0x7000 down by 1. */
+static void expect_point(int east, int north, int up)
+{
+	const struct ai_wire_craft_view view = view_of(1);
+	XVT_ASSERT_INT_EQ(view.board_point[0], 1000 + east);
+	XVT_ASSERT_INT_EQ(view.board_point[1], 2000 + north);
+	XVT_ASSERT_INT_EQ(view.board_point[2], 3000 + up);
+}
+
+/* 1997's approach point above the target's hatch, by the genus of the target
+ * and of the boarder: both small craft use the target's small docking
+ * height less the boarder's, a big target with a small boarder adds the big
+ * one, two big craft use the big heights; twice the big-height gap is added
+ * to the first, and a sum below 0 falls back to 0x7000. */
+static void check_board_point_heights(void)
+{
+	/* Target small: (100 + 20) + 2 x (300 + 60) = 840. */
+	boarding_world();
+	g_objects[2].genus_id = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_BOARD_POINT));
+	expect_point(0, 699, 839);
+	/* Target big, boarder small: (300 + 100 + 60) + 720 = 1180. */
+	g_objects[2].genus_id = CRAFT_GENUS_STARSHIP;
+	expect_point(0, 699, 1179);
+	/* Both big: (2 x 300 + 60) + 720 = 1380. */
+	g_objects[1].genus_id = CRAFT_GENUS_STARSHIP;
+	expect_point(0, 699, 1379);
+	/* Genus 2 is already big for the boarder as for the target. */
+	g_objects[1].genus_id = 2;
+	g_objects[2].genus_id = CRAFT_GENUS_STARSHIP;
+	expect_point(0, 699, 1379);
+	g_objects[1].genus_id = 1;
+	/* Genus 2 is already big for the target. */
+	g_objects[1].genus_id = 1;
+	g_objects[2].genus_id = 2;
+	expect_point(0, 699, 1179);
+	/* A negative sum falls back to 0x7000. */
+	g_objects[2].genus_id = 1;
+	g_model_defs[CARRIER_MODEL].dock_from_up[0] = -5000;
+	g_model_defs[CARRIER_MODEL].dock_from_up[1] = -100;
+	expect_point(0, 699, 28670);
+	/* A sum of exactly 0 is kept: (60 + 20) + 2 x (-100 + 60) = 0. */
+	g_model_defs[CARRIER_MODEL].dock_from_up[0] = 60;
+	expect_point(0, 699, 0);
+}
+
+/* The board point exists on exactly the eight boarding orders. */
+static void check_board_point_orders(void)
+{
+	for (int code = 0; code < 40; ++code) {
+		boarding_world();
+		g_objects[2].genus_id = 1;
+		g_mission_flight_groups[TEST_GROUP].fg.orders[0].order =
+			(uint8_t)code;
+		struct ai_wire_craft_view view = view_of(1);
+		int boards =
+			(code >= 12 && code <= 17) || code == 31 || code == 32;
+		XVT_ASSERT_INT_EQ((view.books & AI_WIRE_BOOKS_BOARD_POINT) != 0,
+				  boards);
+		XVT_ASSERT_INT_EQ(view.board_point[2] != 0, boards);
+	}
+}
+
+/* No board point unless the target is a craft in the active region with a
+ * model: not none, a mission point reference, itself, a slot before the
+ * region or at its end, an empty slot, or another family's object. */
+static void check_board_point_targets(void)
+{
+	static const uint16_t targets[] = {UINT16_MAX, 0x8001, 1, 0, 8, 3};
+	for (size_t row = 0; row < sizeof targets / sizeof targets[0]; ++row) {
+		boarding_world();
+		g_active_region_object_slot_start = 1;
+		g_active_region_craft_object_slot_end = 8;
+		make_craft(0, CARGO_GROUP);
+		make_craft(8, CARGO_GROUP);
+		g_craft[1].ai_controller.target_obj_idx = targets[row];
+		struct ai_wire_craft_view view = view_of(1);
+		XVT_ASSERT_INT_EQ(view.books & (AI_WIRE_BOOKS_BOARD_POINT |
+						AI_WIRE_BOOKS_AT_BOARD_POINT),
+				  0);
+		for (int axis = 0; axis < 3; ++axis) {
+			XVT_ASSERT_INT_EQ(view.board_point[axis], 0);
+		}
+	}
+	/* The region's first slot is a target as any other. */
+	boarding_world();
+	g_active_region_object_slot_start = 2;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_BOARD_POINT));
+	boarding_world();
+	g_objects[2].object_type = 0;
+	XVT_ASSERT_INT_EQ(view_of(1).books & AI_WIRE_BOOKS_BOARD_POINT, 0);
+	boarding_world();
+	g_mobiles[2].family = 1;
+	XVT_ASSERT_INT_EQ(view_of(1).books & AI_WIRE_BOOKS_BOARD_POINT, 0);
+}
+
+/* At the board point: within 2,048 of the point by the rough polar
+ * distance, 2,048 itself included, and the target not a player's craft that
+ * moves. A moving player's craft that is not the local player's is not
+ * asked; the local player's is asked once to set the throttle to 0 and
+ * the bit stays clear until it stops. */
+static void check_at_board_point(void)
+{
+	boarding_world();
+	g_objects[2].genus_id = 1;
+	/* The ask is a system pane message (type 3), which the game drops while
+	 * system messages are off; the log line of the ask is what shows it was
+	 * sent. */
+	static char ask_text[] = "\003ask";
+	g_str_in_flight_messages
+		[IFMSG_260_SET_YOUR_THROTTLE_TO_0_SO_RELOAD_CRAFT_CAN_DOCK_WITH_YOU] =
+			ask_text;
+	g_system_message_display_enabled = 0;
+	for (int slot = 0; slot < 11; ++slot) {
+		g_ready_message_pane_queue[slot].state_or_message_id =
+			UINT16_MAX;
+	}
+	g_log_line_count = 0;
+	g_objects[1].world_x = 1000;
+	g_objects[1].world_y = 2699;
+	g_objects[1].world_z = 3839;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	g_objects[1].world_x = 1000 + 2048;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	g_objects[1].world_x = 1000 - 2048;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	g_objects[1].world_x = 1000 + 2049;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_BOARD_POINT));
+	g_objects[1].world_x = 1000;
+	/* A moving player's craft that is not the local player's. */
+	g_local_player = 1;
+	g_objects[2].player_owner_idx = 0;
+	g_mobiles[2].speed = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_BOARD_POINT));
+	XVT_ASSERT_INT_EQ(lines_starting("ai.board_asked_stop"), 0);
+	/* An AI craft that moves is not asked to stop: only a player's is. */
+	g_objects[2].player_owner_idx = -1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	g_objects[2].player_owner_idx = 0;
+	/* Stopped, it is at the point again. */
+	g_mobiles[2].speed = 0;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	/* The local player's moving craft is asked, far from the point not. */
+	g_mobiles[2].speed = 1;
+	g_local_player = 0;
+	g_objects[1].world_x = 1000 + 2049;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	XVT_ASSERT_INT_EQ(lines_starting("ai.board_asked_stop"), 0);
+	g_objects[1].world_x = 1000;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	XVT_ASSERT_INT_EQ(lines_starting("ai.board_asked_stop"), 1);
+	XVT_ASSERT_TRUE(strstr(g_log_lines[g_log_line_count - 1],
+			       "object=1 target=2 slot=0") != NULL);
+	/* Asked again while the ask is still queued: not asked twice. */
+	g_ready_message_pane_queue[4].state_or_message_id =
+		IFMSG_260_SET_YOUR_THROTTLE_TO_0_SO_RELOAD_CRAFT_CAN_DOCK_WITH_YOU;
+	g_log_line_count = 0;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	XVT_ASSERT_INT_EQ(lines_starting("ai.board_asked_stop"), 0);
+	/* A queued ask past the first ten slots is not seen. */
+	g_ready_message_pane_queue[4].state_or_message_id = UINT16_MAX;
+	g_ready_message_pane_queue[10].state_or_message_id =
+		IFMSG_260_SET_YOUR_THROTTLE_TO_0_SO_RELOAD_CRAFT_CAN_DOCK_WITH_YOU;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	XVT_ASSERT_INT_EQ(lines_starting("ai.board_asked_stop"), 1);
+	/* In a predicted step nothing is asked. */
+	g_ready_message_pane_queue[10].state_or_message_id = UINT16_MAX;
+	g_log_line_count = 0;
+	g_flight_sim_side_effects_suppressed = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_AT_BOARD_POINT));
+	XVT_ASSERT_INT_EQ(lines_starting("ai.board_asked_stop"), 0);
+	g_flight_sim_side_effects_suppressed = 0;
+	g_local_player = 0;
+}
+
+/* The goals' progress and the craft it has docked with. */
+static void check_order_progress_and_boarded(void)
+{
+	boarding_world();
+	struct craft_data *craft = &g_craft[1];
+	for (int slot = 0; slot < 4; ++slot) {
+		craft->ai_controller.order_progress.goal_progress[slot] =
+			(uint8_t)(slot + 5);
+	}
+	for (int slot = 0; slot < 10; ++slot) {
+		craft->ai_flight.docked_target_signatures[slot] =
+			(uint16_t)(0x300 + slot);
+	}
+	for (int count = 0; count <= 10; count += 5) {
+		craft->ai_flight.docked_target_count = (uint8_t)count;
+		struct ai_wire_craft_view view = view_of(1);
+		XVT_ASSERT_INT_EQ(view.order_progress[0], 5);
+		XVT_ASSERT_INT_EQ(view.order_progress[1], 6);
+		XVT_ASSERT_INT_EQ(view.order_progress[2], 7);
+		XVT_ASSERT_INT_EQ(view.order_progress[3], 8);
+		XVT_ASSERT_INT_EQ(view.boarded_count, count);
+		for (int slot = 0; slot < 10; ++slot) {
+			XVT_ASSERT_INT_EQ(view.boarded[slot],
+					  slot < count ? 0x300 + slot : 0);
+		}
+	}
+	/* A count past the ten signatures the craft holds reads as ten. */
+	craft->ai_flight.docked_target_count = 11;
+	struct ai_wire_craft_view clamped = view_of(1);
+	XVT_ASSERT_INT_EQ(clamped.boarded_count, 10);
+	XVT_ASSERT_INT_EQ(clamped.boarded[9], 0x309);
+	/* Without a board point they are still given. */
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].order = 7;
+	craft->ai_flight.docked_target_count = 3;
+	struct ai_wire_craft_view view = view_of(1);
+	XVT_ASSERT_INT_EQ(view.order_progress[3], 8);
+	XVT_ASSERT_INT_EQ(view.boarded[2], 0x302);
+	XVT_ASSERT_INT_EQ(view.boarded[3], 0);
+}
+
 int main(void)
 {
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+	SDL_SetLogOutputFunction(catch_line, NULL);
 	check_departure();
 	check_follower();
 	check_aborts();
@@ -1276,5 +1629,11 @@ int main(void)
 	check_static_is_target();
 	check_full_speed();
 	check_mothership_gone();
+	check_all_launched();
+	check_board_point_heights();
+	check_board_point_orders();
+	check_board_point_targets();
+	check_at_board_point();
+	check_order_progress_and_boarded();
 	return 0;
 }

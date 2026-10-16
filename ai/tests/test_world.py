@@ -25,6 +25,8 @@ from jedimaster_ai.world import Turret
         {"activity": Activity.LEAVING_HANGAR},
         {"maneuver_timer": -1},
         {"maneuver_timer": 0x80000000},
+        {"self_destruct": 0},
+        {"self_destruct": 56},
     ],
     ids=[
         "throttle low",
@@ -36,6 +38,8 @@ from jedimaster_ai.world import Turret
         "leaving",
         "timer low",
         "timer high",
+        "self destruct 0",
+        "self destruct 56",
     ],  # fmt: skip
 )
 def test_actions_out_of_range_are_refused(changes: dict[str, int]) -> None:
@@ -55,6 +59,10 @@ def test_actions_at_their_limits_are_made() -> None:
     assert Actions(maneuver_timer=0).maneuver_timer == 0
     # The engine's maneuver timer is a C int.
     assert Actions(maneuver_timer=0x7FFFFFFF).maneuver_timer == 0x7FFFFFFF
+    # 1 and 55 units of 1,180 ticks; 56 units would wrap the engine's u16 timer.
+    assert Actions(self_destruct=1).self_destruct == 1
+    assert Actions(self_destruct=55).self_destruct == 55
+    assert Actions().self_destruct is None
 
 
 @pytest.mark.parametrize(
@@ -119,3 +127,24 @@ def test_a_contact_without_a_box_reads_no_box_and_no_roll() -> None:
     assert CONTACT.box_min == (0, 0, 0)
     assert CONTACT.box_max == (0, 0, 0)
     assert CONTACT.roll == 0
+
+
+def test_boarding_names_default_to_nothing() -> None:
+    """Until the engine sends them: no board point, no boardings done, none
+    boarded, no boarder, and the three looking activities."""
+    from conftest import CONTACT
+    from conftest import VIEW
+
+    from jedimaster_ai.world import Books
+    from jedimaster_ai.world import NO_OBJECT
+
+    assert VIEW.board_point == (0, 0, 0)
+    assert VIEW.order_progress == (0, 0, 0, 0)
+    assert VIEW.boarded == ()
+    assert CONTACT.boarder == NO_OBJECT
+    assert Books.BOARD_POINT == 0x4000
+    assert Books.AT_BOARD_POINT == 0x8000
+    assert Books.ALL_LAUNCHED == 0x10000
+    assert ContactFlags.PARKED == 0x10 and ContactFlags.AWAITING == 0x20
+    assert [Activity.LOOKING_TO_BOARD, Activity.LOOKING_TO_CAPTURE] == [13, 14]
+    assert Activity.LOOKING_TO_PICK_UP == 15

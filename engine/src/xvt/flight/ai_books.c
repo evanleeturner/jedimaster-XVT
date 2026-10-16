@@ -97,6 +97,14 @@ enum {
 	 * index below the group's 22 points. */
 	BOOKS_START_POINT_REF = 0x8000,
 	BOOKS_MISSION_POINTS = 22,
+	/* Genus ids below this are small craft for the docking offsets; the
+	 * up offset when the sum is negative; the distance to the board point
+	 * within which a boarder is at it; the ready message slots the ask
+	 * to stop looks through. */
+	BOOKS_DOCK_SMALL_GENUS_LIMIT = 2,
+	BOOKS_DOCK_UP_FALLBACK = 0x7000,
+	BOOKS_BOARD_POINT_RANGE = 2048,
+	BOOKS_READY_MESSAGE_SLOTS = 10,
 };
 
 static struct craft_data *books_craft(uint16_t object_index)
@@ -526,6 +534,34 @@ static int books_all_returned(uint16_t object_index)
 			    g_object_table[slot].flight_group_idx == group) {
 				return 0;
 			}
+		}
+	}
+	return 1;
+}
+
+/* Whether every other flight group that arrives from the craft's group as
+ * its mothership has arrived with no waves left, the 1997 order 33's test.
+ * A group whose arrival is off and that no player owns is left out, as is a
+ * group that does not arrive by mothership or arrives from another group.
+ * Unlike books_all_returned it does not ask that no craft of the group is
+ * left in the battle, and it looks at the arrival fields, not the departure
+ * ones. A craft whose group launches no other group gets yes. */
+static int books_all_launched(uint16_t object_index)
+{
+	uint16_t own_group = g_object_table[object_index].flight_group_idx;
+	for (uint16_t group = 0; group < g_mission_header.num_flight_groups;
+	     ++group) {
+		const struct mission_flight_group *other =
+			&g_mission_flight_groups[group];
+		if ((g_mission_fg_stats[group].arrival_enabled == 0 &&
+		     other->player_owner_idx == -1) ||
+		    group == own_group || other->fg.arrival_method == 0 ||
+		    other->fg.arrival_mothership != own_group) {
+			continue;
+		}
+		if (g_mission_fg_stats[group].has_arrived == 0 ||
+		    g_mission_fg_stats[group].waves_remaining != 0) {
+			return 0;
 		}
 	}
 	return 1;
@@ -1028,7 +1064,10 @@ static void books_view_orders(uint16_t object_index,
 	if (books_all_returned(object_index)) {
 		books |= AI_WIRE_BOOKS_ALL_RETURNED;
 	}
-	view->books = (uint16_t)books;
+	if (books_all_launched(object_index)) {
+		books |= AI_WIRE_BOOKS_ALL_LAUNCHED;
+	}
+	view->books = books;
 	view->targets_now = 0;
 	for (int slot = 0; slot < BOOKS_ORDER_SLOTS; ++slot) {
 		if (books_slot_targets_now(object_index, slot)) {
@@ -1051,7 +1090,7 @@ static void books_view_start_point(uint16_t object_index,
 	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
 		view->start_point[axis] = 0;
 	}
-	view->books &= (uint16_t)~AI_WIRE_BOOKS_START_POINT;
+	view->books &= ~(uint32_t)AI_WIRE_BOOKS_START_POINT;
 	if (g_mission_fg_stats[group].has_arrived == 0 ||
 	    ref < BOOKS_START_POINT_REF ||
 	    ref >= BOOKS_START_POINT_REF + BOOKS_MISSION_POINTS) {
@@ -1124,7 +1163,132 @@ static void books_view_home(uint16_t object_index,
 		view->home_point[2] = g_world_loc_z;
 		books |= AI_WIRE_BOOKS_HOME_POINT;
 	}
-	view->books = (uint16_t)books;
+	view->books = books;
+}
+
+int ai_books_order_boards(int order_code)
+{
+	return (order_code >= MISSION_ORDER_BOARD_AND_GIVE_CARGO &&
+		order_code <= MISSION_ORDER_PICK_UP) ||
+	       order_code == MISSION_ORDER_SS_BOARD ||
+	       order_code == MISSION_ORDER_BOARD_TO_REPAIR;
+}
+
+/* The world point a craft of the genus and model of the boarder waits at
+ * above the target's docking hatch, 1997's approach point: the up offset
+ * depends on whether the target and the boarder are small craft (genus below
+ * 2) or big ones, in 16-bit arithmetic as the 1997 code did, and falls back to
+ * 0x7000 when it is negative. Writes it into point. */
+static void books_approach_point(uint16_t object_index, uint16_t target,
+				 int32_t point[AI_WIRE_POINT_AXES])
+{
+	const struct object_record *object = &g_object_table[object_index];
+	const struct object_record *aimed = &g_object_table[target];
+	const struct model_def *own =
+		&g_model_defs[books_craft(object_index)->model_index];
+	const struct model_def *other =
+		&g_model_defs[books_craft(target)->model_index];
+	int16_t initial;
+	if (aimed->genus_id < BOOKS_DOCK_SMALL_GENUS_LIMIT) {
+		initial =
+			(int16_t)(other->dock_from_up[0] - own->dock_to_up[0]);
+	} else if (object->genus_id < BOOKS_DOCK_SMALL_GENUS_LIMIT) {
+		initial =
+			(int16_t)(other->dock_from_up[1] +
+				  other->dock_from_up[0] - own->dock_to_up[1]);
+	} else {
+		initial = (int16_t)(2 * other->dock_from_up[1] -
+				    own->dock_to_up[1]);
+	}
+	int16_t extra = (int16_t)(other->dock_from_up[1] - own->dock_to_up[1]);
+	int16_t up = (int16_t)(extra + extra + initial);
+	if (up < 0) {
+		up = BOOKS_DOCK_UP_FALLBACK;
+	}
+	flight_geometry_local_to_world_i16(aimed, 0, up, other->dock_forward);
+	point[0] = g_rotated_x + aimed->world_x;
+	point[1] = g_rotated_y + aimed->world_y;
+	point[2] = g_rotated_z + aimed->world_z;
+}
+
+/* Asks the player flying the moving target to stop, 1997's ask, when that
+ * player is the local one and the ask is not already queued: the message
+ * (set the throttle to 0 so reload craft can dock) and the warning sound. */
+static void books_ask_player_to_stop(uint16_t object_index, uint16_t target)
+{
+	int player = g_object_table[target].player_owner_idx;
+	if (player != g_local_player ||
+	    g_flight_sim_side_effects_suppressed != 0) {
+		return;
+	}
+	for (int slot = 0; slot < BOOKS_READY_MESSAGE_SLOTS; ++slot) {
+		if (g_ready_message_pane_queue[slot].state_or_message_id ==
+		    IFMSG_260_SET_YOUR_THROTTLE_TO_0_SO_RELOAD_CRAFT_CAN_DOCK_WITH_YOU) {
+			return;
+		}
+	}
+	g_msg_sender_iff = books_group(object_index)->fg.iff;
+	msg_emit_in_flight_message(
+		IFMSG_260_SET_YOUR_THROTTLE_TO_0_SO_RELOAD_CRAFT_CAN_DOCK_WITH_YOU,
+		g_local_player);
+	fsfx_play_sound(FLIGHT_SOUND_GENERAL_WARNING, -1, g_local_player);
+	XVT_LOG_DEBUG("ai.board_asked_stop object=%d target=%d slot=%d",
+		      (int)object_index, (int)target, g_local_player);
+}
+
+/* Writes what a boarder sees: the board point and the books' two bits for the
+ * craft's AI target when its current order boards and the target is a craft
+ * in the active region (board point 0, 0, 0 and the bits clear otherwise);
+ * each order slot's goal progress; and the signatures it has docked with.
+ * The craft is at the point when its rough polar distance to it is at most
+ * 2,048, the 1997 test, unless the target is a moving player's craft, which
+ * is asked to stop instead. */
+static void books_view_boarding(uint16_t object_index,
+				struct ai_wire_craft_view *view)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	const struct craft_data *craft = books_craft(object_index);
+	const uint16_t target = craft->ai_controller.target_obj_idx;
+	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
+		view->board_point[axis] = 0;
+	}
+	for (int slot = 0; slot < AI_WIRE_ORDER_SLOTS; ++slot) {
+		view->order_progress[slot] =
+			craft->ai_controller.order_progress.goal_progress[slot];
+	}
+	view->boarded_count = craft->ai_flight.docked_target_count;
+	if (view->boarded_count > AI_WIRE_BOARDED_MAX) {
+		view->boarded_count = AI_WIRE_BOARDED_MAX;
+	}
+	for (int slot = 0; slot < AI_WIRE_BOARDED_MAX; ++slot) {
+		view->boarded[slot] =
+			slot < view->boarded_count
+				? craft->ai_flight
+					  .docked_target_signatures[slot]
+				: 0;
+	}
+	if (!ai_books_order_boards(mission_current_order_code(object_index)) ||
+	    target == object_index ||
+	    target < g_active_region_object_slot_start ||
+	    target >= g_active_region_craft_object_slot_end ||
+	    g_object_table[target].object_type == 0 ||
+	    g_object_table[target].mobj->family != 0) {
+		return;
+	}
+	books_approach_point(object_index, target, view->board_point);
+	view->books |= AI_WIRE_BOOKS_BOARD_POINT;
+	trig2_ctop(view->board_point[0] - object->world_x,
+		   view->board_point[1] - object->world_y,
+		   view->board_point[2] - object->world_z);
+	if (trig2_polardistance > BOOKS_BOARD_POINT_RANGE) {
+		return;
+	}
+	if (g_object_table[target].player_owner_idx != -1 &&
+	    g_object_table[target].mobj->speed != 0) {
+		books_ask_player_to_stop(object_index, target);
+		return;
+	}
+	view->books |= AI_WIRE_BOOKS_AT_BOARD_POINT;
 }
 
 void ai_books_view_craft(uint16_t object_index, struct ai_wire_craft_view *view)
@@ -1147,6 +1311,7 @@ void ai_books_view_craft(uint16_t object_index, struct ai_wire_craft_view *view)
 	books_view_orders(object_index, view);
 	books_view_home(object_index, view);
 	books_view_start_point(object_index, view);
+	books_view_boarding(object_index, view);
 }
 
 int ai_books_static_is_target(uint16_t object_index)

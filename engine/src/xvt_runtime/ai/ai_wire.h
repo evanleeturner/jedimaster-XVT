@@ -30,7 +30,7 @@
  * order throttle (the current order's, as a craft throttle, a fraction of
  * 65,536), u8 order variable1, u8 order variable2, u8 order speed (the
  * current order's, as the mission holds them), u16 full speed (the speed
- * full throttle gives it, by the 1997 rule), u16 books (AI_WIRE_BOOKS_
+ * full throttle gives it, by the 1997 rule), u32 books (AI_WIRE_BOOKS_
  * bits), u16 mothership (the object index of the craft it goes home into,
  * 0xFFFF for none), i32 x, i32 y, i32 z of that craft's outside hangar point
  * and then of its inside one, and i32 x, i32 y, i32 z of its home point,
@@ -70,12 +70,19 @@
  * battle now, by the books' count of targets left without its later half; the
  * count ignores range and capacity; bits 3 to 7 are 0), and u64 static target
  * mask (bit n set when static n, in the statics after the contacts, matches
- * the targets of the craft's order); then the notebook's AI_NOTEBOOK_BYTES.
+ * the targets of the craft's order); then what a boarder sees: i32 x, i32 y,
+ * i32 z of its board point (the approach point above the docking hatch of the
+ * craft it targets, given with the books' board point bit, else 0), u8 order
+ * progress[4] (each order slot's goal progress: the boardings it has done),
+ * u8 boarded count (0 to AI_WIRE_BOARDED_MAX) and u16 boarded[10] (the
+ * signatures of the craft it has docked with, oldest first, the first boarded
+ * count of them, the rest 0); then the notebook's AI_NOTEBOOK_BYTES.
  * Then u16 contact count, u16 zero, and one contact per craft in the active
  * region, at most AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
  * u8 object kind, u8 flags (AI_WIRE_CONTACT_ bits: a player flies it, none of its
- * subsystems work, a team has hit it), i32 x, i32 y, i32 z,
+ * subsystems work, a team has hit it, a static, its order holds it still, its
+ * order waits for boarding), i32 x, i32 y, i32 z,
  * u16 yaw, u16 pitch, u16 speed, u16 target, u16 last attacker (both 0xFFFF
  * for none), i32 front shield, i32 rear shield, u32 hull damage, u32 hull
  * strength, u8 activity (an AI_ACTIVITY_ value), u32 size (the longest side
@@ -88,7 +95,9 @@
  * i32 z of its largest, in the model's own axes (x to the side, y backward,
  * z up) and world units, each cut toward zero, all 0 when the type's bounds
  * are not known or its model is empty; and u16 roll, the object's roll angle,
- * 65,536 to a full turn.
+ * 65,536 to a full turn; then u16 boarder (the object index of the craft that
+ * carries it, else of the lowest-numbered other craft on a boarding order
+ * whose target it is, else 0xFFFF; 0xFFFF for a static).
  *
  * After the last contact: u16 static count, u16 zero, and one static per
  * static object that counts as a target, at most AI_WIRE_STATICS_MAX, in
@@ -146,6 +155,10 @@
  *     the evade command.
  *  15 maneuver timer: u32 ticks, 0 to 0x7FFFFFFF. The craft's maneuver
  *     timer is set to it; the engine counts it down.
+ *  16 self destruct: u8 units, 1 to AI_WIRE_SELF_DESTRUCT_UNITS_MAX. When
+ *     the craft's lifetime timer is 0 it is set to units times
+ *     AI_WIRE_SELF_DESTRUCT_UNIT_TICKS and the craft is destroyed when it
+ *     runs out; a running timer is kept.
  * A craft answer names each action kind at most once, and names only what
  * the question showed. While a craft enters hyperspace the engine does not
  * turn it, whatever the steer action says. */
@@ -161,19 +174,19 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 15,
+	AI_WIRE_VERSION = 16,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 348 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 387 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
 	AI_WIRE_POINT_AXES = 3,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
-	AI_WIRE_CONTACT_BYTES = 86,
+	AI_WIRE_CONTACT_BYTES = 88,
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
@@ -183,15 +196,21 @@ enum ai_wire_constant {
 	AI_WIRE_WARHEAD_LAUNCHERS = 2,
 	/* Weapon slots a craft has, and so turrets one answer may aim. */
 	AI_WIRE_WEAPON_SLOTS = 16,
+	/* The signatures of docked craft a view holds. */
+	AI_WIRE_BOARDED_MAX = 10,
+	/* The longest self destruct delay, in units of 1,180 ticks: 56 units
+	 * would not fit the 16-bit lifetime timer. */
+	AI_WIRE_SELF_DESTRUCT_UNITS_MAX = 55,
+	AI_WIRE_SELF_DESTRUCT_UNIT_TICKS = 1180,
 	/* The homing shots aimed at a craft that its view can name. */
 	AI_WIRE_THREATS_MAX = 4,
 	/* A flight group's waypoints, mission points 4 to 11: the points the
 	 * patrol orders fly in turn. */
 	AI_WIRE_WAYPOINTS = 8,
 	/* A craft answer with every action kind once, but depart or dock, never
-	 * both, all 16 turrets with their ion bytes, and the maneuver
-	 * timer. */
-	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 110 + AI_NOTEBOOK_BYTES,
+	 * both, all 16 turrets with their ion bytes, the maneuver
+	 * timer and the self destruct. */
+	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 112 + AI_NOTEBOOK_BYTES,
 	/* The fastest speed an arrival may set: the 1997 AI's speed out of
 	 * hyperspace. */
 	AI_WIRE_ARRIVAL_SPEED_MAX = 3600,
@@ -213,7 +232,8 @@ enum ai_wire_action_kind {
 	AI_WIRE_ACTION_COUNTERMEASURE = 13,
 	AI_WIRE_ACTION_EVADED = 14,
 	AI_WIRE_ACTION_MANEUVER_TIMER = 15,
-	AI_WIRE_ACTION_KIND_END = 16,
+	AI_WIRE_ACTION_SELF_DESTRUCT = 16,
+	AI_WIRE_ACTION_KIND_END = 17,
 };
 
 /* The bits of a craft view's commands: a player's wingman commands that
@@ -265,6 +285,15 @@ enum ai_wire_books {
 	AI_WIRE_BOOKS_STATION = 0x1000,
 	/* Its group has arrived, so its start point is given. */
 	AI_WIRE_BOOKS_START_POINT = 0x2000,
+	/* Its current order boards a craft and its target is a craft with a
+	 * model, so its board point is given. */
+	AI_WIRE_BOOKS_BOARD_POINT = 0x4000,
+	/* BOARD_POINT, and it is within 2,048 units of the point, and its
+	 * target is not a player's craft that moves. */
+	AI_WIRE_BOOKS_AT_BOARD_POINT = 0x8000,
+	/* Every flight group that arrives from its group as its mothership has
+	 * arrived with no waves left. */
+	AI_WIRE_BOOKS_ALL_LAUNCHED = 0x10000,
 };
 
 /* A craft view's countermeasure, the engine's countermeasure type; the
@@ -283,6 +312,12 @@ enum ai_wire_contact_flag {
 	AI_WIRE_CONTACT_ATTACKED = 0x04,
 	/* A static object, not a craft; see the statics after the contacts. */
 	AI_WIRE_CONTACT_STATIC = 0x08,
+	/* Its current order holds it still: Hold Steady or one of its copies,
+	 * or no order. */
+	AI_WIRE_CONTACT_PARKED = 0x10,
+	/* Its current order is Disabled or Await Boarding: it waits to be
+	 * boarded. */
+	AI_WIRE_CONTACT_AWAITING = 0x20,
 };
 
 /* A craft's lock state in its view, as a player's missile_lock_state: no
@@ -331,7 +366,7 @@ struct ai_wire_craft_view {
 	uint8_t order_variable2;
 	uint8_t order_speed;
 	uint16_t full_speed;
-	uint16_t books;
+	uint32_t books;
 	uint16_t mothership;
 	int32_t outside_hangar[AI_WIRE_POINT_AXES];
 	int32_t inside_hangar[AI_WIRE_POINT_AXES];
@@ -366,6 +401,10 @@ struct ai_wire_craft_view {
 	int32_t start_point[AI_WIRE_POINT_AXES];
 	uint8_t targets_now;
 	uint64_t static_target_mask;
+	int32_t board_point[AI_WIRE_POINT_AXES];
+	uint8_t order_progress[AI_WIRE_ORDER_SLOTS];
+	uint8_t boarded_count;
+	uint16_t boarded[AI_WIRE_BOARDED_MAX];
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -403,6 +442,7 @@ struct ai_wire_contact {
 	int32_t box_min[AI_WIRE_POINT_AXES];
 	int32_t box_max[AI_WIRE_POINT_AXES];
 	uint16_t roll;
+	uint16_t boarder;
 };
 
 /* One question: the craft due to think and every contact, at one tick. */
@@ -442,6 +482,7 @@ struct ai_wire_craft_answer {
 	uint8_t order_slot;
 	uint8_t order_state;
 	uint32_t maneuver_timer;
+	uint8_t self_destruct_units;
 };
 
 /* Why an answer was refused. The reader stops at the first fault. */
@@ -464,7 +505,8 @@ enum ai_wire_result {
 	 * cannon group, launcher or turret it did not show, an order the view does not allow, a depart or dock its books
 	 * do not show, or both, a countermeasure the view does not show
 	 * ready, an evaded with no evade command shown, a turret ion past 1, or
-	 * a maneuver timer past 0x7FFFFFFF. */
+	 * a maneuver timer past 0x7FFFFFFF, or a self destruct of 0 units or
+	 * more than AI_WIRE_SELF_DESTRUCT_UNITS_MAX. */
 	AI_WIRE_BAD_ACTION,
 };
 

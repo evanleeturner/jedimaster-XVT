@@ -100,7 +100,13 @@ enum ai_activity {
 		10,		   /* flyhomeevadepln, followhomeevadepln */
 	AI_ACTIVITY_BOARDING = 11, /* board2pln, board3pln, boardtogivepln */
 	AI_ACTIVITY_DISABLED = 12, /* disabledpln */
-	AI_ACTIVITY_COUNT = 13,
+	/* Looking for a craft to board, to capture and to pick up: the status
+	 * lines a boarder shows before it docks, one for each kind of boarding
+	 * order; BOARDING is the dock itself. */
+	AI_ACTIVITY_LOOKING_TO_BOARD = 13,
+	AI_ACTIVITY_LOOKING_TO_CAPTURE = 14,
+	AI_ACTIVITY_LOOKING_TO_PICK_UP = 15,
+	AI_ACTIVITY_COUNT = 16,
 };
 
 struct ai_controller {

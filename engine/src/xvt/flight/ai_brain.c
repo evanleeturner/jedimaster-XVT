@@ -83,7 +83,12 @@ const uint8_t g_ai_activity_status_message_id[AI_ACTIVITY_COUNT] = {
 	[AI_ACTIVITY_GOING_HOME] = IFMSG_178_FLYING_HOME,
 	[AI_ACTIVITY_GOING_HOME_EVADING] = IFMSG_178_FLYING_HOME,
 	[AI_ACTIVITY_BOARDING] = IFMSG_173_DOCKING,
-	[AI_ACTIVITY_DISABLED] = IFMSG_159_HOLDING_STEADY,
+	[AI_ACTIVITY_DISABLED] = IFMSG_176_AWAITING_BOARDING,
+	[AI_ACTIVITY_LOOKING_TO_BOARD] = IFMSG_170_LOOKING_FOR_CRAFT_TO_BOARD,
+	[AI_ACTIVITY_LOOKING_TO_CAPTURE] =
+		IFMSG_171_LOOKING_FOR_CRAFT_TO_CAPTURE,
+	[AI_ACTIVITY_LOOKING_TO_PICK_UP] =
+		IFMSG_172_LOOKING_FOR_CRAFT_TO_PICK_UP,
 };
 
 /* Readies the pilots for a new flight. Nothing to ready until the pilot
@@ -157,6 +162,50 @@ static uint16_t ai_brain_hit_by(const struct craft_data *craft)
 	return shooter;
 }
 
+/* Whether the order code holds a craft still: Hold Steady and its copies, or
+ * the null order, 1997's null and stationary plans. */
+static int ai_brain_order_parks(int order_code)
+{
+	switch (order_code) {
+	case MISSION_ORDER_HOLD_STEADY:
+	case MISSION_ORDER_HOLD_STEADY_2:
+	case MISSION_ORDER_HOLD_STEADY_3:
+	case MISSION_ORDER_HOLD_STEADY_4:
+	case MISSION_ORDER_HOLD_STEADY_5:
+	case MISSION_ORDER_HOLD_STEADY_6:
+	case MISSION_ORDER_HOLD_STEADY_7:
+	case MISSION_ORDER_NULL:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+/* The object index of the craft that boards the contact: the craft that
+ * carries it, else the lowest-numbered other craft in the active region whose
+ * current order boards and whose target it is; UINT16_MAX for none. */
+static uint16_t ai_brain_boarder(uint16_t object_index,
+				 const struct craft_data *craft)
+{
+	if (craft->carrier_obj_idx != UINT16_MAX) {
+		return craft->carrier_obj_idx;
+	}
+	for (uint16_t other = (uint16_t)g_active_region_object_slot_start;
+	     other < g_active_region_craft_object_slot_end; ++other) {
+		const struct object_record *object = &g_object_table[other];
+		if (other == object_index || object->object_type == 0 ||
+		    object->mobj->family != 0) {
+			continue;
+		}
+		if (ai_books_order_boards(mission_current_order_code(other)) &&
+		    object->mobj->p_craft->ai_controller.target_obj_idx ==
+			    object_index) {
+			return other;
+		}
+	}
+	return UINT16_MAX;
+}
+
 /* The longest side of the object type's model box, the number the flight code
  * takes as the craft's size; 0 for a type past the object type table. */
 static uint32_t ai_brain_view_size(uint8_t object_type)
@@ -202,7 +251,10 @@ static void ai_brain_view_box(uint8_t object_type,
  * craft in the active region: its target is its player's target when a
  * player flies it, else its AI target; its size is its object type's, and
  * so is its box (ai_brain_view_box); its roll is the object's; the homing
- * warheads in flight at it come from ai_warheads_view_contact. */
+ * warheads in flight at it come from ai_warheads_view_contact. Its flags say
+ * whether its current order holds it still or waits for boarding, and its
+ * boarder is the craft carrying it or the lowest-numbered craft on a
+ * boarding order aimed at it. */
 static void ai_brain_view_contact(uint16_t object_index,
 				  struct ai_wire_contact *contact)
 {
@@ -229,6 +281,15 @@ static void ai_brain_view_contact(uint16_t object_index,
 	if (ai_brain_craft_attacked(craft)) {
 		contact->flags |= AI_WIRE_CONTACT_ATTACKED;
 	}
+	int order_code = mission_current_order_code(object_index);
+	if (ai_brain_order_parks(order_code)) {
+		contact->flags |= AI_WIRE_CONTACT_PARKED;
+	}
+	if (order_code == MISSION_ORDER_DISABLED ||
+	    order_code == MISSION_ORDER_AWAIT_BOARDING) {
+		contact->flags |= AI_WIRE_CONTACT_AWAITING;
+	}
+	contact->boarder = ai_brain_boarder(object_index, craft);
 	contact->hit_by = ai_brain_hit_by(craft);
 	contact->x = object->world_x;
 	contact->y = object->world_y;
@@ -303,6 +364,7 @@ static void ai_brain_view_static(uint16_t object_index,
 	contact->target = UINT16_MAX;
 	contact->last_attacker = UINT16_MAX;
 	contact->hit_by = UINT16_MAX;
+	contact->boarder = UINT16_MAX;
 	contact->size = ai_brain_view_size(object->object_type);
 	ai_brain_view_box(object->object_type, contact);
 }
@@ -649,6 +711,29 @@ static void ai_brain_apply_arrival(uint16_t object_index,
 		g_flight_sim_side_effects_suppressed);
 }
 
+/* Starts the craft's self destruct: sets its object's lifetime timer to the
+ * answer's units of 1,180 ticks when the timer is 0, which object.c counts
+ * down before it destroys the craft as it does any whose lifetime ends. A
+ * running timer is kept. The reader let through only 1 to 55 units, which fit
+ * the 16-bit timer. */
+static void
+ai_brain_apply_self_destruct(uint16_t object_index,
+			     const struct ai_wire_craft_answer *answer)
+{
+	struct mobile_object *mobile = g_object_table[object_index].mobj;
+	const unsigned int units = answer->self_destruct_units;
+	const unsigned int unit = AI_WIRE_SELF_DESTRUCT_UNIT_TICKS;
+	int started = mobile->lifetime_timer == 0;
+	if (started) {
+		mobile->lifetime_timer = (uint16_t)(units * unit);
+	}
+	XVT_LOG_DEBUG(
+		"ai.craft_self_destruct object=%d units=%u started=%d timer=%u predicted=%d",
+		(int)object_index, (unsigned)answer->self_destruct_units,
+		started, (unsigned)mobile->lifetime_timer,
+		g_flight_sim_side_effects_suppressed);
+}
+
 /* Applies one craft answer the reader accepted: the notebook always, then
  * each action the pilot program sent, a steer only to a craft not entering
  * hyperspace, an activity after the formation books take its change
@@ -716,6 +801,9 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_MANEUVER_TIMER)) != 0) {
 		controller->maneuver_timer = (int)answer->maneuver_timer;
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_SELF_DESTRUCT)) != 0) {
+		ai_brain_apply_self_destruct(object_index, answer);
 	}
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d timer=%d predicted=%d",

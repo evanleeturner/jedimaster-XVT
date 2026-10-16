@@ -103,7 +103,7 @@ static uint8_t *put_craft_view(uint8_t *at,
 	*at++ = view->order_variable2;
 	*at++ = view->order_speed;
 	at = put_u16(at, view->full_speed);
-	at = put_u16(at, view->books);
+	at = put_u32(at, view->books);
 	at = put_u16(at, view->mothership);
 	at = put_point(at, view->outside_hangar);
 	at = put_point(at, view->inside_hangar);
@@ -143,6 +143,13 @@ static uint8_t *put_craft_view(uint8_t *at,
 	at = put_point(at, view->start_point);
 	*at++ = view->targets_now;
 	at = put_u64(at, view->static_target_mask);
+	at = put_point(at, view->board_point);
+	memcpy(at, view->order_progress, AI_WIRE_ORDER_SLOTS);
+	at += AI_WIRE_ORDER_SLOTS;
+	*at++ = view->boarded_count;
+	for (int slot = 0; slot < AI_WIRE_BOARDED_MAX; ++slot) {
+		at = put_u16(at, view->boarded[slot]);
+	}
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -177,6 +184,7 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	at = put_point(at, contact->box_min);
 	at = put_point(at, contact->box_max);
 	at = put_u16(at, contact->roll);
+	at = put_u16(at, contact->boarder);
 	return at;
 }
 
@@ -487,6 +495,12 @@ static int take_action(struct wire_reader *reader,
 		answer->maneuver_timer = take_u32(reader);
 		return reader->short_read ||
 		       answer->maneuver_timer <= 0x7FFFFFFFu;
+	case AI_WIRE_ACTION_SELF_DESTRUCT:
+		answer->self_destruct_units = (uint8_t)take_u8(reader);
+		return reader->short_read ||
+		       (answer->self_destruct_units != 0 &&
+			answer->self_destruct_units <=
+				AI_WIRE_SELF_DESTRUCT_UNITS_MAX);
 	default:
 		return take_turrets(reader, question, view, answer);
 	}

@@ -16,6 +16,7 @@
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/hud/msg.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
@@ -37,10 +38,16 @@ enum {
 			    AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where its escorted craft starts, the 35 bytes before the notebook:
+	/* Where what a boarder sees starts, the 37 bytes before the notebook:
+	 * board point 12, order progress 4, boarded count 1, boarded 20. */
+	VIEW_BOARD_POINT = VIEW_NOTEBOOK - 37,
+	VIEW_ORDER_PROGRESS = VIEW_BOARD_POINT + 12,
+	VIEW_BOARDED_COUNT = VIEW_ORDER_PROGRESS + 4,
+	VIEW_BOARDED = VIEW_BOARDED_COUNT + 1,
+	/* Where its escorted craft starts, the 35 bytes before those:
 	 * escorted 2, station 12, start point 12, targets now 1, static target
 	 * mask 8. */
-	VIEW_ESCORTED = VIEW_NOTEBOOK - 35,
+	VIEW_ESCORTED = VIEW_BOARD_POINT - 35,
 	VIEW_STATION = VIEW_ESCORTED + 2,
 	VIEW_START_POINT = VIEW_STATION + 12,
 	VIEW_TARGETS_NOW = VIEW_START_POINT + 12,
@@ -204,7 +211,8 @@ static struct craft_data *due_craft(int slot)
 	g_test_craft[slot].ai_controller.think_interval = TEST_INTERVAL;
 	g_test_craft[slot].ai_controller.think_timer = 0;
 	g_test_craft[slot].leader_obj_idx = UINT8_MAX;
-	/* As spawn leaves them: no player's command. */
+	/* As spawn leaves them: carried by none, no player's command. */
+	g_test_craft[slot].carrier_obj_idx = UINT16_MAX;
 	g_test_craft[slot].ai_controller.candidate_target_idx = UINT16_MAX;
 	g_test_craft[slot].player_command_avoid_target_obj_idx = UINT16_MAX;
 	return &g_test_craft[slot];
@@ -424,7 +432,7 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ(get_u32(contact + 54), 0);
 	/* Never hit by any team, so no shooter. */
 	XVT_ASSERT_INT_EQ(get_u16(contact + 58), UINT16_MAX);
-	XVT_ASSERT_INT_EQ(AI_WIRE_CONTACT_BYTES, 86);
+	XVT_ASSERT_INT_EQ(AI_WIRE_CONTACT_BYTES, 88);
 	g_object_type_table[0x21].max_bounds_extent = saved_size;
 	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
 }
@@ -474,7 +482,8 @@ static void check_contacts_and_order_targets(void)
 			expected_objects[index]);
 	}
 	const uint8_t *player = contact + 2 * AI_WIRE_CONTACT_BYTES;
-	XVT_ASSERT_INT_EQ(player[9], AI_WIRE_CONTACT_PLAYER);
+	/* Order 0, Hold Steady, parks it. */
+	XVT_ASSERT_INT_EQ(player[9], AI_WIRE_CONTACT_PLAYER | 0x10);
 	XVT_ASSERT_INT_EQ(get_u16(player + 28), 2);
 	/* With "and", flight group TEST_GROUP + 1 must also match target 1's
 	 * none (type 0), so nothing matches. */
@@ -1075,7 +1084,9 @@ static void check_view_lock_and_warheads_coming(void)
 	XVT_ASSERT_INT_EQ(get_u32(contact + 54), 3225);
 }
 
-/* The contacts' flags and shooter, from the craft records. The active
+/* The contacts' flags and shooter, from the craft records; every craft is
+ * on the group's order 0, Hold Steady, so every contact is also parked
+ * (0x10). The active
  * region's craft slots are 1 to 11. Slot 2 has no working subsystem and was
  * hit by a team, its last shooter slot 1, the first craft slot; slot 3 was
  * hit, its shooter slot 11, the last; slot 4 was hit by team 9 alone, its
@@ -1089,9 +1100,9 @@ static void check_view_contact_flags_and_shooter(void)
 		uint8_t flags;
 		uint16_t hit_by;
 	} expected[] = {
-		{0, UINT16_MAX}, {6, 1},	  {4, 11},
-		{4, UINT16_MAX}, {4, UINT16_MAX}, {4, UINT16_MAX},
-		{4, UINT16_MAX}, {0, UINT16_MAX}, {0, UINT16_MAX},
+		{0x10, UINT16_MAX}, {0x16, 1},		{0x14, 11},
+		{0x14, UINT16_MAX}, {0x14, UINT16_MAX}, {0x14, UINT16_MAX},
+		{0x14, UINT16_MAX}, {0x10, UINT16_MAX}, {0x10, UINT16_MAX},
 	};
 	fresh_world();
 	g_active_region_object_slot_start = 1;
@@ -1365,6 +1376,8 @@ static void check_statics(void)
 	XVT_ASSERT_INT_EQ(first[53], 0);
 	XVT_ASSERT_INT_EQ(get_u32(first + 54), 0);
 	XVT_ASSERT_INT_EQ(get_u16(first + 58), 0xFFFF);
+	/* No boarder, and neither parked nor waiting for boarding. */
+	XVT_ASSERT_INT_EQ(get_u16(first + 86), 0xFFFF);
 	/* The second listed static is slot 33, of another group, disabled; the
 	 * third is slot 34. */
 	const uint8_t *second = first + AI_WIRE_CONTACT_BYTES;
@@ -1416,7 +1429,9 @@ static void check_contact_box_and_roll(void)
 		MEETING_TYPE = 0x38,
 		PAST_TABLE_TYPE = 201,
 		TYPE_COUNT = 8,
-		BOX = AI_WIRE_CONTACT_BYTES - 26,
+		/* The box starts 28 bytes before the contact's end: 24 of box,
+		 * the roll and the boarder. */
+		BOX = AI_WIRE_CONTACT_BYTES - 28,
 		FIRST_STATIC = 30,
 	};
 	static const int types[TYPE_COUNT] = {
@@ -1581,11 +1596,165 @@ static void check_view_escort_start_and_targets_now(void)
 	XVT_ASSERT_INT_EQ((int32_t)get_u32(view + VIEW_START_POINT + 4), -1024);
 	XVT_ASSERT_INT_EQ((int32_t)get_u32(view + VIEW_START_POINT + 8), 1280);
 	XVT_ASSERT_INT_EQ(view[VIEW_TARGETS_NOW], 0x2);
-	/* The books field starts 77 bytes into the view. */
-	unsigned int books = get_u16(view + 77);
+	/* The books field, a u32, starts 77 bytes into the view. */
+	unsigned int books = get_u32(view + 77);
 	XVT_ASSERT_INT_EQ(books & AI_WIRE_BOOKS_STATION, AI_WIRE_BOOKS_STATION);
 	XVT_ASSERT_INT_EQ(books & AI_WIRE_BOOKS_START_POINT,
 			  AI_WIRE_BOOKS_START_POINT);
+}
+
+/* The contact's flag byte of the one craft in slot 1 whose group's order in
+ * slot 0 is order_code. */
+static unsigned int flags_on_order(int order_code)
+{
+	fresh_world();
+	due_craft(1)->working_subsystems = 1;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].order =
+		(uint8_t)order_code;
+	g_fake.echo = 1;
+	ai_brain_think_due_craft();
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	return g_fake
+		.question[0][AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
+			     AI_WIRE_CONTACT_HEAD_BYTES + 9];
+}
+
+/* A contact is parked (0x10) on exactly the orders 0, 28, 30, 33, 34, 35,
+ * 38 and 39, and awaiting (0x20) on exactly 5 and 6; no other of the 40
+ * order codes sets either. */
+static void check_contact_parked_and_awaiting(void)
+{
+	for (int code = 0; code < 40; ++code) {
+		unsigned int parked = code == 0 || code == 28 || code == 30 ||
+				      code == 33 || code == 34 || code == 35 ||
+				      code == 38 || code == 39;
+		unsigned int awaiting = code == 5 || code == 6;
+		XVT_ASSERT_INT_EQ(flags_on_order(code),
+				  (parked ? 0x10u : 0) |
+					  (awaiting ? 0x20u : 0));
+	}
+}
+
+/* The boarder of a contact: the craft that carries it first; else the
+ * lowest-numbered other craft whose current order boards (12 to 17, 31, 32)
+ * and whose target it is; 0xFFFF for none. Slot 1 is aimed at by slot 5
+ * (Pick Up, 17), slot 3 (Give, 12) and slot 4 (Attack, which boards
+ * nothing); slot 2 is aimed at by itself only; slot 6 (Repair, 32) aims at
+ * slot 1 too but is in the region's last slot, past the walk's end. */
+static void check_contact_boarder(void)
+{
+	fresh_world();
+	for (int slot = 1; slot <= 6; ++slot) {
+		due_craft(slot)->ai_controller.think_timer = 5;
+		g_test_objects[slot].flight_group_idx = (uint16_t)(10 + slot);
+	}
+	g_active_region_craft_object_slot_end = 6;
+	g_test_craft[1].ai_controller.think_timer = 0;
+	static const uint8_t orders[7] = {0, 7, 17, 12, 7, 17, 32};
+	for (int slot = 1; slot <= 6; ++slot) {
+		g_mission_flight_groups[10 + slot].fg.orders[0].order =
+			orders[slot];
+		g_test_craft[slot].ai_controller.target_obj_idx = 1;
+	}
+	g_test_craft[2].ai_controller.target_obj_idx = 2;
+	g_test_craft[1].ai_controller.target_obj_idx = UINT16_MAX;
+	g_fake.echo = 1;
+	ai_brain_think_due_craft();
+	const uint8_t *head = g_fake.question[0] + AI_WIRE_HEAD_BYTES +
+			      AI_WIRE_CRAFT_VIEW_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(head), 5);
+	const uint8_t *first = head + AI_WIRE_CONTACT_HEAD_BYTES;
+	/* Slot 1: slot 3 (Give) is the lowest of those aimed at it on a
+	 * boarding order; slot 2 aims at itself, slot 4 attacks. */
+	XVT_ASSERT_INT_EQ(get_u16(first + 86), 3);
+	/* Slot 2 aims at itself, slot 3 is aimed at by none. */
+	XVT_ASSERT_INT_EQ(get_u16(first + AI_WIRE_CONTACT_BYTES + 86),
+			  UINT16_MAX);
+	XVT_ASSERT_INT_EQ(get_u16(first + 2 * AI_WIRE_CONTACT_BYTES + 86),
+			  UINT16_MAX);
+	/* An empty slot, then an object of another family, in slot 0 on a boarding
+	 * order and aimed at slot 1 are not boarders. */
+	g_mission_flight_groups[0].fg.orders[0].order = 17;
+	g_test_craft[0].ai_controller.target_obj_idx = 1;
+	g_fake.calls = 0;
+	g_test_craft[1].ai_controller.think_timer = 0;
+	ai_brain_think_due_craft();
+	first = g_fake.question[0] + AI_WIRE_HEAD_BYTES +
+		AI_WIRE_CRAFT_VIEW_BYTES + AI_WIRE_CONTACT_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(first + 86), 3);
+	g_test_objects[0].object_type = 5;
+	g_test_mobiles[0].family = 1;
+	g_fake.calls = 0;
+	g_test_craft[1].ai_controller.think_timer = 0;
+	ai_brain_think_due_craft();
+	first = g_fake.question[0] + AI_WIRE_HEAD_BYTES +
+		AI_WIRE_CRAFT_VIEW_BYTES + AI_WIRE_CONTACT_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(first + 86), 3);
+	/* A craft carried by slot 5 has that boarder, before any aimed at it. */
+	g_test_craft[1].carrier_obj_idx = 5;
+	g_test_craft[1].ai_controller.think_timer = 0;
+	g_fake.calls = 0;
+	ai_brain_think_due_craft();
+	first = g_fake.question[0] + AI_WIRE_HEAD_BYTES +
+		AI_WIRE_CRAFT_VIEW_BYTES + AI_WIRE_CONTACT_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(first + 86), 5);
+}
+
+/* The status line of each looking activity, and of a disabled craft. */
+static void check_activity_status_lines(void)
+{
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[13],
+			  IFMSG_170_LOOKING_FOR_CRAFT_TO_BOARD);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[14],
+			  IFMSG_171_LOOKING_FOR_CRAFT_TO_CAPTURE);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[15],
+			  IFMSG_172_LOOKING_FOR_CRAFT_TO_PICK_UP);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[AI_ACTIVITY_DISABLED],
+			  IFMSG_176_AWAITING_BOARDING);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[AI_ACTIVITY_BOARDING],
+			  IFMSG_173_DOCKING);
+	XVT_ASSERT_INT_EQ(AI_ACTIVITY_COUNT, 16);
+}
+
+/* The self destruct action sets the lifetime timer of a craft whose timer
+ * is 0 to units x 1,180 ticks (1 unit: 1,180; 55 units: 64,900, the most
+ * the 16-bit timer holds of whole units) and keeps a timer already running. */
+static void check_self_destruct_action(void)
+{
+	static const struct {
+		uint16_t before;
+		uint8_t units;
+		uint16_t after;
+	} cases[] = {{0, 1, 1180},
+		     {0, 55, 64900},
+		     {0, 3, 3540},
+		     {7, 3, 7},
+		     {65535, 1, 65535}};
+	for (size_t row = 0; row < sizeof cases / sizeof cases[0]; ++row) {
+		fresh_world();
+		due_craft(1);
+		g_test_mobiles[1].lifetime_timer = cases[row].before;
+		uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+		at = craft_answer(at, 1, 0, 1);
+		*at++ = AI_WIRE_ACTION_SELF_DESTRUCT;
+		*at++ = cases[row].units;
+		g_fake.answer_length = finish_answer(g_fake.answer, at);
+		ai_brain_think_due_craft();
+		XVT_ASSERT_INT_EQ(g_test_mobiles[1].lifetime_timer,
+				  cases[row].after);
+	}
+	/* Refused units apply nothing: 0 and 56 (56 x 1,180 wraps 16 bits). */
+	for (int units = 0; units < 2; ++units) {
+		fresh_world();
+		due_craft(1);
+		uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+		at = craft_answer(at, 1, 0, 1);
+		*at++ = AI_WIRE_ACTION_SELF_DESTRUCT;
+		*at++ = units == 0 ? 0 : 56;
+		g_fake.answer_length = finish_answer(g_fake.answer, at);
+		ai_brain_think_due_craft();
+		XVT_ASSERT_INT_EQ(g_test_mobiles[1].lifetime_timer, 0);
+	}
 }
 
 int main(void)
@@ -1616,6 +1785,10 @@ int main(void)
 	check_statics();
 	check_contact_box_and_roll();
 	check_view_escort_start_and_targets_now();
+	check_contact_parked_and_awaiting();
+	check_contact_boarder();
+	check_activity_status_lines();
+	check_self_destruct_action();
 	ai_brain_set_exchange(NULL);
 	return 0;
 }

@@ -18,6 +18,11 @@
       "fields": ["object", "carried", "fg", "captured", "delivered", "undelivered", "predicted"],
       "text": "Computer-flown craft {object} took the object it carried, {carried} of flight group {fg}, out of the battle with it: capture mark {captured} (0 when not captured); that group's counts 'taken by the destination' {delivered} and 'not taken by the destination' {undelivered}; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.board_asked_stop": {
+      "level": "D",
+      "fields": ["object", "target", "slot"],
+      "text": "Craft {object} waits at its board point for the moving craft {target}: player {slot} is asked to set the throttle to 0 so the craft can dock"
+    },
     "ai.command_target_gone": {
       "level": "D",
       "fields": ["object", "target", "predicted"],
@@ -37,6 +42,11 @@
       "level": "D",
       "fields": ["object", "kind", "launched", "seconds", "left", "predicted"],
       "text": "Craft {object} was told to launch its countermeasure of type {kind} (1 chaff, 2 flare); launched is {launched}, 0 when the craft was not active, its countermeasure system did not work, it had none left, chaff was still running or a flare was cooling down; it now has {seconds} simulated seconds of chaff and {left} countermeasures left ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_self_destruct": {
+      "level": "D",
+      "fields": ["object", "units", "started", "timer", "predicted"],
+      "text": "Craft {object} took the pilot program's self destruct of {units} units of 1,180 ticks: started is {started}, 0 when a lifetime timer was already running and is kept; its lifetime timer is now {timer} ticks, and the craft is destroyed when it runs out ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.craft_depart": {
       "level": "D",
