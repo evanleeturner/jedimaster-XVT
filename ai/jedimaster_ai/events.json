@@ -38,6 +38,11 @@
       "fields": ["object", "pursuer", "hull_left", "hull_strength", "fights"],
       "text": "Craft {object} has craft {pursuer} after it, with {hull_left} of its hull strength {hull_strength} left; it fights back: {fights} (1 with cannons, able to move and three quarters of its hull or more left)"
     },
+    "attack.tail_trick": {
+      "level": "D",
+      "fields": ["object", "target", "distance", "angle"],
+      "text": "Sith craft {object} sits on the tail of starfighter {target}, {distance} units away and {angle} yaw units off its nose, and flies at a third of full throttle to turn tightest"
+    },
     "attack.target": {
       "level": "I",
       "fields": ["object", "target", "distance"],

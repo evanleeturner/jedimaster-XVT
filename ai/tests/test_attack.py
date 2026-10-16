@@ -28,6 +28,7 @@ from jedimaster_ai.geometry import angle_between
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.think import think
 from jedimaster_ai.world import CannonGroup
+from jedimaster_ai.world import ContactFlags
 from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import LinkMode
 from jedimaster_ai.world import NO_OBJECT
@@ -107,6 +108,56 @@ def test_a_close_target_off_the_nose_is_not_yet_caught(craft, foe, ask) -> None:
     x = round(0x1800 * math.sin(math.pi / 8))
     y = round(0x1800 * math.cos(math.pi / 8))
     assert ask(craft(), foe(x=x, y=y)).actions.throttle == attack.FULL_THROTTLE
+
+
+# A third of full throttle, where a player's craft turns fastest.
+THIRD_THROTTLE = 0x5555
+
+
+@pytest.mark.parametrize("level", [6, 7])
+@pytest.mark.parametrize(
+    ("y", "throttle"),
+    [(0x3FFF, THIRD_THROTTLE), (0x4000, 0xFFFF), (0x1800, THIRD_THROTTLE)],
+    ids=["inside", "at-range", "caught"],
+)
+def test_a_sith_on_a_fighters_tail_drops_to_a_third(
+    craft, foe, ask, level, y, throttle
+) -> None:
+    """The foe flies away ahead of it: within 0x4000 a Sith craft sits on its
+    tail at a third of full throttle, caught or not; at 0x4000 it flies on."""
+    assert ask(craft(skill_level=level), foe(y=y)).actions.throttle == throttle
+
+
+@pytest.mark.parametrize(
+    ("changes", "throttle"),
+    [
+        ({"yaw": 0x1FFF}, THIRD_THROTTLE),
+        ({"yaw": 0x2000}, 0xFFFF),
+        ({"yaw": 0x8000}, 0xFFFF),
+        ({"genus": 1}, 0xFFFF),
+        ({"flags": ContactFlags.DISABLED}, 0xFFFF),
+    ],
+    ids=["behind", "at-the-angle", "head-on", "transport", "disabled"],
+)
+def test_the_tail_is_a_starfighters_and_behind_it(
+    craft, foe, ask, changes, throttle
+) -> None:
+    """More than 0x6000 off the foe's nose, from where it flies; a transport
+    or a disabled fighter is no tail to sit on."""
+    target = foe(y=0x3000, **changes)
+    assert ask(craft(skill_level=6), target).actions.throttle == throttle
+
+
+def test_a_jedi_keeps_full_throttle_on_a_tail(craft, foe, ask) -> None:
+    assert ask(craft(skill_level=5), foe(y=0x3000)).actions.throttle == 0xFFFF
+    assert ask(craft(skill_level=5), foe(y=0x1800)).actions.throttle == 0xAAAA
+
+
+def test_the_tail_trick_is_logged(craft, foe, ask, caplog) -> None:
+    caplog.set_level("DEBUG")
+    ask(craft(skill_level=7), foe(y=0x3000))
+    expected = f"attack.tail_trick object={ME} target={FOE} distance=12288 angle=32768"
+    assert expected in caplog.text
 
 
 def test_it_keeps_its_target_until_it_looks_again(craft, foe, ask) -> None:

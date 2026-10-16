@@ -165,6 +165,12 @@ UNIT = 0x10000
 # targeting the craft, is on its tail.
 TAIL_RANGE = 0x8000
 TAIL_ANGLE = 0x6000
+# A Sith craft on a starfighter target's tail, within this range and more
+# than TAIL_ANGLE off the target's nose, flies at a third of full throttle,
+# where a player's craft turns fastest (the AI guide's "Throttle and turning,
+# measured"), and throttles up again once the target breaks away.
+TAIL_TRICK_RANGE = 0x4000
+TAIL_TRICK_THROTTLE = 0x5555
 # A craft an enemy is after fights back while its hull, the hull strength less
 # the hull damage, is at least this share of the strength (ruling 34: three
 # quarters); shields never count.
@@ -326,6 +332,8 @@ def fight(
     throttle = CLOSE_THROTTLE if caught else FULL_THROTTLE
     if tier == 0:
         throttle = min(throttle, ROOKIE_THROTTLE)
+    if _tail_trick(view, target, aim, tier):
+        throttle = TAIL_TRICK_THROTTLE
     actions = Actions(
         steer=Steer(yaw, pitch, view.roll),
         throttle=throttle,
@@ -604,6 +612,31 @@ def _on_tail(view: CraftView, contact: Contact) -> bool:
         return False
     yaw, _ = geometry.bearing(dx, dy, dz)
     return geometry.angle_between(yaw, view.yaw) > TAIL_ANGLE
+
+
+def _tail_trick(view: CraftView, target: Contact, aim: cannons.Aim, tier: int) -> bool:
+    """Whether a Sith craft flies the tail trick, logged when it does: on the
+    tail of a starfighter target that is not disabled, within
+    TAIL_TRICK_RANGE and more than TAIL_ANGLE off the target's nose."""
+    if tier < tactics.SITH_APPRENTICE_TIER:
+        return False
+    if target.genus != tactics.GENUS_STARFIGHTER or target.disabled:
+        return False
+    if aim.reach >= TAIL_TRICK_RANGE:
+        return False
+    dx, dy, dz = tactics.offset(view, target)
+    yaw, _ = geometry.bearing(-dx, -dy, -dz)
+    behind = geometry.angle_between(yaw, target.yaw)
+    if behind <= TAIL_ANGLE:
+        return False
+    logger.debug(
+        "attack.tail_trick object=%d target=%d distance=%d angle=%d",
+        view.object_index,
+        target.object_index,
+        aim.reach,
+        behind,
+    )
+    return True
 
 
 def _fought(view: CraftView) -> tuple[int, int] | None:
