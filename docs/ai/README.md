@@ -163,9 +163,9 @@ Patrol and Disable, SS Await Return and the 7 Hold Steady codes. The code is in
 `ai/jedimaster_ai/orders.py`. The rest keep their speed and heading
 until someone builds them, so a craft on an unbuilt order flies straight on.
 Disabled craft and craft on the null order start stopped. Rendezvous and
-Attack Escorts are among the orders still unbuilt. Until the game engine
-names the craft to escort and its station, an Escort craft cruises as an
-Attack craft with nothing to fight does, and fights only a chaser.
+Attack Escorts are among the orders still unbuilt. The game engine names
+the craft to escort and its station by the 1997 rules; a wingman of an
+Escort leader keeps its place in formation.
 
 | What the computer pilots do now | In the 1997 game | Kept, changed or new | Related issues |
 | --- | --- | --- | --- |
@@ -206,7 +206,7 @@ start. Going home means flying to the mothership's hangar or jumping out.
 | SS Protect and SS Protect 2: patrol the waypoints as a starship on patrol does. Each turret first answers a craft that threatens the starship; the turrets left over take the enemies attacking a craft the order names once some team has hit it, nearest first (`behaviors/starship.py`, `behaviors/turrets.py`). Done when no target is left. | Cruised the waypoints; the turrets took the starship's own attackers, then the idle ones the nearest attacker of an order target. | Kept | |
 | SS Await Return: throttle 0 until every flight group that goes home into its group has arrived, with no waves and no craft left, then the next order; its turrets defend it (`behaviors/starship.py`). | The stop maneuver, which also halted a turn at once; the same test. | Kept, a begun turn runs on | |
 | A finished starship patrol goes to the next order, or jumps out. | The same. | Kept | |
-| Attack, Disable, Protect, and Escort before its charge arrives, with nothing to fight: cruise the waypoints as a patrol does, going on after a fight to the waypoint it was making for; a wingman keeps its place. With no waypoint: fly to the point the group arrived at and circle it; a starship or freighter stops there. Until the game engine sends that point, such a craft keeps flying straight (`behaviors/seek.py`). | The same cruise; with no waypoint, to the point the group arrived at, then to waypoint 4's stored position, off or not, and back after each fight. | Changed: the trip to an off waypoint dropped | |
+| Attack, Disable, Protect, and Escort before its charge arrives, with nothing to fight: cruise the waypoints as a patrol does, going on after a fight to the waypoint it was making for; a wingman keeps its place. With no waypoint: fly to the point the group arrived at and circle it; a starship or freighter stops there (`behaviors/seek.py`). | The same cruise; with no waypoint, to the point the group arrived at, then to waypoint 4's stored position, off or not, and back after each fight. | Changed: the trip to an off waypoint dropped | |
 | Go home at full throttle (`behaviors/home.py`). | Throttle was left as it was far out, and 113 order slots slowed to 5 times speed. | Changed | |
 | On a patrol and on the way home, a follower flies to its place beside its leader with its own turns and throttle. It aims a little ahead of the place along the leader's heading, speeds up while the place lies ahead and slows to as little as half the leader's speed while it lies behind, never turning back to it (`behaviors/formation.py`). | Followers took the leader's heading, throttle, pitch and roll, plus a push into the place. | Changed | [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138) |
 | A follower whose place lies more than 65,536 units (1.6 km) away, and not behind it, flies straight at the place at full throttle. For a starship the distance is 327,680 units (8 km). | The same distances, measured from the leader: the follower flew straight at its leader, so one whose place lay farther back than that overtook its place. | Changed | |
@@ -328,7 +328,7 @@ the project's owner closes them. This table says what became of each one.
 | [#50](https://github.com/evanleeturner/jedimaster-XVT/issues/50), [#51](https://github.com/evanleeturner/jedimaster-XVT/issues/51), [#52](https://github.com/evanleeturner/jedimaster-XVT/issues/52) | The wingman's attack order and target searches. The new search has a test for each case (`ai/jedimaster_ai/tactics.py`, `ai/tests/test_tactics.py`). |
 | [#46](https://github.com/evanleeturner/jedimaster-XVT/issues/46), [#49](https://github.com/evanleeturner/jedimaster-XVT/issues/49) | No counterpart: the new pilots have no speed-away move and starships have no missile defense. |
 | [#44](https://github.com/evanleeturner/jedimaster-XVT/issues/44), [#207](https://github.com/evanleeturner/jedimaster-XVT/issues/207), [#208](https://github.com/evanleeturner/jedimaster-XVT/issues/208), [#209](https://github.com/evanleeturner/jedimaster-XVT/issues/209) | The 1997 pilots read their behavior from script files. The new program has none. |
-| [#45](https://github.com/evanleeturner/jedimaster-XVT/issues/45), [#204](https://github.com/evanleeturner/jedimaster-XVT/issues/204) | The pilot program flies the Escort order; the game engine, which picks the escorted craft and its station, gets a check for each when it sends them. |
+| [#45](https://github.com/evanleeturner/jedimaster-XVT/issues/45), [#204](https://github.com/evanleeturner/jedimaster-XVT/issues/204) | The pilot program flies the Escort order. The game engine picks the escorted craft and its station: any craft may be escorted, and a station number of 28 or more gives no station (`engine/src/xvt/flight/ai_formation.c`). |
 | [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47), [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48), [#53](https://github.com/evanleeturner/jedimaster-XVT/issues/53), [#54](https://github.com/evanleeturner/jedimaster-XVT/issues/54), [#203](https://github.com/evanleeturner/jedimaster-XVT/issues/203), [#206](https://github.com/evanleeturner/jedimaster-XVT/issues/206), [#272](https://github.com/evanleeturner/jedimaster-XVT/issues/272) | Boarding, drop-off, self-destruct and reload orders are not built yet; each gets a check when it is. |
 
 ## Planned, not in the game yet
@@ -451,8 +451,8 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 49 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 61 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Commits that changed the pilot program | 50 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 62 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
 | Lines of Python in the pilot program | 6,812 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
 | Lines of Python in its tests | 9,775 | the `.py` files in `ai/tests/`, counted with `wc -l` |
 | Test functions in those tests | 593 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
