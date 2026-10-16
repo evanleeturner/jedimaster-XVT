@@ -20,11 +20,14 @@ from jedimaster_ai import weave
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import attack
 from jedimaster_ai.behaviors import avoidance
+from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.behaviors import kamikaze
 from jedimaster_ai.behaviors import patrol
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.orders import BEHAVIORS
 from jedimaster_ai.orders import OrderCode
+from jedimaster_ai.world import Actions
+from jedimaster_ai.world import Activity
 from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Commands
 from jedimaster_ai.world import ContactFlags
@@ -32,11 +35,13 @@ from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import LinkMode
 from jedimaster_ai.world import Lock
 from jedimaster_ai.world import NO_OBJECT
+from jedimaster_ai.world import NOTEBOOK_BYTES
 from jedimaster_ai.world import Question
 from jedimaster_ai.world import Steer
 from jedimaster_ai.world import Warhead
 
 ME = 4
+NOTEBOOK = bytes(range(NOTEBOOK_BYTES))
 FOE = 9
 OTHER = 10
 CHASER = 12
@@ -523,3 +528,29 @@ def test_avoidance_leaves_its_target_alone_and_turns_it_round_another(
     assert dive.actions.target == FOE
     turned = avoidance.steer_clear(craft(order_target_mask=0b10), question, dive)
     assert turned.actions.steer.yaw != 0
+
+
+def test_every_phase_shows_kamikaze_attack(craft, foe, cruising, ask) -> None:
+    """1997's line 191 for all three plans: the dive, the cruise and an evade
+    command's weave."""
+    dive = ask(craft(), foe())
+    cruise = ask(cruising())
+    evade = ask(craft(notebook=dive.notebook, commands=Commands.EVADE), foe())
+    phases = [phase_of(decision) for decision in (dive, cruise, evade)]
+    assert phases == [kamikaze.DIVE, kamikaze.CRUISE, kamikaze.EVADE]
+    for decision in (dive, cruise, evade):
+        assert decision.actions.activity == Activity.KAMIKAZE_ATTACK
+
+
+def test_another_behavior_gives_the_line_back(craft) -> None:
+    """A craft still showing "Kamikaze attack" under a behavior that names no
+    line shows none; a line that behavior names, or another left behind,
+    stays."""
+    quiet = Decision(NOTEBOOK, Actions(throttle=0))
+    showing = craft(activity=Activity.KAMIKAZE_ATTACK)
+    given_back = Decision(NOTEBOOK, Actions(throttle=0, activity=Activity.NONE))
+    assert kamikaze.ended(showing, quiet) == given_back
+    named = Decision(NOTEBOOK, Actions(activity=Activity.GOING_HOME))
+    assert kamikaze.ended(showing, named) == named
+    other = craft(activity=Activity.SELF_DESTRUCTING)
+    assert kamikaze.ended(other, quiet) == quiet

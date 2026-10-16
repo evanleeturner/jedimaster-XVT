@@ -34,6 +34,10 @@ Purpose:
     kamikaze3pln flew the evade command. The order has no done test: the
     mission moves the craft on.
 
+    Its status line, in every phase: "Kamikaze attack" (KAMIKAZE_ATTACK),
+    1997's line 191 for all three plans (ruling 166). ``ended`` gives the
+    line back as NONE once another behavior flies the craft and names none.
+
 Phases, the notebook's phase byte:
 
     CRUISE  no target: the waypoints, and a weave while an enemy is on the
@@ -69,6 +73,7 @@ from .. import tactics
 from .. import warheads
 from .. import weave
 from ..world import Actions
+from ..world import Activity
 from ..world import Commands
 from ..world import Contact
 from ..world import CraftView
@@ -125,6 +130,28 @@ class Memory:
 
 
 def think(view: CraftView, question: Question) -> Decision:
+    """Return the craft's next move (``_flown``) under its status line,
+    KAMIKAZE_ATTACK, sent every think so ``ended`` tells it from a line left
+    behind."""
+    decision = _flown(view, question)
+    actions = dataclasses.replace(decision.actions, activity=Activity.KAMIKAZE_ATTACK)
+    return dataclasses.replace(decision, actions=actions)
+
+
+def ended(view: CraftView, decision: Decision) -> Decision:
+    """Return the decision of a craft another behavior now flies: its
+    activity NONE when it still showed KAMIKAZE_ATTACK and that behavior
+    names none."""
+    if (
+        view.activity != Activity.KAMIKAZE_ATTACK
+        or decision.actions.activity is not None
+    ):
+        return decision
+    actions = dataclasses.replace(decision.actions, activity=Activity.NONE)
+    return dataclasses.replace(decision, actions=actions)
+
+
+def _flown(view: CraftView, question: Question) -> Decision:
     """Return the craft's next move: a dive at its target, else its cruise; a
     player's evade command first."""
     tick = question.tick
