@@ -55,6 +55,7 @@ is in `ai/jedimaster_ai/behaviors/attack.py`, `ai/jedimaster_ai/cannons.py` and 
 | --- | --- | --- | --- |
 | Fight only craft the game marks hostile, active or disabled, and never their own team (`ai/jedimaster_ai/tactics.py`). | Unknown | New | |
 | Pick the nearest craft the order names, and look for a nearer one every 6, 3 or 1 seconds (1,500, 750 or 250 ticks) in tier 0, 1 or 2 (`behaviors/attack.py`). | Unknown | New | |
+| On an Attack order, also fight the static objects the order names (nav buoys, mines, probes and comm sats), the nearer of a craft and a static first, whatever the static's team; an ignore order covers a static too. Other orders leave statics alone, and starship turrets on SS Protect, SS Patrol and Attack and SS Patrol and Disable stay on craft (`behaviors/attack.py`, `tactics.py`). | The fighter's target search took the nearest of the craft and the static objects its order named, whatever their team. | Kept for Attack | |
 | Fire when the target is inside a cone of 11, 8 or 6 degrees in tier 0, 1 or 2 (`cannons.py`). | A cone of 11 degrees at every tier. | Changed | |
 | Fire from 24,576, 32,768 or 40,960 units (0.6, 0.8 or 1.0 km) in tier 0, 1 or 2. The range shrinks by 16,384 units (0.4 km) for a fast target flying the same way and by 8,192 (0.2 km) for one crossing, and grows by 24,576 against a starship or platform (`cannons.py`). | The same ranges and changes. | Kept | |
 | Fire all cannons together inside 8,192 units (0.2 km), in pairs inside 16,384 (0.4 km), and one at a time farther out. Bursts are 3, 4 or 5 shots long by tier. Ion cannons hold: only a Disable order fires them, at its target, where every other cannon holds; ion turbolasers fire as other cannons. | The burst lengths are 1997's. How cannons were linked is unknown. The ion cannon fired only on the disable plan with a live target. | Kept | |
@@ -451,11 +452,11 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 50 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 62 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 6,812 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 9,775 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 593 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Commits that changed the pilot program | 51 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 63 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 6,828 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 10,028 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 603 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 18 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
 | Mission order codes that have a written behavior | 24 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
 | Kinds of line the pilot program writes to its log | 52 | the entries in `ai/jedimaster_ai/events.json` |

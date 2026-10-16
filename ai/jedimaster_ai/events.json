@@ -41,7 +41,7 @@
     "attack.target": {
       "level": "I",
       "fields": ["object", "target", "distance"],
-      "text": "Craft {object} attacks craft {target}, {distance} units away"
+      "text": "Craft {object} attacks object {target} (a craft, or a static object its order names), {distance} units away"
     },
     "attack.unguided": {
       "level": "I",
