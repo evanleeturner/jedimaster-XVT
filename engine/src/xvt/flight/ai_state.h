@@ -106,7 +106,14 @@ enum ai_activity {
 	AI_ACTIVITY_LOOKING_TO_BOARD = 13,
 	AI_ACTIVITY_LOOKING_TO_CAPTURE = 14,
 	AI_ACTIVITY_LOOKING_TO_PICK_UP = 15,
-	AI_ACTIVITY_COUNT = 16,
+	/* Drop Off's delivery (dropoffldr1pln, dropoffldr2pln: retail plan ids
+	 * 42 and 43), Self Destruct (selfdestroypln: 67) and Kamikaze
+	 * (kamikaze1pln to kamikaze3pln: 70 to 72). The engine sets none of
+	 * them; the pilot program does. */
+	AI_ACTIVITY_DEPLOYING_CRAFT = 16,
+	AI_ACTIVITY_SELF_DESTRUCTING = 17,
+	AI_ACTIVITY_KAMIKAZE_ATTACK = 18,
+	AI_ACTIVITY_COUNT = 19,
 };
 
 struct ai_controller {
@@ -119,13 +126,19 @@ struct ai_controller {
 	uint8_t skipped_to_order4;
 	/* What the craft is doing, an AI_ACTIVITY_ value. */
 	uint8_t activity;
-	/* Held the 1997 AI's plan for the current order. */
+	/* Held the 1997 AI's plan for the current order. Since that AI went
+	 * only a running Drop Off's drop uses it: the order slot the drop
+	 * started under, so the drop ends when the craft moves to another
+	 * slot. The world save keeps it under its old name. */
 	uint8_t unused0b;
 	/* The mission point the craft is flying to; waypoints are points 4
-	 * to 11. The drop-off order reuses it: it starts at 0 when the craft
-	 * reaches the destination group, names the formation slot of the next
-	 * craft to deliver, and counts the deliveries made. */
-	uint8_t waypoint_index; /* 4 at spawn; past 11 it wraps to 4. */
+	 * to 11 (4 at spawn; past 11 it wraps to 4). While a Drop Off's drop
+	 * runs (maneuver mode DROPOFF) it is the drop's place instead: the
+	 * formation slot of the next craft to deliver, which is also the
+	 * count of deliveries made. It starts at 0 with the drop and is
+	 * kept when the drop stops. Since the 1997 AI went only the spawn
+	 * writes it otherwise, and the world save keeps it. */
+	uint8_t waypoint_index;
 	/* 1 while a player's wait command (Shift+W) holds the craft: set by
 	 * Shift+W, cleared by Shift+G, Shift+E and the wingman attack and cover
 	 * orders. The pilot program reads it and keeps the craft waiting. */

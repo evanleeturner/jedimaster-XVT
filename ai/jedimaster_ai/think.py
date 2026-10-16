@@ -166,7 +166,8 @@ def _log_view(view: CraftView) -> None:
         "place_z=%d timer=%d escorted=%d station_x=%d station_y=%d station_z=%d "
         "start_x=%d start_y=%d start_z=%d targets_now=%d static_targets=%d "
         'board_x=%d board_y=%d board_z=%d progress="%s" boarded="%s" '
-        'board_phase=%d lifetime_timer=%d first_pair=%d notebook="%s"',
+        "board_phase=%d lifetime_timer=%d first_pair=%d drop_x=%d drop_y=%d "
+        'drop_z=%d drop_phase=%d notebook="%s"',
         view.object_index,
         view.object_signature,
         view.object_type,
@@ -249,6 +250,10 @@ def _log_view(view: CraftView) -> None:
         view.board_phase,
         view.lifetime_timer,
         view.order_first_pair_mask,
+        view.drop_point[0],
+        view.drop_point[1],
+        view.drop_point[2],
+        view.drop_phase,
         view.notebook.hex(),
     )
     for threat in view.threats:
@@ -296,6 +301,7 @@ def _log_answer(answer: CraftAnswer) -> None:
         | (actions.maneuver_timer is not None) << 15
         | (actions.self_destruct is not None) << 16
         | (actions.board is not None) << 17
+        | (actions.drop_off is not None) << 18
     )
     first, second = actions.lasers or (HOLD_FIRE, HOLD_FIRE)
     warhead = actions.warhead

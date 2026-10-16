@@ -307,6 +307,8 @@ def test_debug_records_the_new_view_values_and_the_statics(
         board_phase=2,
         lifetime_timer=3540,
         order_first_pair_mask=6,
+        drop_point=(41, 42, 43),
+        drop_phase=2,
     )
     think(Question(1000, (craft,), (contact(),), (static,)))
     assert "think.question tick=1000 craft=1 contacts=1 statics=1" in caplog.text
@@ -315,7 +317,8 @@ def test_debug_records_the_new_view_values_and_the_statics(
         " escorted=9 station_x=11 station_y=12 station_z=13 start_x=21 "
         "start_y=22 start_z=23 targets_now=5 static_targets=1 "
         'board_x=31 board_y=32 board_z=33 progress="01020304" boarded="7,8" '
-        "board_phase=2 lifetime_timer=3540 first_pair=6 " in caplog.text
+        "board_phase=2 lifetime_timer=3540 first_pair=6 drop_x=41 drop_y=42 "
+        "drop_z=43 drop_phase=2 " in caplog.text
     )
 
 
@@ -361,3 +364,11 @@ def test_a_captured_craft_goes_home_and_a_players_wait_still_holds_it(view) -> N
     held = dataclasses.replace(craft, commands=Commands.WAIT)
     said = answered(Question(1, (held,))).craft[0].actions
     assert (said.activity, said.depart) == (Activity.WAITING_FOR_GO, False)
+
+
+def test_debug_records_the_drop_off_action(caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    answer = CraftAnswer(4, bytes(NOTEBOOK_BYTES), Actions(drop_off=1))
+    think_module._log_answer(answer)
+    # Bit n of the actions is action kind n: drop off 18.
+    assert "think.answer object=4 actions=262144 " in caplog.text

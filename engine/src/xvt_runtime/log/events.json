@@ -103,6 +103,11 @@
       "fields": ["object", "hangar", "docked", "predicted"],
       "text": "Craft {object} took the pilot program's dock into the hangar of object {hangar} (-1 when its mothership left the battle after the question): docked {docked} ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.craft_drop_off": {
+      "level": "D",
+      "fields": ["object", "started", "bits", "predicted"],
+      "text": "Craft {object} was told to start its drop: started is {started}, 0 when the drop was declined because a drop or a dock was already running or the craft was not at its drop point (the books' AT_DROP_POINT bit); the books' drop bits were {bits} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.craft_evaded": {
       "level": "D",
       "fields": ["object", "predicted"],
@@ -142,6 +147,31 @@
       "level": "D",
       "fields": ["object", "target", "failed", "completed", "predicted"],
       "text": "Craft {object} began its dock with {target}: its flight group now counts {failed} failed-mission outcomes and the target's {completed} completed-mission outcomes, each counted once per craft ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.dropoff_delivered": {
+      "level": "I",
+      "fields": ["object", "fg", "place", "basis", "tick"],
+      "text": "Craft {object} brought in place {place} of flight group {fg}, placed around craft {basis} (-1 for none), at tick {tick}: the wait of 1,180 ticks begins"
+    },
+    "ai.dropoff_ended": {
+      "level": "D",
+      "fields": ["object", "slot", "started_slot", "order", "group", "predicted"],
+      "text": "Craft {object}'s drop ended because its order changed: it works on order slot {slot} (the drop began under slot {started_slot}), order code {order} (18 is Drop Off) naming group {group}, 0 or past the mission's groups being none ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.dropoff_next": {
+      "level": "D",
+      "fields": ["object", "place", "total", "predicted"],
+      "text": "Craft {object}'s wait after a delivery ran out: places delivered is now {place} of {total}; the drop ends when it reaches the total ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.dropoff_stopped": {
+      "level": "D",
+      "fields": ["object", "phase", "place", "predicted"],
+      "text": "Craft {object} was told to stop its drop in phase {phase} (0 when none ran, 1 push, 2 wait): the drop ends, the push and the maneuver timer cleared, the {place} places delivered kept ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.dropoff_total_too_big": {
+      "level": "W",
+      "fields": ["object", "group", "total", "max"],
+      "text": "Craft {object} has a Drop Off of flight group {group}, whose total of {total} craft is past {max}, which the 8-bit delivery counters cannot reach: the order counts as nothing to drop and is done at once"
     },
     "ai.entered_hangar": {
       "level": "I",

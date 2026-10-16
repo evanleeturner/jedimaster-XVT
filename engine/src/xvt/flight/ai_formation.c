@@ -106,7 +106,7 @@ void ai_formation_view_craft(uint16_t object_index,
 	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
 		view->place[axis] = 0;
 	}
-	view->books &= (uint16_t)~AI_WIRE_BOOKS_PLACE;
+	view->books &= ~(uint32_t)AI_WIRE_BOOKS_PLACE;
 	if (craft->leader_obj_idx == UINT8_MAX) {
 		return;
 	}
@@ -267,7 +267,7 @@ void ai_formation_view_escort(uint16_t object_index,
 	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
 		view->station[axis] = 0;
 	}
-	view->books &= (uint16_t)~AI_WIRE_BOOKS_STATION;
+	view->books &= ~(uint32_t)AI_WIRE_BOOKS_STATION;
 	if (order->order != MISSION_ORDER_ESCORT ||
 	    craft->leader_obj_idx != UINT8_MAX) {
 		return;

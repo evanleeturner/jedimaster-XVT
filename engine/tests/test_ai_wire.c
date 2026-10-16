@@ -95,6 +95,8 @@ static struct ai_wire_craft_view view_with_distinct_bytes(void)
 		0xE4,
 		0xE6E5,
 		0xEAE9E8E7,
+		{-8, 0x6F6E6D6C, 0x7B7A7978},
+		0xF1,
 		{0}};
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		view.notebook[byte] = (uint8_t)(0x40 + byte);
@@ -147,8 +149,8 @@ static struct ai_wire_contact static_with_distinct_bytes(void)
 
 static void check_question_bytes(void)
 {
-	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 394] = {
-		0x92, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x11, 0x00,
+	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 407] = {
+		0x9F, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x12, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x00, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
@@ -189,7 +191,8 @@ static void check_question_bytes(void)
 		0x76, 0x77, 0xC0, 0xC1, 0xC2, 0xC3, 0x0A, 0xD0, 0xD1, 0xD2,
 		0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC,
 		0xDD, 0xDE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6,
-		0xE7, 0xE8, 0xE9, 0xEA};
+		0xE7, 0xE8, 0xE9, 0xEA, 0xF8, 0xFF, 0xFF, 0xFF, 0x6C, 0x6D,
+		0x6E, 0x6F, 0x78, 0x79, 0x7A, 0x7B, 0xF1};
 	static const uint8_t expected_contacts[AI_WIRE_CONTACT_HEAD_BYTES +
 					       AI_WIRE_CONTACT_BYTES] = {
 		0x01, 0x00, 0x00, 0x00, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
@@ -684,13 +687,13 @@ static void check_shown_faults(void)
 static void check_action_faults(void)
 {
 	static const uint8_t kind_zero[] = {0};
-	static const uint8_t kind_end[] = {18};
+	static const uint8_t kind_end[] = {19};
 	static const uint8_t twice[] = {AI_WIRE_ACTION_THROTTLE, 1, 0,
 					AI_WIRE_ACTION_THROTTLE, 2, 0};
 	/* 16 activities: 0 to 15 are named, the three looking ones are 13 to
 	 * 15. */
-	static const uint8_t activity_end[] = {AI_WIRE_ACTION_ACTIVITY, 16};
-	static const uint8_t activity_last[] = {AI_WIRE_ACTION_ACTIVITY, 15};
+	static const uint8_t activity_end[] = {AI_WIRE_ACTION_ACTIVITY, 19};
+	static const uint8_t activity_last[] = {AI_WIRE_ACTION_ACTIVITY, 18};
 	static const uint8_t activity_first_looking[] = {
 		AI_WIRE_ACTION_ACTIVITY, 13};
 	/* The two activities only the engine sets. */
@@ -985,6 +988,7 @@ static void check_board_faults(void)
 						  AI_WIRE_ACTION_DEPART};
 	static const uint8_t timer[] = {AI_WIRE_ACTION_MANEUVER_TIMER, 5, 0, 0,
 					0};
+	static const uint8_t target_9[] = {AI_WIRE_ACTION_TARGET, 9, 0};
 	static const uint8_t steer_throttle[] = {
 		AI_WIRE_ACTION_STEER,	 1, 0, 2, 0, 3, 0,
 		AI_WIRE_ACTION_THROTTLE, 4, 0};
@@ -1051,14 +1055,20 @@ static void check_board_faults(void)
 		 * not. */
 		XVT_ASSERT_INT_EQ(read_actions(1, timer, sizeof timer),
 				  phase == 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
+		/* A target is refused while docking, as the timer is. */
+		XVT_ASSERT_INT_EQ(read_actions(1, target_9, sizeof target_9),
+				  phase == 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
 		XVT_ASSERT_INT_EQ(
 			read_actions(2, steer_throttle, sizeof steer_throttle),
 			AI_WIRE_OK);
 	}
+	/* The board stop names no target of its own, so a target action in the
+	 * same answer is refused with the rest, whatever the stop's own
+	 * allowance. */
 	view->board_phase = 1;
 	XVT_ASSERT_INT_EQ(read_actions(2, board_none_target_9,
 				       sizeof board_none_target_9),
-			  AI_WIRE_OK);
+			  AI_WIRE_BAD_ACTION);
 	view->board_phase = 0;
 	/* The object cut off by the end of the message. */
 	XVT_ASSERT_INT_EQ(read_actions(1, board_12, sizeof board_12 - 1),
@@ -1083,6 +1093,123 @@ static void check_board_faults(void)
 	view->order_code = order;
 }
 
+/* The drop off action is a u8: 1 starts the drop, only while the view's
+ * books show AT_DROP_POINT and neither a dock nor a drop runs, 0 stops a
+ * drop the view shows running (phase 1 or 2), any other value is refused; it
+ * never shares an answer with a depart, a dock or a board; and while the view
+ * shows a drop the maneuver timer and a target are refused but steer and
+ * throttle are not. */
+static void check_drop_off_faults(void)
+{
+	static const uint8_t start[] = {AI_WIRE_ACTION_DROP_OFF, 1};
+	static const uint8_t stop[] = {AI_WIRE_ACTION_DROP_OFF, 0};
+	static const uint8_t two[] = {AI_WIRE_ACTION_DROP_OFF, 2};
+	static const uint8_t start_dock[] = {AI_WIRE_ACTION_DROP_OFF, 1,
+					     AI_WIRE_ACTION_DOCK};
+	static const uint8_t start_depart[] = {AI_WIRE_ACTION_DROP_OFF, 1,
+					       AI_WIRE_ACTION_DEPART};
+	static const uint8_t start_board[] = {AI_WIRE_ACTION_DROP_OFF, 1,
+					      AI_WIRE_ACTION_BOARD, 12, 0};
+	static const uint8_t board_stop[] = {AI_WIRE_ACTION_DROP_OFF, 0,
+					     AI_WIRE_ACTION_BOARD, 0xFF, 0xFF};
+	static const uint8_t timer[] = {AI_WIRE_ACTION_MANEUVER_TIMER, 5, 0, 0,
+					0};
+	static const uint8_t target_9[] = {AI_WIRE_ACTION_TARGET, 9, 0};
+	static const uint8_t target_none[] = {AI_WIRE_ACTION_TARGET, 0xFF,
+					      0xFF};
+	static const uint8_t order_move[] = {AI_WIRE_ACTION_ORDER, 1, 0};
+	static const uint8_t steer_throttle[] = {
+		AI_WIRE_ACTION_STEER,	 1, 0, 2, 0, 3, 0,
+		AI_WIRE_ACTION_THROTTLE, 4, 0};
+	struct ai_wire_craft_view *view = &g_views[0];
+	const uint32_t books = view->books;
+	/* A start needs the books' AT_DROP_POINT and no dock or drop. */
+	view->books = AI_WIRE_BOOKS_DROP_POINT | AI_WIRE_BOOKS_AT_DROP_POINT;
+	XVT_ASSERT_INT_EQ(read_actions(1, start, sizeof start), AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions(1, two, sizeof two), AI_WIRE_BAD_ACTION);
+	view->books = AI_WIRE_BOOKS_DROP_POINT;
+	XVT_ASSERT_INT_EQ(read_actions(1, start, sizeof start),
+			  AI_WIRE_BAD_ACTION);
+	view->books = AI_WIRE_BOOKS_AT_DROP_POINT;
+	XVT_ASSERT_INT_EQ(read_actions(1, start, sizeof start), AI_WIRE_OK);
+	view->books = AI_WIRE_BOOKS_DROP_POINT | AI_WIRE_BOOKS_AT_DROP_POINT;
+	for (int phase = 0; phase <= 3; ++phase) {
+		view->drop_phase = (uint8_t)phase;
+		XVT_ASSERT_INT_EQ(read_actions(1, start, sizeof start),
+				  phase == 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
+		XVT_ASSERT_INT_EQ(read_actions(1, stop, sizeof stop),
+				  phase != 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
+		XVT_ASSERT_INT_EQ(read_actions(1, timer, sizeof timer),
+				  phase == 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
+		XVT_ASSERT_INT_EQ(read_actions(1, target_9, sizeof target_9),
+				  phase == 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
+		XVT_ASSERT_INT_EQ(
+			read_actions(1, target_none, sizeof target_none),
+			phase == 0 ? AI_WIRE_OK : AI_WIRE_BAD_ACTION);
+		/* Steer, throttle and an order move are not refused. */
+		XVT_ASSERT_INT_EQ(
+			read_actions(2, steer_throttle, sizeof steer_throttle),
+			AI_WIRE_OK);
+		XVT_ASSERT_INT_EQ(
+			read_actions(1, order_move, sizeof order_move),
+			AI_WIRE_OK);
+	}
+	view->drop_phase = 0;
+	/* A dock running refuses a start; the books alone do not. */
+	view->board_phase = 2;
+	XVT_ASSERT_INT_EQ(read_actions(1, start, sizeof start),
+			  AI_WIRE_BAD_ACTION);
+	view->board_phase = 0;
+	/* Never with a depart, a dock or a board, in either order. */
+	view->books |= AI_WIRE_BOOKS_AT_HANGAR | AI_WIRE_BOOKS_MAY_JUMP;
+	XVT_ASSERT_INT_EQ(read_actions(2, start_dock, sizeof start_dock),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(2, start_depart, sizeof start_depart),
+			  AI_WIRE_BAD_ACTION);
+	view->drop_phase = 1;
+	view->board_phase = 0;
+	XVT_ASSERT_INT_EQ(read_actions(2, board_stop, sizeof board_stop),
+			  AI_WIRE_BAD_ACTION);
+	view->drop_phase = 0;
+	view->books =
+		AI_WIRE_BOOKS_AT_DROP_POINT | AI_WIRE_BOOKS_AT_BOARD_POINT;
+	const uint8_t order = view->order_code;
+	view->order_code = 12;
+	XVT_ASSERT_INT_EQ(read_actions(2, start_board, sizeof start_board),
+			  AI_WIRE_BAD_ACTION);
+	view->order_code = order;
+	/* The byte cut off by the end of the message. */
+	XVT_ASSERT_INT_EQ(read_actions(1, start, sizeof start - 1),
+			  AI_WIRE_SHORT);
+	/* Read into the answer: the value, the action bit 18. */
+	struct test_bytes bytes;
+	struct ai_wire_craft_answer answer;
+	start_answer(&bytes, 1);
+	add_craft(&bytes, 7, 0);
+	add_u8(&bytes, 1);
+	memcpy(&bytes.data[bytes.length], start, sizeof start);
+	bytes.length += sizeof start;
+	finish_answer(&bytes);
+	struct ai_wire_question question = g_question;
+	question.craft_count = 1;
+	XVT_ASSERT_INT_EQ(ai_wire_read_answer(bytes.data, bytes.length,
+					      &question, &answer),
+			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(answer.drop_off, 1);
+	XVT_ASSERT_INT_EQ(answer.actions, 1u << 18);
+	/* The predicate: either phase. */
+	view->board_phase = 0;
+	view->drop_phase = 0;
+	XVT_ASSERT_INT_EQ(ai_wire_engine_flies(view), 0);
+	view->board_phase = 3;
+	XVT_ASSERT_INT_EQ(ai_wire_engine_flies(view), 1);
+	view->board_phase = 0;
+	view->drop_phase = 2;
+	XVT_ASSERT_INT_EQ(ai_wire_engine_flies(view), 1);
+	view->drop_phase = 0;
+	view->books = books;
+}
+
 int main(void)
 {
 	check_question_bytes();
@@ -1099,5 +1226,6 @@ int main(void)
 	check_maneuver_timer_faults();
 	check_self_destruct_faults();
 	check_board_faults();
+	check_drop_off_faults();
 	return 0;
 }

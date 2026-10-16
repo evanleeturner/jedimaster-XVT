@@ -196,11 +196,17 @@ static void check_leader_has_no_place(void)
 	g_model_defs[MODEL].bound_size_x = 100;
 	struct ai_wire_craft_view view;
 	memset(&view, STALE, sizeof view);
-	view.books = UINT16_MAX;
+	view.books = UINT32_MAX;
 	ai_formation_view_craft(LEADER, &view);
 	assert_no_place(&view);
+	/* The books are 32 bits: bits above 16 (all launched, captured, the
+	 * three Drop Off books) stay as they were. */
 	XVT_ASSERT_INT_EQ(view.books,
-			  UINT16_MAX & ~(unsigned)AI_WIRE_BOOKS_PLACE);
+			  UINT32_MAX & ~(uint32_t)AI_WIRE_BOOKS_PLACE);
+	view.books = UINT32_MAX;
+	ai_formation_view_escort(LEADER, &view);
+	XVT_ASSERT_INT_EQ(view.books,
+			  UINT32_MAX & ~(uint32_t)AI_WIRE_BOOKS_STATION);
 }
 
 /* A follower whose leader's slot is empty, or whose formation or ordinal

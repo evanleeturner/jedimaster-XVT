@@ -15,6 +15,7 @@ import pytest
 from conftest import ENGINE
 
 from jedimaster_ai import wire
+from jedimaster_ai import world
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Answer
@@ -64,6 +65,7 @@ DISTINCT = CraftView(
     board_point=(0x73727170, -13, 0x77767574), order_progress=(0xC0, 0xC1, 0xC2, 0xC3),
     boarded=(0xD1D0, 0xD3D2, 0xD5D4, 0xD7D6, 0xD9D8, 0xDBDA, 0xDDDC, 0xDFDE, 0xE1E0, 0xE3E2),
     board_phase=0xE4, lifetime_timer=0xE6E5, order_first_pair_mask=0xEAE9E8E7,
+    drop_point=(-8, 0x6F6E6D6C, 0x7B7A7978), drop_phase=0xF1,
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
@@ -264,10 +266,10 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
 @pytest.mark.parametrize(
     ("actions", "match"),
     [
-        (b"\x01\x00", "not one of the seventeen"),
-        (b"\x01\x12", "not one of the seventeen"),
+        (b"\x01\x00", "not one of the eighteen"),
+        (b"\x01\x13", "not one of the eighteen"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
-        (b"\x01\x03\x10", "out of range"),
+        (b"\x01\x03\x13", "out of range"),
         (b"\x01\x03\x05", "set by the engine alone"),
         (b"\x01\x03\x07", "set by the engine alone"),
         (b"\x01\x04\x00\x00", "out of range"),
@@ -306,7 +308,7 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
         (b"\x01\x10", "ends inside a value"),
     ],
     ids=[
-        "kind 0", "kind 18", "twice", "activity 16", "activity 5", "activity 7", "interval 0", "short", "long",
+        "kind 0", "kind 19", "twice", "activity 19", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "target past the statics", "turret aimed at a static",
         "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
@@ -635,10 +637,11 @@ def test_boarded_is_padded_with_zeros_and_cut_to_its_count() -> None:
     question = Question(TEST_TICK, (view,), CONTACTS, STATICS)
     message = wire.question_bytes(question)
     assert wire.read_question(message[4:]) == question
-    # u8 count then ten u16, the last seven 0, then the 7 bytes of the dock
-    # phase, lifetime timer and first pair mask: 28 bytes before the notebook.
+    # u8 count then ten u16, the last seven 0, then the 20 bytes of the dock
+    # phase, lifetime timer, first pair mask, drop point and drop phase: 41
+    # bytes before the notebook.
     tail = message[4 + wire.HEADER.size :][
-        wire.VIEW_FIELDS.size - 28 : wire.VIEW_FIELDS.size - 7
+        wire.VIEW_FIELDS.size - 41 : wire.VIEW_FIELDS.size - 20
     ]
     assert tail == bytes([3]) + struct.pack("<10H", 0x301, 0x302, 0x303, *[0] * 7)
 
@@ -648,7 +651,7 @@ def test_a_view_that_boarded_too_many_is_not_written_or_read() -> None:
     with pytest.raises(wire.WireError, match="at most 10"):
         wire.question_bytes(Question(TEST_TICK, (view,), CONTACTS, STATICS))
     message = bytearray(wire.question_bytes(QUESTION_7))
-    count_at = 4 + wire.HEADER.size + wire.VIEW_FIELDS.size - 28
+    count_at = 4 + wire.HEADER.size + wire.VIEW_FIELDS.size - 41
     message[count_at] = 11
     with pytest.raises(wire.WireError, match="at most 10"):
         wire.read_question(bytes(message[4:]))
@@ -705,13 +708,16 @@ def test_no_other_order_may_board(code: int) -> None:
         ({}, b"\x02\x11\x0c\x00\x05\x09\x00", "not the answer's target"),
         ({}, b"\x01\x11\xff\xff", "stops a dock only in phase 1 or 2"),
         ({"board_phase": 3}, b"\x01\x11\xff\xff", "stops a dock only in phase 1 or 2"),
-        ({"board_phase": 1}, b"\x01\x0f\x05\x00\x00\x00", "refused while the craft docks"),
-        ({"board_phase": 3}, b"\x01\x0f\x05\x00\x00\x00", "refused while the craft docks"),
+        ({"board_phase": 1}, b"\x01\x0f\x05\x00\x00\x00", "timer is refused"),
+        ({"board_phase": 3}, b"\x01\x0f\x05\x00\x00\x00", "timer is refused"),
+        ({"board_phase": 1}, b"\x01\x05\x09\x00", "target is refused"),
+        ({"board_phase": 3}, b"\x01\x05\x09\x00", "target is refused"),
     ],
     ids=[
         "not at the point", "already docking", "not a contact", "a static",
         "another target in the answer", "stop in phase 0", "stop in phase 3",
-        "timer in phase 1", "timer in phase 3",
+        "timer in phase 1", "timer in phase 3", "target in phase 1",
+        "target in phase 3",
     ],
 )  # fmt: skip
 def test_board_the_view_does_not_allow_is_refused(
@@ -725,9 +731,11 @@ def test_board_stops_a_dock_in_phases_one_and_two_only() -> None:
     for phase in (1, 2):
         view = dataclasses.replace(BOARDER, board_phase=phase)
         assert _read_board(b"\x01\x11\xff\xff", view).board == NO_OBJECT
-        # With a target of its own in the answer, whatever it is.
+        # A target in the same answer is refused with the rest: the engine
+        # flies the craft.
         both = b"\x02\x11\xff\xff\x05\x09\x00"
-        assert _read_board(both, view).target == 9
+        with pytest.raises(wire.WireError, match="target is refused"):
+            _read_board(both, view)
 
 
 def test_board_names_the_answers_own_target_in_either_order() -> None:
@@ -760,3 +768,111 @@ def test_board_is_never_sent_with_a_depart_or_a_dock() -> None:
 def test_board_outside_sixteen_bits_is_not_made(object_index: int) -> None:
     with pytest.raises(ValueError, match="board"):
         Actions(board=object_index)
+
+
+# Craft 7 as a Drop Off carrier: at its drop point, nothing running. The C
+# test's check_drop_off_faults.
+CARRIER = dataclasses.replace(
+    CRAFT_7, order_code=18, books=Books.DROP_POINT | Books.AT_DROP_POINT
+)
+
+
+def _read_drop(actions: bytes, view: CraftView) -> Actions:
+    return (
+        wire.read_answer(answer_with_actions(actions), _board_question(view))
+        .craft[0]
+        .actions
+    )
+
+
+def test_drop_off_is_read_and_written() -> None:
+    body = answer_with_actions(b"\x01\x12\x01")
+    answer = wire.read_answer(body, _board_question(CARRIER))
+    assert answer.craft[0].actions == Actions(drop_off=1)
+    assert wire.answer_bytes(answer)[4:] == body
+    running = dataclasses.replace(CARRIER, drop_phase=1)
+    body = answer_with_actions(b"\x01\x12\x00")
+    answer = wire.read_answer(body, _board_question(running))
+    assert answer.craft[0].actions == Actions(drop_off=0)
+    assert wire.answer_bytes(answer)[4:] == body
+
+
+def test_drop_off_the_view_does_not_allow_is_refused() -> None:
+    start, stop = b"\x01\x12\x01", b"\x01\x12\x00"
+    # No AT_DROP_POINT, DROP_POINT alone, a drop or a dock running.
+    for changes in (
+        {"books": Books.DROP_POINT},
+        {"books": Books(0)},
+        {"drop_phase": 1},
+        {"drop_phase": 2},
+        {"board_phase": 2},
+    ):
+        with pytest.raises(wire.WireError, match="starts a drop only"):
+            _read_drop(start, dataclasses.replace(CARRIER, **changes))
+    # A stop with none running.
+    with pytest.raises(wire.WireError, match="stops a drop only"):
+        _read_drop(stop, CARRIER)
+    # Any value but 0 and 1 (the engine refuses it too).
+    running = dataclasses.replace(CARRIER, drop_phase=1)
+    with pytest.raises(wire.WireError, match="not 0 or 1"):
+        _read_drop(b"\x01\x12\x02", running)
+
+
+@pytest.mark.parametrize("phase", [1, 2])
+def test_drop_off_stops_a_drop_in_either_phase(phase: int) -> None:
+    view = dataclasses.replace(CARRIER, drop_phase=phase)
+    assert _read_drop(b"\x01\x12\x00", view).drop_off == 0
+
+
+@pytest.mark.parametrize(
+    "others", [b"\x0b", b"\x0a", b"\x11\x0c\x00"], ids=["dock", "depart", "board"]
+)
+def test_drop_off_never_shares_an_answer_with_a_leaving_or_a_board(
+    others: bytes,
+) -> None:
+    view = dataclasses.replace(
+        CARRIER, books=CARRIER.books | Books.AT_HANGAR | Books.MAY_JUMP
+    )
+    body = b"\x02\x12\x01" + others
+    with pytest.raises(wire.WireError):
+        _read_drop(body, view)
+    body = b"\x02" + others + b"\x12\x01"
+    with pytest.raises(wire.WireError):
+        _read_drop(body, view)
+
+
+@pytest.mark.parametrize("phase", [1, 2])
+def test_the_timer_and_a_target_are_refused_while_the_craft_drops(phase: int) -> None:
+    view = dataclasses.replace(CARRIER, drop_phase=phase)
+    with pytest.raises(wire.WireError, match="timer is refused"):
+        _read_drop(b"\x01\x0f\x05\x00\x00\x00", view)
+    for target in (b"\x01\x05\x09\x00", b"\x01\x05\xff\xff"):
+        with pytest.raises(wire.WireError, match="target is refused"):
+            _read_drop(target, view)
+    # Steer, throttle and an order move are read.
+    body = b"\x02\x01\x01\x00\x02\x00\x03\x00\x02\x04\x00"
+    actions = _read_drop(body, view)
+    assert actions.steer == Steer(1, 2, 3) and actions.throttle == 4
+
+
+def test_the_timer_and_a_target_are_read_when_nothing_runs() -> None:
+    assert _read_drop(b"\x01\x0f\x05\x00\x00\x00", CARRIER).maneuver_timer == 5
+    assert _read_drop(b"\x01\x05\x09\x00", CARRIER).target == 9
+
+
+def test_engine_flies_when_a_dock_or_a_drop_runs() -> None:
+    assert not world.engine_flies(CARRIER)
+    assert world.engine_flies(dataclasses.replace(CARRIER, board_phase=3))
+    assert world.engine_flies(dataclasses.replace(CARRIER, drop_phase=2))
+
+
+def test_drop_off_is_never_sent_with_a_depart_a_dock_or_a_board() -> None:
+    for others in ({"depart": True}, {"dock": True}, {"board": 12}):
+        with pytest.raises(ValueError, match="drop_off"):
+            Actions(drop_off=1, **others)
+
+
+@pytest.mark.parametrize("value", [-1, 2, 255])
+def test_drop_off_is_one_or_zero(value: int) -> None:
+    with pytest.raises(ValueError, match="drop_off"):
+        Actions(drop_off=value)

@@ -74,6 +74,9 @@ class Activity(enum.IntEnum):
     LOOKING_TO_BOARD = 13
     LOOKING_TO_CAPTURE = 14
     LOOKING_TO_PICK_UP = 15
+    DEPLOYING_CRAFT = 16
+    SELF_DESTRUCTING = 17
+    KAMIKAZE_ATTACK = 18
 
 
 # The activities only the engine sets: a round's arrival out of hyperspace or
@@ -168,10 +171,21 @@ class Books(enum.IntFlag):
       SS Launch
     - CAPTURED: the craft has been captured: its capture mark, the flight
       group that holds it, is not 0
+    - DROP_POINT: its current order is Drop Off, variable2 names a group of
+      the mission whose delivered count is below its total, and it has no
+      leader; ``drop_point`` is given (a group whose total is past 255 counts
+      as nothing to drop)
+    - AT_DROP_POINT: DROP_POINT, within 2,048 of the point (2,048 itself is
+      out), and the delivered group has no arrived outcome
+    - ALL_DROPPED: a Drop Off with nothing left to drop: the delivered count
+      has reached the group's total, or, with no drop running, variable2 names
+      no group of the mission, the group has already arrived, or its total is
+      past 255
 
     ALL_RETURNED comes with wire version 13, STATION and START_POINT with
     14, BOARD_POINT, AT_BOARD_POINT and ALL_LAUNCHED with 16, CAPTURED with
-    17; the engine sends none of them before.
+    17, DROP_POINT, AT_DROP_POINT and ALL_DROPPED with 18; the engine sends
+    none of them before.
     """
 
     ORDERS_DONE = 0x001
@@ -192,6 +206,9 @@ class Books(enum.IntFlag):
     AT_BOARD_POINT = 0x8000
     ALL_LAUNCHED = 0x10000
     CAPTURED = 0x20000
+    DROP_POINT = 0x40000
+    AT_DROP_POINT = 0x80000
+    ALL_DROPPED = 0x100000
 
 
 class ContactFlags(enum.IntFlag):
@@ -289,7 +306,8 @@ class CraftView:
     approach point above the target's docking hatch, a world position; it
     comes with the BOARD_POINT book and reads (0, 0, 0) without it. Item n
     of ``order_progress`` counts what the order in slot n has done: for a
-    boarding order, the craft's boardings. ``boarded`` holds the signatures
+    boarding order, the craft's boardings, for a Drop Off the places
+    delivered (at most 255). ``boarded`` holds the signatures
     of the craft it has boarded, oldest first, at most 10. All three come
     with wire version 16 and read (0, 0, 0), (0, 0, 0, 0) and () before it.
 
@@ -306,6 +324,16 @@ class CraftView:
     also set: a search tries these first and the rest after, as the second
     pair, the order's fallback, can swap the boarders of a mirrored order.
     These three come with wire version 17 and read 0, 0 and 0 before it.
+
+    ``drop_point`` is a Drop Off carrier's approach point, slot 0 of the
+    delivered group with 932 added in Z, given with the books' DROP_POINT bit
+    and (0, 0, 0) without it. ``drop_phase`` is where the engine's drop
+    stands: 0 none, 1 push to the place, 2 wait after a delivery. The engine
+    runs the drop from the drop off action to its end, steering the craft,
+    setting its throttle and refusing the maneuver timer and a target
+    meanwhile (``engine_flies``); ``order_progress`` then counts the places
+    delivered. Both come with wire version 18 and read (0, 0, 0) and 0
+    before it.
     """
 
     object_index: int
@@ -386,6 +414,8 @@ class CraftView:
     board_phase: int = 0
     lifetime_timer: int = 0
     order_first_pair_mask: int = 0
+    drop_point: tuple[int, int, int] = (0, 0, 0)
+    drop_phase: int = 0
 
     @property
     def threats(self) -> tuple[Threat, ...]:
@@ -519,6 +549,19 @@ class Question:
     craft: tuple[CraftView, ...]
     contacts: tuple[Contact, ...] = ()
     statics: tuple[Contact, ...] = ()
+
+
+def engine_flies(view: CraftView) -> bool:
+    """Whether the engine flies the craft: a dock or a drop runs.
+
+    The engine alone steers it, sets its throttle and pushes it until the dock
+    or drop ends; steer and throttle are read and not applied, and the
+    maneuver timer and a target action are refused. A refused action loses the
+    whole answer, notebook included, so a target sent mid-dock or mid-drop
+    loses that think. The program sends no order while a craft docks (it gives
+    a docking craft to its board behavior alone).
+    """
+    return view.board_phase != 0 or view.drop_phase != 0
 
 
 def _check_u16(name: str, value: int, low: int = 0) -> None:
@@ -659,6 +702,11 @@ class Actions:
     target action, when it has one, names it); NO_OBJECT stops a dock in its
     align or transfer phase. Never with ``depart`` or ``dock``. It comes with
     wire version 17.
+    ``drop_off`` is 1 to start the engine's drop of the group its Drop Off
+    order names, while the view's books show AT_DROP_POINT and no drop or
+    dock runs, or 0 to stop a running drop, keeping the places delivered.
+    Never with ``depart``, ``dock`` or ``board``. It comes with wire version
+    18.
     ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
@@ -680,6 +728,7 @@ class Actions:
     maneuver_timer: int | None = None
     self_destruct: int | None = None
     board: int | None = None
+    drop_off: int | None = None
 
     def __post_init__(self) -> None:
         if self.depart and self.dock:
@@ -688,6 +737,11 @@ class Actions:
             _check_u16("board", self.board)
             if self.depart or self.dock:
                 raise ValueError("board is sent with a depart or a dock")
+        if self.drop_off is not None:
+            if self.drop_off not in (0, 1):
+                raise ValueError(f"drop_off is {self.drop_off}, not 0 or 1")
+            if self.depart or self.dock or self.board is not None:
+                raise ValueError("drop_off is sent with a depart, a dock or a board")
         if self.target is not None:
             _check_u16("target", self.target)
         if self.lasers is not None and len(self.lasers) != CANNON_GROUPS:

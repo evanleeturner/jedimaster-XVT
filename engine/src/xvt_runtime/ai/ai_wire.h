@@ -73,7 +73,8 @@
  * the targets of the craft's order); then what a boarder sees: i32 x, i32 y,
  * i32 z of its board point (the approach point above the docking hatch of the
  * craft it targets, given with the books' board point bit, else 0), u8 order
- * progress[4] (each order slot's goal progress: the boardings it has done),
+ * progress[4] (each order slot's goal progress: the boardings it has done, or
+ * a Drop Off's places delivered),
  * u8 boarded count (0 to AI_WIRE_BOARDED_MAX) and u16 boarded[10] (the
  * signatures of the craft it has docked with, oldest first, the first boarded
  * count of them, the rest 0), u8 board phase (0 no dock, 1 align, 2 transfer,
@@ -81,8 +82,12 @@
  * end), u16 lifetime timer (the ticks left on its object's lifetime timer,
  * 0 when none runs) and u32 order first pair mask (bit n set when contact n
  * matches the first target pair of the craft's order alone, by the rule of
- * the order target mask; every bit of it is also set there); then the
- * notebook's AI_NOTEBOOK_BYTES.
+ * the order target mask; every bit of it is also set there), then what a
+ * Drop Off's carrier sees: i32 x, i32 y, i32 z of its drop point (the
+ * delivered group's first place, 932 above it, given with the books' drop
+ * point bit, else 0) and u8 drop phase (0 no drop, 1 push to the place, 2 wait
+ * after a delivery: the engine runs the drop from the drop off action to its
+ * end); then the notebook's AI_NOTEBOOK_BYTES.
  * Then u16 contact count, u16 zero, and one contact per craft in the active
  * region, at most AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
@@ -172,6 +177,17 @@
  *     then takes over steer, throttle and push until the dock ends. 0xFFFF
  *     stops a dock in its align or transfer phase and is refused in any
  *     other. Never in the craft answer with a depart or a dock.
+ *  18 drop off: u8, 1 start or 0 stop. 1 starts the drop of the group the
+ *     order names: only while the view's books show AT_DROP_POINT and no
+ *     drop or dock runs. The engine then takes over steer, throttle and push
+ *     until the drop ends, delivering the group a craft (or mine) at a time.
+ *     0 stops a running drop, keeping the places delivered, and is refused
+ *     when none runs. Never in the craft answer with a depart, a dock or a
+ *     board. While the view's board phase or drop phase is not 0 the
+ *     engine flies the craft: a maneuver timer or a target action is refused
+ *     (and with it the whole answer, notebook included: a program that sends
+ *     one mid-drop loses that think), and steer and throttle are read and not
+ *     applied.
  * A craft answer names each action kind at most once, and names only what
  * the question showed. While a craft enters hyperspace the engine does not
  * turn it, whatever the steer action says. */
@@ -187,12 +203,12 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 17,
+	AI_WIRE_VERSION = 18,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 394 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 407 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
@@ -220,10 +236,10 @@ enum ai_wire_constant {
 	/* A flight group's waypoints, mission points 4 to 11: the points the
 	 * patrol orders fly in turn. */
 	AI_WIRE_WAYPOINTS = 8,
-	/* A craft answer with every action kind once, but depart, dock or
-	 * board, never two of them, all 16 turrets with their ion bytes, the
-	 * maneuver timer and the self destruct; the board's bytes are the most
-	 * of the three. */
+	/* A craft answer with every action kind once, but depart, dock, board
+	 * or drop off, never two of them, all 16 turrets with their ion bytes,
+	 * the maneuver timer and the self destruct; the board's bytes are the
+	 * most of the four. */
 	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 114 + AI_NOTEBOOK_BYTES,
 	/* The fastest speed an arrival may set: the 1997 AI's speed out of
 	 * hyperspace. */
@@ -248,7 +264,8 @@ enum ai_wire_action_kind {
 	AI_WIRE_ACTION_MANEUVER_TIMER = 15,
 	AI_WIRE_ACTION_SELF_DESTRUCT = 16,
 	AI_WIRE_ACTION_BOARD = 17,
-	AI_WIRE_ACTION_KIND_END = 18,
+	AI_WIRE_ACTION_DROP_OFF = 18,
+	AI_WIRE_ACTION_KIND_END = 19,
 };
 
 /* The bits of a craft view's commands: a player's wingman commands that
@@ -312,6 +329,19 @@ enum ai_wire_books {
 	/* The craft has been captured: its capture mark, the flight group that
 	 * holds it, is not 0. */
 	AI_WIRE_BOOKS_CAPTURED = 0x20000,
+	/* Its current order is Drop Off, its variable2 names a group of the
+	 * mission whose delivered count is below its total, and it has no
+	 * leader, so its drop point is given. A group with a total past 255
+	 * counts as nothing to drop. */
+	AI_WIRE_BOOKS_DROP_POINT = 0x40000,
+	/* DROP_POINT, and it is within 2,048 units of the point (strictly), and
+	 * the delivered group has no arrived outcome. */
+	AI_WIRE_BOOKS_AT_DROP_POINT = 0x80000,
+	/* A Drop Off with nothing left to drop: the delivered count has reached
+	 * the group's total, or, with no drop running, variable2 names no group
+	 * of the mission, the group has already arrived, or its total is past
+	 * 255. */
+	AI_WIRE_BOOKS_ALL_DROPPED = 0x100000,
 };
 
 /* A craft view's countermeasure, the engine's countermeasure type; the
@@ -426,6 +456,8 @@ struct ai_wire_craft_view {
 	uint8_t board_phase;
 	uint16_t lifetime_timer;
 	uint32_t order_first_pair_mask;
+	int32_t drop_point[AI_WIRE_POINT_AXES];
+	uint8_t drop_phase;
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -505,7 +537,18 @@ struct ai_wire_craft_answer {
 	uint32_t maneuver_timer;
 	uint8_t self_destruct_units;
 	uint16_t board_object;
+	uint8_t drop_off;
 };
+
+/* Whether the engine flies the craft the view shows: a dock (board phase) or
+ * a drop (drop phase) runs, and the engine alone steers, sets the throttle
+ * and pushes until it ends. The reader refuses a maneuver timer and a target
+ * action then, and the engine ignores steer and throttle. A refused action
+ * refuses the whole answer, notebook included, so a program that sends a
+ * target while its craft docks or drops loses that think; the program sends
+ * no order while a craft docks (it gives a docking craft to its board
+ * behavior alone). */
+int ai_wire_engine_flies(const struct ai_wire_craft_view *view);
 
 /* Why an answer was refused. The reader stops at the first fault. */
 enum ai_wire_result {
@@ -529,7 +572,8 @@ enum ai_wire_result {
 	 * ready, an evaded with no evade command shown, a turret ion past 1, or
 	 * a maneuver timer past 0x7FFFFFFF or while the view shows a dock, or a
 	 * self destruct of 0 units or more than AI_WIRE_SELF_DESTRUCT_UNITS_MAX,
-	 * or a board the view does not allow. */
+	 * or a board or drop off the view does not allow, or a target or
+	 * maneuver timer while it shows a dock or a drop. */
 	AI_WIRE_BAD_ACTION,
 };
 

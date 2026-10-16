@@ -153,6 +153,8 @@ static uint8_t *put_craft_view(uint8_t *at,
 	*at++ = view->board_phase;
 	at = put_u16(at, view->lifetime_timer);
 	at = put_u32(at, view->order_first_pair_mask);
+	at = put_point(at, view->drop_point);
+	*at++ = view->drop_phase;
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -463,6 +465,29 @@ static int take_board(struct wire_reader *reader,
 	       is_contact_or_none(question, answer->board_object);
 }
 
+int ai_wire_engine_flies(const struct ai_wire_craft_view *view)
+{
+	return view->board_phase != 0 || view->drop_phase != 0;
+}
+
+/* Reads the drop off action: 1 starts the drop, only while the view shows
+ * the craft at its drop point with no dock or drop running; 0 stops a drop
+ * the view shows running. */
+static int take_drop_off(struct wire_reader *reader,
+			 const struct ai_wire_craft_view *view,
+			 struct ai_wire_craft_answer *answer)
+{
+	answer->drop_off = (uint8_t)take_u8(reader);
+	if (reader->short_read) {
+		return 1;
+	}
+	if (answer->drop_off == 0) {
+		return view->drop_phase != 0;
+	}
+	return answer->drop_off == 1 && !ai_wire_engine_flies(view) &&
+	       (view->books & AI_WIRE_BOOKS_AT_DROP_POINT) != 0;
+}
+
 /* Reads one action into answer; returns 0 for a kind that is unknown or
  * already sent, a value out of range, or a thing the question did not
  * show. */
@@ -501,8 +526,9 @@ static int take_action(struct wire_reader *reader,
 		if (reader->short_read) {
 			return 1;
 		}
-		return is_contact_or_none(question, answer->target) ||
-		       is_static(question, answer->target);
+		return !ai_wire_engine_flies(view) &&
+		       (is_contact_or_none(question, answer->target) ||
+			is_static(question, answer->target));
 	case AI_WIRE_ACTION_LASERS:
 		return take_lasers(reader, view, answer);
 	case AI_WIRE_ACTION_WARHEAD:
@@ -527,9 +553,11 @@ static int take_action(struct wire_reader *reader,
 		answer->maneuver_timer = take_u32(reader);
 		return reader->short_read ||
 		       (answer->maneuver_timer <= 0x7FFFFFFFu &&
-			view->board_phase == 0);
+			!ai_wire_engine_flies(view));
 	case AI_WIRE_ACTION_BOARD:
 		return take_board(reader, question, view, answer);
+	case AI_WIRE_ACTION_DROP_OFF:
+		return take_drop_off(reader, view, answer);
 	case AI_WIRE_ACTION_SELF_DESTRUCT:
 		answer->self_destruct_units = (uint8_t)take_u8(reader);
 		return reader->short_read ||
@@ -562,7 +590,12 @@ take_craft_answer(struct wire_reader *reader,
 	const unsigned int leaving =
 		1u << AI_WIRE_ACTION_DEPART | 1u << AI_WIRE_ACTION_DOCK;
 	const unsigned int board = 1u << AI_WIRE_ACTION_BOARD;
+	const unsigned int drop = 1u << AI_WIRE_ACTION_DROP_OFF;
 	if (!reader->short_read && (answer->actions & leaving) == leaving) {
+		return AI_WIRE_BAD_ACTION;
+	}
+	if (!reader->short_read && (answer->actions & drop) != 0 &&
+	    (answer->actions & (leaving | board)) != 0) {
 		return AI_WIRE_BAD_ACTION;
 	}
 	if (!reader->short_read && (answer->actions & board) != 0 &&

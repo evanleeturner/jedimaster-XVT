@@ -80,11 +80,9 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission bonus_complete_team)
     xvt_add_known_failure(test_mission bonus_failed_team)
     xvt_add_known_failure(test_mission player_hit_not_attacked)
-    xvt_add_known_failure(test_mission dropoff_group_past_table)
     xvt_add_known_failure(test_mission expired_team_goal_score)
     xvt_add_known_failure(test_mission round_spent_without_mothership)
     xvt_add_known_failure(test_mission missile_boat_second_launcher)
-    xvt_add_known_failure(test_mission delivery_resets_rounds)
     xvt_add_known_failure(test_mission attacker_weight_zero)
     xvt_add_known_failure(test_mission tie_third_order_code)
     xvt_add_known_failure(test_mission tie_header_kept)
@@ -374,6 +372,16 @@ if(NOT MSVC)
         "LINKER:--wrap=msg_emit_craft_message"
         "LINKER:--wrap=msg_emit_in_flight_message")
     add_test(NAME ai_boarding COMMAND test_ai_boarding)
+endif()
+# The drop of a computer craft on a Drop Off order and its books: the push to each place, the arrival of
+# the delivered group, the wait, the end; src/xvt/flight/ai_dropoff.c.
+# The linker hands the test its own mission_start_flight_group_arrival, which counts the arrivals the real
+# one would spawn craft for (not under MSVC).
+if(NOT MSVC)
+    xvt_add_engine_test(test_ai_dropoff test_ai_dropoff.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_dropoff.c" "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_books.c")
+    target_link_options(test_ai_dropoff PRIVATE
+        "LINKER:--wrap=mission_start_flight_group_arrival")
+    add_test(NAME ai_dropoff COMMAND test_ai_dropoff)
 endif()
 # A player's commands to a computer craft in its view, and the evade command taken up:
 # src/xvt/flight/ai_commands.c.

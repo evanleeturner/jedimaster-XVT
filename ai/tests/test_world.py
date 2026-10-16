@@ -173,3 +173,21 @@ def test_dock_names_default_to_nothing() -> None:
     assert VIEW.lifetime_timer == 0
     assert VIEW.order_first_pair_mask == 0
     assert Books.CAPTURED == 0x20000
+
+
+def test_drop_names_default_to_nothing() -> None:
+    """Until the engine sends them (wire version 18): no drop point, no drop
+    running, the three Drop Off books and the three new activities."""
+    from conftest import VIEW
+
+    from jedimaster_ai.world import Activity
+    from jedimaster_ai.world import Books
+
+    assert VIEW.drop_point == (0, 0, 0)
+    assert VIEW.drop_phase == 0
+    assert Books.DROP_POINT == 0x40000
+    assert Books.AT_DROP_POINT == 0x80000
+    assert Books.ALL_DROPPED == 0x100000
+    assert Activity.DEPLOYING_CRAFT == 16
+    assert Activity.SELF_DESTRUCTING == 17
+    assert Activity.KAMIKAZE_ATTACK == 18

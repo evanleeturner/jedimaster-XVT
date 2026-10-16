@@ -1297,17 +1297,25 @@ static void check_uncaptured_special_cargo_mark(void)
 	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].team_uncaptured_lost[1], 1);
 }
 
-/* Known failure dropoff_group_past_table, issue #124: a destroyed craft
+/* Issue #124, dropoff_group_past_table: a destroyed craft
  * closes the group its drop-off order delivers, named in variable2 plus 1.
  * Group 0's first order is a drop-off naming group 49 of a mission with 2;
  * mission_close_unavailable_flight_group_accounting is called for index 48,
- * past the 48 group records, and the sanitizer stops the program on the
- * write. Nothing outside the mission's groups should be touched. */
+ * past the 48 group records, and the sanitizer stopped the program on the
+ * write. Nothing outside the mission's groups is touched. */
 static void check_dropoff_naming_missing_group(void)
 {
 	fresh_world();
 	g_mission_flight_groups[0].fg.orders[0].order = MISSION_ORDER_DROP_OFF;
 	g_mission_flight_groups[0].fg.orders[0].variable2 = 49;
+	place_craft(0, 0, 0);
+	mission_record_craft_outcome(0, 0, FLIGHT_GROUP_OUTCOME_DESTROYED);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].has_arrived, 0);
+	/* A group number of 0 names no group either (index 65535 once 1 is
+	 * taken off): the warning stays and nothing is closed. */
+	fresh_world();
+	g_mission_flight_groups[0].fg.orders[0].order = MISSION_ORDER_DROP_OFF;
+	g_mission_flight_groups[0].fg.orders[0].variable2 = 0;
 	place_craft(0, 0, 0);
 	mission_record_craft_outcome(0, 0, FLIGHT_GROUP_OUTCOME_DESTROYED);
 	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].has_arrived, 0);
@@ -1376,11 +1384,12 @@ static void check_missile_boat_launchers_counted(void)
 			  without + 16 * each);
 }
 
-/* Known failure delivery_resets_rounds, issue #136: mission.h gives
+/* Issue #136, delivery_resets_rounds: mission.h gives
  * waves_remaining as the rounds still to come. Group 0 has arrived, its 6
  * craft (2 craft, 2 extra rounds) all came, and no rounds are left. A drop-off
- * delivers each craft through mission_start_flight_group_arrival, and the
- * next delivery sets the rounds back to 2, rounds no craft is left for. */
+ * delivers each craft through mission_start_flight_group_arrival, and a
+ * later delivery must not set the rounds back to 2, rounds no craft is left
+ * for. */
 static void check_delivery_keeps_rounds(void)
 {
 	fresh_world();
@@ -12231,15 +12240,12 @@ int main(int argc, char **argv)
 			{"bonus_failed_team", check_bonus_failed_for_team},
 			{"player_hit_not_attacked",
 			 check_player_hit_counts_as_attacked},
-			{"dropoff_group_past_table",
-			 check_dropoff_naming_missing_group},
 			{"expired_team_goal_score",
 			 check_expired_team_goal_pays_nothing},
 			{"round_spent_without_mothership",
 			 check_round_kept_without_mothership},
 			{"missile_boat_second_launcher",
 			 check_missile_boat_launchers_counted},
-			{"delivery_resets_rounds", check_delivery_keeps_rounds},
 			{"attacker_weight_zero",
 			 check_kill_credit_weightless_attacker},
 			{"tie_third_order_code", check_tie_third_order},
@@ -12300,6 +12306,8 @@ int main(int argc, char **argv)
 	check_outcome_untouched_craft();
 	check_outcome_touched_craft();
 	check_uncaptured_special_cargo_mark();
+	check_dropoff_naming_missing_group();
+	check_delivery_keeps_rounds();
 	check_outcome_departures();
 	check_outcome_closes_arrivals();
 	check_outcome_moves_dependents();

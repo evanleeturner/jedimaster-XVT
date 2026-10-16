@@ -230,3 +230,21 @@ def test_stopped_orders_match() -> None:
     ).group(1)
     names = re.findall(r"case MISSION_ORDER_(\w+):", body)
     assert {OrderCode[name] for name in names} == arrival.STOPPED_ORDERS
+
+
+def test_the_largest_answer_is_the_board_of_the_four_that_never_share() -> None:
+    """The engine's answer maximum counts one of depart, dock, board and drop
+    off, never two; the board's three bytes are the most of them."""
+
+    def size(**changes: object) -> int:
+        answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), Actions(**changes)),))
+        return len(wire.answer_bytes(answer)) - wire.HEAD_BYTES
+
+    sizes = {
+        "depart": size(depart=True),
+        "dock": size(dock=True),
+        "board": size(board=7),
+        "drop_off": size(drop_off=1),
+    }
+    assert max(sizes, key=sizes.get) == "board"
+    assert sizes["drop_off"] == sizes["depart"] + 1

@@ -3779,7 +3779,8 @@ int16_t mission_object_matches_trigger_variable(uint16_t object_idx,
  * closed with mission_close_unavailable_flight_group_accounting, groups that
  * depart through it move their mothership-dependent counts to lost with
  * mothership, and the group named by any of its orders whose plan is
- * "dropoffldr1pln" is closed; on left-region those counts move to left
+ * "dropoffldr1pln" is closed, unless its variable2 names no group of the
+ * mission (it warns instead); on left-region those counts move to left
  * region. Last, it clears the craft from every craft's last_attacker_obj_idx and
  * every player's target_preset_slot. Does not check that the object has a
  * craft. */
@@ -4081,9 +4082,14 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 							(int)g_mission_header
 								.num_flight_groups);
 					}
-					mission_close_unavailable_flight_group_accounting(
-						(uint16_t)(order->variable2 -
-							   1));
+					if (order->variable2 != 0 &&
+					    order->variable2 <=
+						    g_mission_header
+							    .num_flight_groups) {
+						mission_close_unavailable_flight_group_accounting(
+							(uint16_t)(order->variable2 -
+								   1));
+					}
 				}
 				++order;
 			} while (--orders_remaining != 0);
@@ -8691,11 +8697,14 @@ void mission_init_flight_runtime_state(void)
 }
 
 /* Brings in flight group g_current_flight_group_idx and sets its has_arrived to 1.
- * A craft type without the static flag (0x80) sets waves_remaining to
- * number_of_waves and spawns the first round with
- * mission_spawn_flight_group_wave_craft(craft_ordinal); a static type sets
- * waves_remaining to number_of_waves in a melee mission, else 0, and is placed
- * with mission_spawn_flight_group_static_objects. Always returns 1. */
+ * A craft type without the static flag (0x80) spawns the craft
+ * with mission_spawn_flight_group_wave_craft(craft_ordinal); a static type is
+ * placed with mission_spawn_flight_group_static_objects. Only the group's
+ * first arrival (has_arrived 0 before the call) sets waves_remaining: to
+ * number_of_waves for a craft type, and for a static type in a melee mission,
+ * else 0. A later call, such as one delivery of a drop-off, leaves the rounds
+ * as they stand (the 1997 code set them again on each delivery, rounds no craft
+ * was left for). Always returns 1. */
 // FUNCTION: XVT 0x455600
 int16_t mission_start_flight_group_arrival(uint16_t craft_ordinal)
 {
@@ -8703,14 +8712,18 @@ int16_t mission_start_flight_group_arrival(uint16_t craft_ordinal)
 
 	uint16_t flight_group_index = g_current_flight_group_idx;
 
+	const int first_arrival =
+		g_mission_fg_stats[flight_group_index].has_arrived == 0;
 	g_mission_fg_stats[flight_group_index].has_arrived = 1;
 	uint8_t object_type = g_craft_type_to_object_type
 		[g_mission_flight_groups[flight_group_index].fg.craft_type];
 	if ((g_object_type_table[object_type].behavior_flags &
 	     STATIC_MODEL_FLAG) == 0) {
-		g_mission_fg_stats[flight_group_index].waves_remaining =
-			g_mission_flight_groups[flight_group_index]
-				.fg.number_of_waves;
+		if (first_arrival) {
+			g_mission_fg_stats[flight_group_index].waves_remaining =
+				g_mission_flight_groups[flight_group_index]
+					.fg.number_of_waves;
+		}
 		mission_spawn_flight_group_wave_craft(craft_ordinal);
 		if (g_flight_sim_side_effects_suppressed == 0) {
 			XVT_LOG_INFO(
@@ -8735,12 +8748,15 @@ int16_t mission_start_flight_group_arrival(uint16_t craft_ordinal)
 		return 1;
 	}
 
-	if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
-		g_mission_fg_stats[flight_group_index].waves_remaining =
-			g_mission_flight_groups[flight_group_index]
-				.fg.number_of_waves;
-	} else {
-		g_mission_fg_stats[flight_group_index].waves_remaining = 0;
+	if (first_arrival) {
+		if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
+			g_mission_fg_stats[flight_group_index].waves_remaining =
+				g_mission_flight_groups[flight_group_index]
+					.fg.number_of_waves;
+		} else {
+			g_mission_fg_stats[flight_group_index].waves_remaining =
+				0;
+		}
 	}
 	mission_spawn_flight_group_static_objects(craft_ordinal);
 	if (g_flight_sim_side_effects_suppressed == 0) {

@@ -16,6 +16,7 @@
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai_brain.h"
+#include "xvt/flight/ai_dropoff.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
@@ -105,6 +106,11 @@ enum {
 	BOOKS_DOCK_UP_FALLBACK = 0x7000,
 	BOOKS_BOARD_POINT_RANGE = 2048,
 	BOOKS_READY_MESSAGE_SLOTS = 10,
+	/* A Drop Off's drop point is slot 0 of the delivered group raised by
+	 * this in Z, and the carrier is at it when its rough polar distance is
+	 * below the range, which does not let 2,048 itself in. */
+	BOOKS_DROP_POINT_RAISE = 932,
+	BOOKS_DROP_POINT_RANGE = 2048,
 };
 
 static struct craft_data *books_craft(uint16_t object_index)
@@ -1269,6 +1275,83 @@ uint32_t ai_books_board_bits(uint16_t object_index,
 	return AI_WIRE_BOOKS_BOARD_POINT | AI_WIRE_BOOKS_AT_BOARD_POINT;
 }
 
+/* A delivered group's total the 8-bit counters cannot reach. */
+enum { BOOKS_DROP_COUNTER_MAX = 255 };
+
+/* Groups whose over-large total was already warned of, a bit for each; only
+ * the log line reads it. */
+static uint64_t books_drop_total_warned;
+
+uint32_t ai_books_drop_bits(uint16_t object_index, uint8_t drop_phase,
+			    int32_t point[AI_WIRE_POINT_AXES])
+{
+	const struct object_record *object = &g_object_table[object_index];
+	const struct craft_data *craft = books_craft(object_index);
+	const struct ai_controller *controller = &craft->ai_controller;
+	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
+		point[axis] = 0;
+	}
+	if (mission_current_order_code(object_index) !=
+	    MISSION_ORDER_DROP_OFF) {
+		return 0;
+	}
+	const unsigned int variable2 =
+		books_group(object_index)
+			->fg.orders[controller->current_order_slot]
+			.variable2;
+	const int in_mission =
+		variable2 >= 1 &&
+		(int)variable2 <= g_mission_header.num_flight_groups;
+	if (!in_mission) {
+		return drop_phase == 0 ? AI_WIRE_BOOKS_ALL_DROPPED : 0;
+	}
+	const uint16_t group = (uint16_t)(variable2 - 1);
+	const unsigned int total =
+		g_mission_fg_stats[group]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL];
+	const unsigned int delivered =
+		controller->order_progress
+			.goal_progress[controller->current_order_slot];
+	const int arrived =
+		g_mission_fg_stats[group]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED] != 0;
+	uint32_t bits = 0;
+	if (delivered >= total) {
+		bits |= AI_WIRE_BOOKS_ALL_DROPPED;
+	}
+	if (total > BOOKS_DROP_COUNTER_MAX) {
+		if (drop_phase == 0) {
+			bits |= AI_WIRE_BOOKS_ALL_DROPPED;
+		}
+		if (g_flight_sim_side_effects_suppressed == 0 && group < 64 &&
+		    (books_drop_total_warned & ((uint64_t)1 << group)) == 0) {
+			books_drop_total_warned |= (uint64_t)1 << group;
+			XVT_LOG_WARN(
+				"ai.dropoff_total_too_big object=%d group=%d total=%u max=%d",
+				(int)object_index, (int)group, total,
+				BOOKS_DROP_COUNTER_MAX);
+		}
+		return bits;
+	}
+	if (drop_phase == 0 && arrived) {
+		bits |= AI_WIRE_BOOKS_ALL_DROPPED;
+	}
+	if (delivered >= total || craft->leader_obj_idx != UINT8_MAX) {
+		return bits;
+	}
+	mission_resolve_formation_slot_world_loc(group, 0, UINT16_MAX);
+	point[0] = g_world_loc_x;
+	point[1] = g_world_loc_y;
+	point[2] = g_world_loc_z + BOOKS_DROP_POINT_RAISE;
+	bits |= AI_WIRE_BOOKS_DROP_POINT;
+	trig2_ctop(point[0] - object->world_x, point[1] - object->world_y,
+		   point[2] - object->world_z);
+	if (trig2_polardistance < BOOKS_DROP_POINT_RANGE && !arrived) {
+		bits |= AI_WIRE_BOOKS_AT_DROP_POINT;
+	}
+	return bits;
+}
+
 /* Writes what a boarder sees: the board point and the books' two bits for the
  * craft's AI target (ai_books_board_bits), asking a moving player's craft to
  * stop; each order slot's goal progress; and the signatures it has docked
@@ -1301,6 +1384,8 @@ static void books_view_boarding(uint16_t object_index,
 	if (craft->captured_by_flight_group != 0) {
 		view->books |= AI_WIRE_BOOKS_CAPTURED;
 	}
+	view->books |= ai_books_drop_bits(
+		object_index, ai_dropoff_phase(object_index), view->drop_point);
 }
 
 void ai_books_view_craft(uint16_t object_index, struct ai_wire_craft_view *view)

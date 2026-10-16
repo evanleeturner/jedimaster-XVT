@@ -17,6 +17,7 @@
 #include "xvt/flight/ai_books.h"
 #include "xvt/flight/ai_commands.h"
 #include "xvt/flight/ai_countermeasures.h"
+#include "xvt/flight/ai_dropoff.h"
 #include "xvt/flight/ai_formation.h"
 #include "xvt/flight/ai_warheads.h"
 #include "xvt/flight/ai_waypoints.h"
@@ -90,6 +91,9 @@ const uint8_t g_ai_activity_status_message_id[AI_ACTIVITY_COUNT] = {
 		IFMSG_171_LOOKING_FOR_CRAFT_TO_CAPTURE,
 	[AI_ACTIVITY_LOOKING_TO_PICK_UP] =
 		IFMSG_172_LOOKING_FOR_CRAFT_TO_PICK_UP,
+	[AI_ACTIVITY_DEPLOYING_CRAFT] = IFMSG_189_DEPLOYING_CRAFT,
+	[AI_ACTIVITY_SELF_DESTRUCTING] = IFMSG_190_SELF_DESTRUCTING,
+	[AI_ACTIVITY_KAMIKAZE_ATTACK] = IFMSG_191_KAMIKAZE_ATTACK,
 };
 
 /* Readies the pilots for a new flight. Nothing to ready until the pilot
@@ -574,6 +578,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 			? 0
 			: (uint32_t)craft->ai_controller.maneuver_timer;
 	view->board_phase = ai_boarding_phase(object_index);
+	view->drop_phase = ai_dropoff_phase(object_index);
 	view->lifetime_timer = object->mobj->lifetime_timer;
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
@@ -771,17 +776,19 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	int was_arriving =
 		controller->activity == AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE;
 	memcpy(craft->ai_notebook, answer->notebook, sizeof craft->ai_notebook);
-	/* While the engine docks the craft it alone steers and sets the
-	 * throttle. */
-	const int docking = ai_boarding_phase(answer->object_index) !=
-			    AI_BOARDING_PHASE_NONE;
+	/* While the engine docks or drops the craft it alone steers and sets
+	 * the throttle (ai_wire_engine_flies, from the live craft). */
+	const int engine_flies =
+		ai_boarding_phase(answer->object_index) !=
+			AI_BOARDING_PHASE_NONE ||
+		ai_dropoff_phase(answer->object_index) != AI_DROPOFF_PHASE_NONE;
 	if ((answer->actions & (1u << AI_WIRE_ACTION_STEER)) != 0 &&
 	    craft->object_kind != CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE &&
-	    !docking) {
+	    !engine_flies) {
 		ai_brain_apply_steer(craft, answer);
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_THROTTLE)) != 0 &&
-	    !docking) {
+	    !engine_flies) {
 		craft->throttle_speed = answer->throttle;
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_ACTIVITY)) != 0) {
@@ -839,7 +846,15 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 			ai_boarding_start(object_index, answer->board_object);
 		}
 	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_DROP_OFF)) != 0) {
+		if (answer->drop_off == 0) {
+			ai_dropoff_stop(object_index);
+		} else {
+			ai_dropoff_start(object_index);
+		}
+	}
 	ai_boarding_sync_mode(object_index);
+	ai_dropoff_sync_mode(object_index);
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d timer=%d predicted=%d",
 		(int)answer->object_index, answer->actions,
@@ -1026,6 +1041,7 @@ void ai_brain_think_due_craft(void)
 			continue;
 		}
 		ai_boarding_step(object_index);
+		ai_dropoff_step(object_index);
 		ai_brain_view_craft(object_index, &batch,
 				    &batch.views[batch.count]);
 		++batch.count;

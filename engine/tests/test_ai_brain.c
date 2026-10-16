@@ -38,16 +38,19 @@ enum {
 			    AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where what a boarder sees starts, the 44 bytes before the notebook:
+	/* Where what a boarder sees starts, the 57 bytes before the notebook:
 	 * board point 12, order progress 4, boarded count 1, boarded 20, dock
-	 * phase 1, lifetime timer 2, order first pair mask 4. */
-	VIEW_BOARD_POINT = VIEW_NOTEBOOK - 44,
+	 * phase 1, lifetime timer 2, order first pair mask 4, drop point 12,
+	 * drop phase 1. */
+	VIEW_BOARD_POINT = VIEW_NOTEBOOK - 57,
 	VIEW_ORDER_PROGRESS = VIEW_BOARD_POINT + 12,
 	VIEW_BOARDED_COUNT = VIEW_ORDER_PROGRESS + 4,
 	VIEW_BOARDED = VIEW_BOARDED_COUNT + 1,
 	VIEW_BOARD_PHASE = VIEW_BOARDED + 20,
 	VIEW_LIFETIME = VIEW_BOARD_PHASE + 1,
 	VIEW_FIRST_PAIR = VIEW_LIFETIME + 2,
+	VIEW_DROP_POINT = VIEW_FIRST_PAIR + 4,
+	VIEW_DROP_PHASE = VIEW_DROP_POINT + 12,
 	/* Where its escorted craft starts, the 35 bytes before those:
 	 * escorted 2, station 12, start point 12, targets now 1, static target
 	 * mask 8. */
@@ -1706,7 +1709,8 @@ static void check_contact_boarder(void)
 	XVT_ASSERT_INT_EQ(get_u16(first + 86), 5);
 }
 
-/* The status line of each looking activity, and of a disabled craft. */
+/* The status line of each looking activity, of a disabled craft, and of the
+ * three the pilot program sets for Drop Off, Self Destruct and Kamikaze. */
 static void check_activity_status_lines(void)
 {
 	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[13],
@@ -1719,7 +1723,16 @@ static void check_activity_status_lines(void)
 			  IFMSG_176_AWAITING_BOARDING);
 	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[AI_ACTIVITY_BOARDING],
 			  IFMSG_173_DOCKING);
-	XVT_ASSERT_INT_EQ(AI_ACTIVITY_COUNT, 16);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[16],
+			  IFMSG_189_DEPLOYING_CRAFT);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[17],
+			  IFMSG_190_SELF_DESTRUCTING);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[18],
+			  IFMSG_191_KAMIKAZE_ATTACK);
+	XVT_ASSERT_INT_EQ(AI_ACTIVITY_DEPLOYING_CRAFT, 16);
+	XVT_ASSERT_INT_EQ(AI_ACTIVITY_SELF_DESTRUCTING, 17);
+	XVT_ASSERT_INT_EQ(AI_ACTIVITY_KAMIKAZE_ATTACK, 18);
+	XVT_ASSERT_INT_EQ(AI_ACTIVITY_COUNT, 19);
 }
 
 /* The self destruct action sets the lifetime timer of a craft whose timer
@@ -2070,6 +2083,94 @@ static void check_board_action(void)
 			  AI_MANEUVER_MODE_NULL);
 }
 
+/* Slot 1 on Drop Off of group 2 (two craft to deliver), 1,000 east of the
+ * origin, where the group's first place stands. */
+static struct craft_data *drop_world(void)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	g_mission_header.num_flight_groups = 4;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].order =
+		MISSION_ORDER_DROP_OFF;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].variable2 = 2;
+	g_mission_fg_stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
+	g_mission_fg_stats[1].current_mission_point_ref = 0x8000;
+	g_mission_fg_stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED] = 0;
+	g_model_bounds_cached[g_craft_type_to_object_type[0]] = 1;
+	g_model_bounds_cached[5] = 1;
+	craft->throttle_speed = 0x8000;
+	/* Within 2,048 of the drop point and far from the place itself. */
+	g_test_objects[1].world_x = 1000;
+	return craft;
+}
+
+/* The drop off action starts the drop: throttle 0, phase push, mode DROPOFF
+ * (with the books showing the craft at its drop point). The drop then steps
+ * on each think before the view is built, so the next question shows its
+ * phase; while it drops the steer and the throttle are not applied and the
+ * maneuver timer and a target are refused with the whole answer; a drop off
+ * of 0 stops it. */
+static void check_drop_off_action(void)
+{
+	struct craft_data *craft = drop_world();
+	static const uint8_t start[] = {AI_WIRE_ACTION_DROP_OFF, 1};
+	answer_slot_one(start, sizeof start, 1);
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(view[VIEW_DROP_PHASE], 0);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_DROP_POINT + 8), 932);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_DROPOFF);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_phase, 1);
+	XVT_ASSERT_INT_EQ(craft->throttle_speed, 0);
+	/* Steer and throttle while it drops: the notebook is kept, the heading
+	 * and throttle are not set. */
+	static const uint8_t steer_throttle[] = {
+		AI_WIRE_ACTION_STEER,	 0x11, 0x11, 0x00, 0x50, 0x22, 0x22,
+		AI_WIRE_ACTION_THROTTLE, 0x00, 0x80};
+	answer_slot_one(steer_throttle, sizeof steer_throttle, 2);
+	view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(view[VIEW_DROP_PHASE], 1);
+	XVT_ASSERT_INT_EQ(craft->ai_notebook[0], 0x30);
+	/* The heading is the drop's own, toward the place, not the 0x1111 the
+	 * answer asked for, and the drop's step pushed the carrier 1,000 back
+	 * to the place at the origin. */
+	XVT_ASSERT_TRUE(craft->ai_controller.target_xy_angle != 0x1111);
+	XVT_ASSERT_INT_EQ(craft->push_accum_x, -1000);
+	XVT_ASSERT_INT_EQ(craft->throttle_speed, 0);
+	/* The maneuver timer and a target while it drops are refused, each
+	 * with the notebook of its answer. */
+	craft->ai_notebook[0] = 0;
+	static const uint8_t timer[] = {AI_WIRE_ACTION_MANEUVER_TIMER, 9, 0, 0,
+					0};
+	answer_slot_one(timer, sizeof timer, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_notebook[0], 0);
+	static const uint8_t target[] = {AI_WIRE_ACTION_TARGET, 0xFF, 0xFF};
+	answer_slot_one(target, sizeof target, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_notebook[0], 0);
+	/* A drop off of 0 stops it, keeping the places delivered. */
+	craft->ai_controller.waypoint_index = 1;
+	static const uint8_t stop[] = {AI_WIRE_ACTION_DROP_OFF, 0};
+	answer_slot_one(stop, sizeof stop, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_NULL);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_phase, 0);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.waypoint_index, 1);
+	/* A mode left at DROPOFF with no drop is cleared by the answer's sync. */
+	craft->ai_controller.maneuver_mode = AI_MANEUVER_MODE_DROPOFF;
+	craft->ai_controller.maneuver_phase = 0;
+	static const uint8_t nothing[] = {AI_WIRE_ACTION_THINK_INTERVAL, 9, 0};
+	answer_slot_one(nothing, sizeof nothing, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_NULL);
+	/* The activity DEPLOYING_CRAFT is accepted and kept. */
+	static const uint8_t deploying[] = {AI_WIRE_ACTION_ACTIVITY,
+					    AI_ACTIVITY_DEPLOYING_CRAFT};
+	answer_slot_one(deploying, sizeof deploying, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.activity,
+			  AI_ACTIVITY_DEPLOYING_CRAFT);
+}
+
 int main(void)
 {
 	check_stat_level();
@@ -2106,6 +2207,7 @@ int main(void)
 	check_view_lifetime_and_phase();
 	check_order_targets_match_object();
 	check_board_action();
+	check_drop_off_action();
 	check_pair_joins();
 	check_second_target_type();
 	check_no_board_without_the_action();

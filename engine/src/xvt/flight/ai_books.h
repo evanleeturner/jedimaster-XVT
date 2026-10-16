@@ -60,6 +60,21 @@ uint32_t ai_books_board_bits(uint16_t object_index,
 			     int32_t point[AI_WIRE_POINT_AXES],
 			     uint16_t *ask_target);
 
+/* What the craft's drop point is: the books' DROP_POINT, AT_DROP_POINT and
+ * ALL_DROPPED bits for a craft whose current order is Drop Off, and the drop
+ * point (slot 0 of the delivered group, 932 above it; 0, 0, 0 without
+ * DROP_POINT). drop_phase is the craft's drop phase (ai_dropoff_phase). The
+ * group is variable2 minus 1; its delivered count is the order slot's goal
+ * progress, its total the group's outcome_count[TOTAL]. DROP_POINT: the group
+ * is one of the mission's, delivered is below the total (at most 255, the
+ * counters are 8 bits) and the craft has no leader. AT_DROP_POINT: DROP_POINT,
+ * rough polar distance to the point below 2,048 and no ARRIVED outcome for the
+ * group. ALL_DROPPED: delivered is at least the total; or, with no drop
+ * running, the group is not one of the mission's, has an ARRIVED outcome, or
+ * has a total past 255 (a WARN, once for each group). Changes nothing else. */
+uint32_t ai_books_drop_bits(uint16_t object_index, uint8_t drop_phase,
+			    int32_t point[AI_WIRE_POINT_AXES]);
+
 /* The order action: the craft works on slot from now, and the slot it worked
  * on takes completion state state when state is not 0; a move to slot 3 marks
  * it skipped to order 4, and its orders are marked done when every order of
