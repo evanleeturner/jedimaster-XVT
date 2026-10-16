@@ -391,6 +391,12 @@ class Contact:
     its ``object_kind``, ``speed``, shields, hull, ``activity`` and
     warheads read 0, its ``target``, ``last_attacker`` and ``hit_by``
     NO_OBJECT. Its ``object_index`` is its slot in the object table.
+
+    ``box_min`` and ``box_max`` are the smallest and largest corners of the
+    box around the craft type's model, as (x, y, z) in the model's own
+    axes (x to the side, y backward, z up), and ``roll`` its roll angle,
+    65,536 to a full turn: the engine sends them from wire version 15, and
+    they read (0, 0, 0) and 0 before it.
     """
 
     object_index: int
@@ -418,6 +424,9 @@ class Contact:
     warheads_coming: int
     warheads_coming_damage: int
     hit_by: int = NO_OBJECT
+    box_min: tuple[int, int, int] = (0, 0, 0)
+    box_max: tuple[int, int, int] = (0, 0, 0)
+    roll: int = 0
 
     @property
     def player_flown(self) -> bool:

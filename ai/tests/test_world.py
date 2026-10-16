@@ -110,3 +110,12 @@ def test_new_view_and_question_names_default_to_nothing() -> None:
 
 def test_the_static_flag_is_a_contact_flag() -> None:
     assert ContactFlags.STATIC == 8
+
+
+def test_a_contact_without_a_box_reads_no_box_and_no_roll() -> None:
+    """The defaults lane code reads as "no box, use the centre": all zeros."""
+    from conftest import CONTACT
+
+    assert CONTACT.box_min == (0, 0, 0)
+    assert CONTACT.box_max == (0, 0, 0)
+    assert CONTACT.roll == 0

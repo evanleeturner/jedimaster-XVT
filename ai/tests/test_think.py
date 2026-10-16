@@ -255,7 +255,20 @@ def test_debug_records_who_last_shot_a_contact(view, contact, caplog) -> None:
     caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
     think(Question(1000, (view(),), (contact(hit_by=17), contact(hit_by=65535))))
     lines = [line for line in caplog.text.splitlines() if "think.contact" in line]
-    assert [line.rsplit(" ", 1)[1] for line in lines] == ["hit_by=17", "hit_by=65535"]
+    assert [line.split(" hit_by=")[1].split(" ")[0] for line in lines] == [
+        "17",
+        "65535",
+    ]
+
+
+def test_debug_records_a_contacts_model_box_and_roll(view, contact, caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    boxed = contact(box_min=(-3, -4, -5), box_max=(6, 7, 8), roll=0xC000)
+    think(Question(1000, (view(),), (boxed,)))
+    (line,) = [line for line in caplog.text.splitlines() if "think.contact" in line]
+    assert line.endswith(
+        "min_x=-3 min_y=-4 min_z=-5 max_x=6 max_y=7 max_z=8 roll=49152"
+    )
 
 
 def test_debug_records_the_timer_evaded_and_ion_actions(caplog) -> None:

@@ -174,6 +174,9 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	*at++ = contact->warheads_coming;
 	at = put_u32(at, contact->warheads_coming_damage);
 	at = put_u16(at, contact->hit_by);
+	at = put_point(at, contact->box_min);
+	at = put_point(at, contact->box_max);
+	at = put_u16(at, contact->roll);
 	return at;
 }
 

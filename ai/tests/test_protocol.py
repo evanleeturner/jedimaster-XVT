@@ -185,9 +185,8 @@ def test_craft_view_fields_match() -> None:
 
 def test_contact_fields_match() -> None:
     members = c_struct("ai_wire_contact")
-    assert [(name, code) for name, code, _ in members] == list(wire.CONTACT_LAYOUT)
-    assert {count for _, _, count in members} == {1}
-    assert [name for name, _ in wire.CONTACT_LAYOUT] == [
+    assert members == list(wire.CONTACT_LAYOUT)
+    assert [name for name, _, _ in wire.CONTACT_LAYOUT] == [
         field.name for field in dataclasses.fields(Contact)
     ]
 

@@ -395,12 +395,11 @@ every capital ship, at every level.
 ## Open AI issues
 
 <!-- ai-issues:start -->
-On 2026-10-16 (UTC) the label `ai` was on 43 open issues and 8 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
+On 2026-10-16 (UTC) the label `ai` was on 40 open issues and 11 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
 
 - [#2](https://github.com/evanleeturner/jedimaster-XVT/issues/2): Research: enemy pilots that fight as a pack
 - [#3](https://github.com/evanleeturner/jedimaster-XVT/issues/3): Research: "Jev", a language-model commander for the enemy side
 - [#44](https://github.com/evanleeturner/jedimaster-XVT/issues/44): paiorder_waitgootherorder looks up plan names by mission order code instead of plan id
-- [#45](https://github.com/evanleeturner/jedimaster-XVT/issues/45): Escort AI tests object 255 instead of the escorted craft before holding station
 - [#46](https://github.com/evanleeturner/jedimaster-XVT/issues/46): Speed-away weave stores a negated push in an unsigned 16-bit value, giving a huge +Z push
 - [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47): Boarding approach never uses full throttle because a half-throttle store overwrites it
 - [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48): Drop-off maneuver passes 255 as 'no basis craft' where the formation code expects 0xFFFF
@@ -422,7 +421,6 @@ On 2026-10-16 (UTC) the label `ai` was on 43 open issues and 8 closed ones. This
 - [#182](https://github.com/evanleeturner/jedimaster-XVT/issues/182): A second flare chases the same warhead as the first, because the "already chased" count tests the wrong shot's type
 - [#187](https://github.com/evanleeturner/jedimaster-XVT/issues/187): A flight group's AI level and craft type, and an OPT hardpoint's type, index fixed tables unchecked
 - [#203](https://github.com/evanleeturner/jedimaster-XVT/issues/203): A reload craft restores a player's damaged cockpit displays only on that player's own machine, so the machines' world states differ
-- [#204](https://github.com/evanleeturner/jedimaster-XVT/issues/204): An escort order's station number is used unchecked as an index into the 28-entry station tables
 - [#206](https://github.com/evanleeturner/jedimaster-XVT/issues/206): A craft boarded to be destroyed gets the boarding's 15-to-30-second self-destruct delay only when it already has a countdown running
 - [#207](https://github.com/evanleeturner/jedimaster-XVT/issues/207): The AI plan loader trusts its files: sizes, word lengths and plan names are not checked, and a load that gives no plans is not noticed
 - [#208](https://github.com/evanleeturner/jedimaster-XVT/issues/208): Modern build: the AI plan text reader keeps the carriage return of a CR LF line end, so such a plan text does not compile
@@ -434,7 +432,6 @@ On 2026-10-16 (UTC) the label `ai` was on 43 open issues and 8 closed ones. This
 - [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296): Craft launched from a hangar form up on their leader before flying their order
 - [#297](https://github.com/evanleeturner/jedimaster-XVT/issues/297): Below about 31 frames a second, unlocked timing slows six mission timers: arrivals, goal checks and messages come late
 - [#298](https://github.com/evanleeturner/jedimaster-XVT/issues/298): Host aborted once with heap corruption in a network game (free(): corrupted unsorted chunks); a replay did not crash
-- [#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299): Computer-flown craft never fire missiles or torpedoes
 - [#300](https://github.com/evanleeturner/jedimaster-XVT/issues/300): Mines never fire
 - [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301): Shift+B resupply is always refused
 - [#302](https://github.com/evanleeturner/jedimaster-XVT/issues/302): Lowest-tier computer pilots never get in firing range of a Star Destroyer
@@ -452,16 +449,16 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 51 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits that changed the pilot program | 52 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
 | Commits whose title starts with `AI:` (the game engine's side too) | 63 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 6,828 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 10,028 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 603 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Lines of Python in the pilot program | 6,862 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 10,195 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 612 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 18 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
 | Mission order codes that have a written behavior | 24 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
 | Kinds of line the pilot program writes to its log | 52 | the entries in `ai/jedimaster_ai/events.json` |
-| Lines of C in the engine's computer-pilot code | 5,164 in 21 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
-| Test files and checks for that engine code | 10 files, 106 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
+| Lines of C in the engine's computer-pilot code | 5,224 in 21 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
+| Test files and checks for that engine code | 11 files, 108 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 13 | the `check_order_...` functions in `engine/tests/test_flight.c` |
 | Lines of the 1997 pilot code that were deleted | 14,608 in 9 files | `engine/src/xvt/flight/ai/` just before commit `7d2a109` |
 <!-- ai-numbers:end -->

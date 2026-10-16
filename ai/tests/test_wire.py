@@ -68,6 +68,8 @@ DISTINCT_CONTACT = Contact(
     0x4241, 0x4443, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4E4D4C4B, 0x5251504F,
     -4, 0x5453, 0x5655, 0x5857, 0x5A59, 0x5C5B, -5, 0x605F5E5D, 0x64636261,
     0x68676665, 0x69, 0x6D6C6B6A, 0x6E, 0x7271706F, 0x7473,
+    box_min=(-6, 0x78777675, 0x7C7B7A79), box_max=(-7, 0x7F7E7D7C, 0x7B7A7978),
+    roll=0x8180,
 )  # fmt: skip
 # static_with_distinct_bytes in the C test: the contact's bytes, a static's
 # object index and flag.
@@ -116,7 +118,10 @@ def plain_view(index: int, **changes: object) -> CraftView:
 
 def plain_contact(index: int) -> Contact:
     """Return a contact of object index, every other field 0."""
-    return Contact(index, *([0] * (len(wire.CONTACT_LAYOUT) - 1)))
+    fields = {
+        name: (0,) * count if count > 1 else 0 for name, _, count in wire.CONTACT_LAYOUT
+    }
+    return Contact(**{**fields, "object_index": index})
 
 
 # The C test's g_question: craft 7 with two cannon groups, launcher 0 ready,
@@ -530,6 +535,20 @@ def test_a_question_carries_the_timer_and_the_shooter(view, contact) -> None:
     read = wire.read_question(wire.question_bytes(question)[wire.LENGTH.size :])
     assert read.craft[0].maneuver_timer == 1180
     assert [found.hit_by for found in read.contacts] == [9, NO_OBJECT]
+
+
+def test_a_question_carries_the_model_box_and_the_roll(contact) -> None:
+    boxed = contact(
+        box_min=(-3000, -162468, -7), box_max=(9000, 165215, 12), roll=0xC000
+    )
+    question = Question(1, (), (boxed,), (dataclasses.replace(boxed, roll=0x2000),))
+    message = wire.question_bytes(question)
+    assert len(message) == 4 + wire.HEADER.size + 2 * (4 + 86)
+    read = wire.read_question(message[wire.LENGTH.size :])
+    assert read == question
+    assert read.contacts[0].box_min == (-3000, -162468, -7)
+    assert read.contacts[0].box_max == (9000, 165215, 12)
+    assert (read.contacts[0].roll, read.statics[0].roll) == (0xC000, 0x2000)
 
 
 def test_a_question_reads_what_wire_14_adds_as_absent(view, contact) -> None:

@@ -81,9 +81,14 @@
  * strength, u8 activity (an AI_ACTIVITY_ value), u32 size (the longest side
  * of the box around the craft type's model, in world units), u8 warheads
  * coming (the homing warheads in flight at it, at most 255) u32
- * warheads coming damage (their damage summed) and u16 hit by (the object
+ * warheads coming damage (their damage summed), u16 hit by (the object
  * index of the craft that last hit it, 0xFFFF for none, or when that object
- * is not a craft in the active region).
+ * is not a craft in the active region), then the box around its object type's
+ * model: i32 x, i32 y, i32 z of the box's smallest corner and i32 x, i32 y,
+ * i32 z of its largest, in the model's own axes (x to the side, y backward,
+ * z up) and world units, each cut toward zero, all 0 when the type's bounds
+ * are not known or its model is empty; and u16 roll, the object's roll angle,
+ * 65,536 to a full turn.
  *
  * After the last contact: u16 static count, u16 zero, and one static per
  * static object that counts as a target, at most AI_WIRE_STATICS_MAX, in
@@ -92,7 +97,8 @@
  * fixed object with no craft record: its team is its flight group's, its
  * disabled flag is set once an ion hit took its working systems, and its
  * speed, shields, hull, activity and warhead fields are 0, its target, last attacker and hit by
- * 0xFFFF, its object kind 0. Its object index is its slot in the object
+ * 0xFFFF, its object kind 0; its box and roll are given as a craft's are. Its
+ * object index is its slot in the object
  * table, which no contact has.
  *
  * An answer (kind 2) holds one craft answer per craft, in the question's
@@ -155,7 +161,7 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 14,
+	AI_WIRE_VERSION = 15,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
@@ -167,7 +173,7 @@ enum ai_wire_constant {
 	AI_WIRE_POINT_AXES = 3,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
-	AI_WIRE_CONTACT_BYTES = 60,
+	AI_WIRE_CONTACT_BYTES = 86,
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
@@ -394,6 +400,9 @@ struct ai_wire_contact {
 	uint8_t warheads_coming;
 	uint32_t warheads_coming_damage;
 	uint16_t hit_by;
+	int32_t box_min[AI_WIRE_POINT_AXES];
+	int32_t box_max[AI_WIRE_POINT_AXES];
+	uint16_t roll;
 };
 
 /* One question: the craft due to think and every contact, at one tick. */

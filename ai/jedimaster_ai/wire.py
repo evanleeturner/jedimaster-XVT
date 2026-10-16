@@ -55,7 +55,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 14
+VERSION = 15
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -144,33 +144,38 @@ CRAFT_VIEW_BYTES = VIEW_FIELDS.size + NOTEBOOK_BYTES
 # The contact count and its zero.
 CONTACT_HEAD = struct.Struct("<HH")
 CONTACT_LAYOUT = (
-    ("object_index", "H"),
-    ("object_signature", "H"),
-    ("object_type", "B"),
-    ("genus", "B"),
-    ("team", "B"),
-    ("flight_group", "B"),
-    ("object_kind", "B"),
-    ("flags", "B"),
-    ("x", "i"),
-    ("y", "i"),
-    ("z", "i"),
-    ("yaw", "H"),
-    ("pitch", "H"),
-    ("speed", "H"),
-    ("target", "H"),
-    ("last_attacker", "H"),
-    ("front_shield", "i"),
-    ("rear_shield", "i"),
-    ("hull_damage", "I"),
-    ("hull_strength", "I"),
-    ("activity", "B"),
-    ("size", "I"),
-    ("warheads_coming", "B"),
-    ("warheads_coming_damage", "I"),
-    ("hit_by", "H"),
+    ("object_index", "H", 1),
+    ("object_signature", "H", 1),
+    ("object_type", "B", 1),
+    ("genus", "B", 1),
+    ("team", "B", 1),
+    ("flight_group", "B", 1),
+    ("object_kind", "B", 1),
+    ("flags", "B", 1),
+    ("x", "i", 1),
+    ("y", "i", 1),
+    ("z", "i", 1),
+    ("yaw", "H", 1),
+    ("pitch", "H", 1),
+    ("speed", "H", 1),
+    ("target", "H", 1),
+    ("last_attacker", "H", 1),
+    ("front_shield", "i", 1),
+    ("rear_shield", "i", 1),
+    ("hull_damage", "I", 1),
+    ("hull_strength", "I", 1),
+    ("activity", "B", 1),
+    ("size", "I", 1),
+    ("warheads_coming", "B", 1),
+    ("warheads_coming_damage", "I", 1),
+    ("hit_by", "H", 1),
+    ("box_min", "i", 3),
+    ("box_max", "i", 3),
+    ("roll", "H", 1),
 )
-CONTACT_FIELDS = struct.Struct("<" + "".join(code for _, code in CONTACT_LAYOUT))
+CONTACT_FIELDS = struct.Struct(
+    "<" + "".join(code * count for _, code, count in CONTACT_LAYOUT)
+)
 U8 = struct.Struct("<B")
 U16 = struct.Struct("<H")
 STEER = struct.Struct("<HHH")
@@ -238,21 +243,37 @@ def _read_header(body: bytes, kind: int) -> tuple[int, int]:
     return tick, count
 
 
-def _view_from(values: tuple[int, ...], notebook: bytes) -> CraftView:
+def _fields_from(
+    layout: tuple[tuple[str, str, int], ...], values: tuple[int, ...]
+) -> dict[str, t.Any]:
+    """Return the layout's fields from its flat values; a count over 1 is a tuple."""
     fields: dict[str, t.Any] = {}
     at = 0
-    for name, _, count in VIEW_LAYOUT:
+    for name, _, count in layout:
         fields[name] = values[at] if count == 1 else tuple(values[at : at + count])
         at += count
-    return CraftView(**fields, notebook=notebook)
+    return fields
+
+
+def _values_of(layout: tuple[tuple[str, str, int], ...], record: t.Any) -> list[int]:
+    """Return the record's fields as the layout's flat values."""
+    values: list[int] = []
+    for name, _, count in layout:
+        value = getattr(record, name)
+        values.extend(value if count > 1 else (value,))
+    return values
+
+
+def _view_from(values: tuple[int, ...], notebook: bytes) -> CraftView:
+    return CraftView(**_fields_from(VIEW_LAYOUT, values), notebook=notebook)
 
 
 def _view_values(view: CraftView) -> list[int]:
-    values: list[int] = []
-    for name, _, count in VIEW_LAYOUT:
-        value = getattr(view, name)
-        values.extend(value if count > 1 else (value,))
-    return values
+    return _values_of(VIEW_LAYOUT, view)
+
+
+def _contact_from(values: tuple[int, ...]) -> Contact:
+    return Contact(**_fields_from(CONTACT_LAYOUT, values))
 
 
 def read_question(body: bytes) -> Question:
@@ -289,11 +310,11 @@ def read_question(body: bytes) -> Question:
         notebook = body[offset + VIEW_FIELDS.size : offset + CRAFT_VIEW_BYTES]
         craft.append(_view_from(VIEW_FIELDS.unpack_from(body, offset), notebook))
     contacts = tuple(
-        Contact(*CONTACT_FIELDS.unpack_from(body, offset))
+        _contact_from(CONTACT_FIELDS.unpack_from(body, offset))
         for offset in range(contacts_at, contacts_end, CONTACT_FIELDS.size)
     )
     statics = tuple(
-        Contact(*CONTACT_FIELDS.unpack_from(body, offset))
+        _contact_from(CONTACT_FIELDS.unpack_from(body, offset))
         for offset in range(statics_at, expected, CONTACT_FIELDS.size)
     )
     return Question(tick, tuple(craft), contacts, statics)
@@ -311,14 +332,10 @@ def question_bytes(question: Question) -> bytes:
         body += view.notebook
     body += CONTACT_HEAD.pack(len(question.contacts), 0)
     for contact in question.contacts:
-        body += CONTACT_FIELDS.pack(
-            *(getattr(contact, name) for name, _ in CONTACT_LAYOUT)
-        )
+        body += CONTACT_FIELDS.pack(*_values_of(CONTACT_LAYOUT, contact))
     body += CONTACT_HEAD.pack(len(question.statics), 0)
     for contact in question.statics:
-        body += CONTACT_FIELDS.pack(
-            *(getattr(contact, name) for name, _ in CONTACT_LAYOUT)
-        )
+        body += CONTACT_FIELDS.pack(*_values_of(CONTACT_LAYOUT, contact))
     return LENGTH.pack(len(body)) + bytes(body)
 
 

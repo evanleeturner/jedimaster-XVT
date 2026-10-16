@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "test_assert.h"
+#include "xvt/assets/model_bounds.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai_brain.h"
@@ -423,7 +424,7 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ(get_u32(contact + 54), 0);
 	/* Never hit by any team, so no shooter. */
 	XVT_ASSERT_INT_EQ(get_u16(contact + 58), UINT16_MAX);
-	XVT_ASSERT_INT_EQ(AI_WIRE_CONTACT_BYTES, 60);
+	XVT_ASSERT_INT_EQ(AI_WIRE_CONTACT_BYTES, 86);
 	g_object_type_table[0x21].max_bounds_extent = saved_size;
 	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
 }
@@ -1070,8 +1071,8 @@ static void check_view_lock_and_warheads_coming(void)
 	const uint8_t *contact =
 		view + AI_WIRE_CRAFT_VIEW_BYTES + AI_WIRE_CONTACT_HEAD_BYTES;
 	XVT_ASSERT_INT_EQ(get_u16(contact), 1);
-	XVT_ASSERT_INT_EQ(contact[AI_WIRE_CONTACT_BYTES - 7], 1);
-	XVT_ASSERT_INT_EQ(get_u32(contact + AI_WIRE_CONTACT_BYTES - 6), 3225);
+	XVT_ASSERT_INT_EQ(contact[53], 1);
+	XVT_ASSERT_INT_EQ(get_u32(contact + 54), 3225);
 }
 
 /* The contacts' flags and shooter, from the craft records. The active
@@ -1134,7 +1135,7 @@ static void check_view_contact_flags_and_shooter(void)
 		const uint8_t *found = head + AI_WIRE_CONTACT_HEAD_BYTES +
 				       contact * AI_WIRE_CONTACT_BYTES;
 		XVT_ASSERT_INT_EQ(found[9], expected[contact].flags);
-		XVT_ASSERT_INT_EQ(get_u16(found + AI_WIRE_CONTACT_BYTES - 2),
+		XVT_ASSERT_INT_EQ(get_u16(found + 58),
 				  expected[contact].hit_by);
 	}
 }
@@ -1395,6 +1396,147 @@ static void check_statics(void)
 	g_region_static_object_slot_count = 0;
 }
 
+/* The box round each contact's model and its roll. Type 0x31 has cached
+ * bounds with fractional and negative corners, which are cut toward zero;
+ * type 0x32 has values in the tables but is not cached; type 0x33 is cached
+ * with the empty model's corners; types 0x35, 0x36 and 0x37 are cached with
+ * only their z, x or y corners crossed; type 201 is past the tables. Each of
+ * those sends zeros. Type 0x38 is cached with its corners meeting on every
+ * axis, which is not empty and sends its box. A static sends its type's box and its roll as a
+ * craft does. */
+static void check_contact_box_and_roll(void)
+{
+	enum {
+		CACHED_TYPE = 0x31,
+		UNCACHED_TYPE = 0x32,
+		EMPTY_TYPE = 0x33,
+		CROSSED_Z_TYPE = 0x35,
+		CROSSED_X_TYPE = 0x36,
+		CROSSED_Y_TYPE = 0x37,
+		MEETING_TYPE = 0x38,
+		PAST_TABLE_TYPE = 201,
+		TYPE_COUNT = 8,
+		BOX = AI_WIRE_CONTACT_BYTES - 26,
+		FIRST_STATIC = 30,
+	};
+	static const int types[TYPE_COUNT] = {
+		CACHED_TYPE,	UNCACHED_TYPE,	EMPTY_TYPE,	PAST_TABLE_TYPE,
+		CROSSED_Z_TYPE, CROSSED_X_TYPE, CROSSED_Y_TYPE, MEETING_TYPE};
+	static const int32_t expected[TYPE_COUNT][6] = {
+		{-3000, -162468, -7, 9000, 165215, 12},
+		{0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0},
+		{7, -6, 5, 7, -6, 5}};
+	fresh_world();
+	g_active_region_craft_object_slot_end = TYPE_COUNT + 1;
+	for (int slot = 1; slot <= TYPE_COUNT; ++slot) {
+		due_craft(slot)->ai_controller.think_timer = 0;
+		g_test_objects[slot].object_type = (uint8_t)types[slot - 1];
+		g_test_objects[slot].roll = (uint16_t)(0xBEE0 + slot);
+	}
+	g_model_bounds_cached[CACHED_TYPE] = 1;
+	g_model_bounds_min[CACHED_TYPE] =
+		(struct opt_vector){-3000.9f, -162468.5f, -7.2f};
+	g_model_bounds_max[CACHED_TYPE] =
+		(struct opt_vector){9000.9f, 165215.5f, 12.7f};
+	g_model_bounds_min[UNCACHED_TYPE] =
+		(struct opt_vector){-1.0f, -2.0f, -3.0f};
+	g_model_bounds_max[UNCACHED_TYPE] =
+		(struct opt_vector){4.0f, 5.0f, 6.0f};
+	g_model_bounds_cached[EMPTY_TYPE] = 1;
+	g_model_bounds_min[EMPTY_TYPE] = (struct opt_vector){
+		1073741800.0f, 1073741800.0f, 1073741800.0f};
+	g_model_bounds_max[EMPTY_TYPE] = (struct opt_vector){
+		-1073741800.0f, -1073741800.0f, -1073741800.0f};
+	/* Only one pair of corners crossed each. */
+	g_model_bounds_cached[CROSSED_Z_TYPE] = 1;
+	g_model_bounds_min[CROSSED_Z_TYPE] =
+		(struct opt_vector){-5.0f, -5.0f, 8.0f};
+	g_model_bounds_max[CROSSED_Z_TYPE] =
+		(struct opt_vector){5.0f, 5.0f, 2.0f};
+	g_model_bounds_cached[CROSSED_X_TYPE] = 1;
+	g_model_bounds_min[CROSSED_X_TYPE] =
+		(struct opt_vector){8.0f, -5.0f, -5.0f};
+	g_model_bounds_max[CROSSED_X_TYPE] =
+		(struct opt_vector){2.0f, 5.0f, 5.0f};
+	g_model_bounds_cached[CROSSED_Y_TYPE] = 1;
+	g_model_bounds_min[CROSSED_Y_TYPE] =
+		(struct opt_vector){-5.0f, 8.0f, -5.0f};
+	g_model_bounds_max[CROSSED_Y_TYPE] =
+		(struct opt_vector){5.0f, 2.0f, 5.0f};
+	/* Corners that meet on every axis: a model of no size, which is not
+	 * empty. */
+	g_model_bounds_cached[MEETING_TYPE] = 1;
+	g_model_bounds_min[MEETING_TYPE] =
+		(struct opt_vector){7.0f, -6.0f, 5.0f};
+	g_model_bounds_max[MEETING_TYPE] =
+		(struct opt_vector){7.0f, -6.0f, 5.0f};
+	g_fake.echo = 1;
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *contact = g_fake.question[0] + AI_WIRE_HEAD_BYTES +
+				 TYPE_COUNT * AI_WIRE_CRAFT_VIEW_BYTES +
+				 AI_WIRE_CONTACT_HEAD_BYTES;
+	for (int index = 0; index < TYPE_COUNT; ++index) {
+		const uint8_t *found = contact + index * AI_WIRE_CONTACT_BYTES;
+		XVT_ASSERT_INT_EQ(get_u16(found), index + 1);
+		for (int value = 0; value < 6; ++value) {
+			XVT_ASSERT_INT_EQ(
+				(int32_t)get_u32(found + BOX + 4 * value),
+				expected[index][value]);
+		}
+		XVT_ASSERT_INT_EQ(get_u16(found + BOX + 24), 0xBEE1 + index);
+	}
+
+	/* A static: slot 30, of the cached type, with a roll. */
+	fresh_world();
+	g_region_main_object_slot_end = FIRST_STATIC;
+	g_region_static_object_slot_count = 1;
+	g_test_objects[FIRST_STATIC].mobj = NULL;
+	g_object_type_table[CACHED_TYPE].behavior_flags = 2;
+	g_test_objects[FIRST_STATIC] =
+		(struct object_record){.object_type = CACHED_TYPE,
+				       .roll = 0x1234,
+				       .flight_group_idx = 3,
+				       .type_specific_word = 1023};
+	struct mission_order *order =
+		&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	order->target1_type = 1;
+	order->target1 = 3;
+	order->target1_or_target2 = 1;
+	due_craft(1);
+	g_fake.echo = 1;
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
+			  ai_wire_question_bytes(1, 1, 1));
+	const uint8_t *object =
+		g_fake.question[0] + AI_WIRE_HEAD_BYTES +
+		AI_WIRE_CRAFT_VIEW_BYTES + AI_WIRE_CONTACT_HEAD_BYTES +
+		AI_WIRE_CONTACT_BYTES + AI_WIRE_CONTACT_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(object), FIRST_STATIC);
+	for (int value = 0; value < 6; ++value) {
+		XVT_ASSERT_INT_EQ((int32_t)get_u32(object + BOX + 4 * value),
+				  expected[0][value]);
+	}
+	XVT_ASSERT_INT_EQ(get_u16(object + BOX + 24), 0x1234);
+
+	for (int type = 0; type < TYPE_COUNT; ++type) {
+		g_model_bounds_cached[types[type]] = 0;
+	}
+	g_object_type_table[CACHED_TYPE].behavior_flags = 0;
+	g_region_main_object_slot_end = SLOT_COUNT;
+	g_region_static_object_slot_count = 0;
+}
+
 /* The escorted craft, station, start point and targets now reach the view
  * from the engine's books: a craft on an Escort order whose target is the
  * flight group of another craft, with its group arrived. */
@@ -1472,6 +1614,7 @@ int main(void)
 	check_maneuver_timer();
 	check_turret_ion();
 	check_statics();
+	check_contact_box_and_roll();
 	check_view_escort_start_and_targets_now();
 	ai_brain_set_exchange(NULL);
 	return 0;

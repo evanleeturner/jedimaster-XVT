@@ -195,8 +195,8 @@
     },
     "think.contact": {
       "level": "D",
-      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity", "size", "hit_by"],
-      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}; size {size}, last shot by {hit_by} (65535 for none)"
+      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity", "size", "hit_by", "min_x", "min_y", "min_z", "max_x", "max_y", "max_z", "roll"],
+      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}; size {size}, last shot by {hit_by} (65535 for none); model box from ({min_x}, {min_y}, {min_z}) to ({max_x}, {max_y}, {max_z}) in the model's own axes (all 0 for none), roll {roll}"
     },
     "think.question": {
       "level": "D",

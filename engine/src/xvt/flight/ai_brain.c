@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <string.h>
 
+#include "xvt/assets/model_bounds.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai_books.h"
@@ -94,6 +95,9 @@ enum {
 	 * region, CRAFT_SLOT_COUNT, so one question holds a mission's craft.
 	 * More craft due in one step are asked about in a further question. */
 	AI_BRAIN_QUESTION_CRAFT = 32,
+	/* The object types the model bounds tables hold; a u8 type can be past
+	 * them. */
+	AI_BRAIN_BOUNDS_TYPES = 201,
 	/* A weapon slot's projectile_type_id for a turret mount. */
 	AI_BRAIN_TURRET_PROJECTILE_TYPE = 2,
 	/* warhead_launcher_flags as laser_firewarheadsystem reads them: the
@@ -153,10 +157,52 @@ static uint16_t ai_brain_hit_by(const struct craft_data *craft)
 	return shooter;
 }
 
+/* The longest side of the object type's model box, the number the flight code
+ * takes as the craft's size; 0 for a type past the object type table. */
+static uint32_t ai_brain_view_size(uint8_t object_type)
+{
+	if (object_type >= AI_BRAIN_BOUNDS_TYPES) {
+		return 0;
+	}
+	return (uint32_t)g_object_type_table[object_type].max_bounds_extent;
+}
+
+/* Writes the box around the object type's model into the contact: the
+ * smallest and largest corners, each component cut toward zero, in the
+ * model's own axes. It reads the bounds table only for a type whose bounds are
+ * cached (the model loader fills them for each loaded model; this does not
+ * fill them), and sends 0, 0, 0 and 0, 0, 0 for a type past the table, a type
+ * not cached, and an empty model, whose smallest corner is above its largest. */
+static void ai_brain_view_box(uint8_t object_type,
+			      struct ai_wire_contact *contact)
+{
+	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
+		contact->box_min[axis] = 0;
+		contact->box_max[axis] = 0;
+	}
+	if (object_type >= AI_BRAIN_BOUNDS_TYPES ||
+	    g_model_bounds_cached[object_type] != 1) {
+		return;
+	}
+	const struct opt_vector *smallest = &g_model_bounds_min[object_type];
+	const struct opt_vector *largest = &g_model_bounds_max[object_type];
+	if (smallest->x > largest->x || smallest->y > largest->y ||
+	    smallest->z > largest->z) {
+		return;
+	}
+	contact->box_min[0] = (int32_t)smallest->x;
+	contact->box_min[1] = (int32_t)smallest->y;
+	contact->box_min[2] = (int32_t)smallest->z;
+	contact->box_max[0] = (int32_t)largest->x;
+	contact->box_max[1] = (int32_t)largest->y;
+	contact->box_max[2] = (int32_t)largest->z;
+}
+
 /* Writes what the pilot program is told about the object in object_index, a
  * craft in the active region: its target is its player's target when a
- * player flies it, else its AI target; its size is its object type's; the
- * homing warheads in flight at it come from ai_warheads_view_contact. */
+ * player flies it, else its AI target; its size is its object type's, and
+ * so is its box (ai_brain_view_box); its roll is the object's; the homing
+ * warheads in flight at it come from ai_warheads_view_contact. */
 static void ai_brain_view_contact(uint16_t object_index,
 				  struct ai_wire_contact *contact)
 {
@@ -189,6 +235,7 @@ static void ai_brain_view_contact(uint16_t object_index,
 	contact->z = object->world_z;
 	contact->yaw = object->yaw;
 	contact->pitch = craft->pitch;
+	contact->roll = object->roll;
 	contact->speed = object->mobj->speed;
 	contact->last_attacker = craft->last_attacker_obj_idx;
 	contact->front_shield = craft->shield_energy[0];
@@ -196,8 +243,8 @@ static void ai_brain_view_contact(uint16_t object_index,
 	contact->hull_damage = craft->hull_damage;
 	contact->hull_strength = craft->hull_max;
 	contact->activity = craft->ai_controller.activity;
-	contact->size = (uint32_t)g_object_type_table[object->object_type]
-				.max_bounds_extent;
+	contact->size = ai_brain_view_size(object->object_type);
+	ai_brain_view_box(object->object_type, contact);
 	ai_warheads_view_contact(object_index, contact);
 }
 
@@ -228,8 +275,8 @@ static void ai_brain_view_contacts(struct ai_brain_batch *batch)
  * and its flight group hold is given: the genus is its type's (0 is a
  * starfighter), the team is the group's, and the
  * disabled flag is set when the object's working-systems word is 0, after an
- * ion hit. The rest reads 0, and the target, last attacker and hit by read
- * UINT16_MAX. */
+ * ion hit. Its box (ai_brain_view_box) and roll are given as a craft's are. The
+ * rest reads 0, and the target, last attacker and hit by read UINT16_MAX. */
 static void ai_brain_view_static(uint16_t object_index,
 				 struct ai_wire_contact *contact)
 {
@@ -252,11 +299,12 @@ static void ai_brain_view_static(uint16_t object_index,
 	contact->z = object->world_z;
 	contact->yaw = object->yaw;
 	contact->pitch = object->pitch;
+	contact->roll = object->roll;
 	contact->target = UINT16_MAX;
 	contact->last_attacker = UINT16_MAX;
 	contact->hit_by = UINT16_MAX;
-	contact->size = (uint32_t)g_object_type_table[object->object_type]
-				.max_bounds_extent;
+	contact->size = ai_brain_view_size(object->object_type);
+	ai_brain_view_box(object->object_type, contact);
 }
 
 /* Fills the batch's statics: each static slot, in slot order, whose object

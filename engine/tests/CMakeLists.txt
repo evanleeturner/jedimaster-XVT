@@ -856,6 +856,14 @@ else()
     message(STATUS "Python 3 was not found; the AI program checks are not added as tests")
 endif()
 
+# The frame a model sits in, the axes and world points the flight code gives an object's yaw, pitch and
+# roll: src/xvt/flight/fview.c and flight_geometry.c. Its rows are the answer file the AI program's own
+# tests read, in the ai/ folder: run "test_ai_hull_frame --write PATH" to make it again.
+xvt_add_engine_test(test_ai_hull_frame test_ai_hull_frame.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight_geometry.c")
+target_compile_definitions(test_ai_hull_frame PRIVATE
+    XVT_HULL_FRAME_FILE="${XVT_TEST_AI_PROGRAM_DIR}/tests/data/hull_frame.txt")
+add_test(NAME ai_hull_frame COMMAND test_ai_hull_frame)
+
 # UBSan prints and carries on by default; a test must stop at the first report.
 # The timeout turns a hung test into a failure instead of a stalled run.
 get_property(XVT_TEST_NAMES DIRECTORY PROPERTY TESTS)

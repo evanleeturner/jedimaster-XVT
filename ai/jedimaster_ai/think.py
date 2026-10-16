@@ -96,7 +96,8 @@ def _log_contact(contact: Contact) -> None:
     logger.debug(
         "think.contact object=%d signature=%d type=%d genus=%d team=%d group=%d "
         "kind=%d flags=%d x=%d y=%d z=%d yaw=%d pitch=%d speed=%d target=%d "
-        "attacker=%d front=%d rear=%d hull_damage=%d hull=%d activity=%d size=%d hit_by=%d",
+        "attacker=%d front=%d rear=%d hull_damage=%d hull=%d activity=%d size=%d hit_by=%d "
+        "min_x=%d min_y=%d min_z=%d max_x=%d max_y=%d max_z=%d roll=%d",
         contact.object_index,
         contact.object_signature,
         contact.object_type,
@@ -120,6 +121,13 @@ def _log_contact(contact: Contact) -> None:
         contact.activity,
         contact.size,
         contact.hit_by,
+        contact.box_min[0],
+        contact.box_min[1],
+        contact.box_min[2],
+        contact.box_max[0],
+        contact.box_max[1],
+        contact.box_max[2],
+        contact.roll,
     )
 
 
