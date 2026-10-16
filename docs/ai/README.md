@@ -44,7 +44,7 @@ against the code.
 
 ## Fighting and dogfights
 
-The pilot program fights with cannons and guided warheads. A pilot picks the nearest craft its
+The pilot program fights with cannons and warheads, guided, or at skill level Jedi and up aimed ahead at big ships. A pilot picks the nearest craft its
 order names, turns toward it, waits for a good shot and fires in bursts.
 Better tiers wait for a tighter aim and look for a nearer target more
 often. The target-search timings follow the open-source game Starshatter
@@ -64,6 +64,7 @@ is in `ai/jedimaster_ai/behaviors/attack.py` and `ai/jedimaster_ai/tactics.py`.
 | Break off when too close: inside the target's clearance with the target within 45 degrees of the nose, or anywhere near a freighter, starship or platform. The craft turns a quarter turn away from the target's side and holds that heading until it is outside the clearance, for at most 1,000 ticks (4 seconds). The time limit stops a target that paces the craft from keeping it from firing. | Unknown | New | |
 | When a second big ship blocks the way out of a break, head away from both, climbing or diving as they lie. Fighters used to break away from one freighter straight into the next (`behaviors/attack.py`, `behaviors/avoidance.py`). | Unknown | New | |
 | Fire a guided warhead once the lock on the target is declared, lined up for the cannons or not. Concussion missiles go first at fighters, and the heaviest warhead first at freighters, starships and platforms. Space bombs, heavy rockets and type 154 never go at smaller craft; magnetic and ion pulses go only at smaller craft. A craft whose order names a big ship keeps its proton torpedoes for it. No shot while the homing warheads already flying at the target would destroy it, their damage divided by 16 at a starship or platform and by 4 at a freighter; a Disable order tests the target's shield instead (the Disable row below). At most 2 are in flight at a smaller craft and 16 at a big ship, and an attack run fires at most 1 at a smaller craft and 6 at a big ship. After a shot at a fighter or a transport, the lock must drop and be built again. One warhead at a time, never two together (`ai/jedimaster_ai/warheads.py`). | Fired only in a rocket attack, once the lock its tier needed was built (629 to 1,416 ticks). A warhead went only at targets of its class, so proton torpedoes and rockets went only at big ships. The same limit and caps. Two together at the top tier when hurt. | Changed | [#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299), [#305](https://github.com/evanleeturner/jedimaster-XVT/issues/305) |
+| At skill level Jedi and up (the Sith ranks too), a fighter-sized craft fires a warhead unguided at a freighter, starship or platform without waiting for its lock. It works out where the shot meets the target flying on, in two passes, and points its nose there while the shot is ready; it fires once its nose line passes within half the target's size of that point and the shot gets there before it burns out. The same limits and caps as a guided shot; a lock declared first is used instead, and a lock counted past a game second still makes the shot home a little (`ai/jedimaster_ai/warheads.py`). | Never: every warhead waited for a lock. | New | [#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299) |
 | Count a warhead lock on the craft's target by the player's rule: the same aim cone and lock range, chaff on the target taking half the time back, a full lock at 708 ticks (354 on a Missile Boat). The program is told the lock, each craft's skill level and the homing warheads already flying at each craft, and fires on the lock (row above; `engine/src/xvt/flight/ai_warheads.c`). | Computer craft counted a lock of their own, by skill tier. | Changed | [#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299) |
 | Your cockpit counts a computer craft as attacking you when its target is you, unless it is flying home to its mothership. Such a craft lights the attack light while its cannons are linked and the lock warning while its lock builds, and the E key picks it. The A key finds the craft attacking your target the same way. The warhead light of the craft you have targeted shows while it attacks anything. | The cockpit read the 1997 pilot's attack and warhead-run maneuvers. Since those pilots were removed, all of these stayed dark for computer craft. | Changed | [#304](https://github.com/evanleeturner/jedimaster-XVT/issues/304) |
 | Tier 0 craft never get inside firing range of a Star Destroyer: the range is 49,152 units (1.2 km), measured to its centre, and the craft starts to break off at its clearance of 53,143 units (1.3 km). No tier reaches a Super Star Destroyer. | Unknown | New (a side effect) | [#302](https://github.com/evanleeturner/jedimaster-XVT/issues/302) |
@@ -450,14 +451,14 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 45 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 58 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 6,519 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 9,120 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 555 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Commits that changed the pilot program | 46 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 59 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 6,676 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 9,573 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 580 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 18 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
 | Mission order codes that have a written behavior | 24 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
-| Kinds of line the pilot program writes to its log | 50 | the entries in `ai/jedimaster_ai/events.json` |
+| Kinds of line the pilot program writes to its log | 52 | the entries in `ai/jedimaster_ai/events.json` |
 | Lines of C in the engine's computer-pilot code | 4,764 in 21 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
 | Test files and checks for that engine code | 10 files, 97 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 13 | the `check_order_...` functions in `engine/tests/test_flight.c` |

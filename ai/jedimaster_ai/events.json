@@ -56,7 +56,7 @@
     "attack.warhead_held": {
       "level": "D",
       "fields": ["object", "target", "reason", "lock", "lock_state", "coming", "coming_damage", "shots"],
-      "text": "Craft {object} holds its warheads at craft {target} ({reason}: the first test that failed of kind, kept, launcher, lock, fresh, limit and caps), its lock at {lock} ticks in state {lock_state}, {coming} homing warheads with {coming_damage} damage already flying at the target; {shots} fired in this attack run"
+      "text": "Craft {object} holds its warheads at craft {target} ({reason}: the first test that failed of kind, kept, launcher, lock, fresh, limit, caps and aim), its lock at {lock} ticks in state {lock_state}, {coming} homing warheads with {coming_damage} damage already flying at the target; {shots} fired in this attack run"
     },
     "avoidance.steer": {
       "level": "D",
