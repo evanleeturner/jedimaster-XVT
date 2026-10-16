@@ -4,8 +4,9 @@
  * push, a dialog continuation run in place of the update, and the frame held
  * for an opened dialog or the network task; Update's pacing, the dialog that
  * updates alone, a quit result, and when a frame is presented; the wake delay;
- * the joystick polling interval and the CD task tick of ServiceFrameSystems;
- * and Shutdown before Init. The frontend runs on a display with no window
+ * the joystick polling interval, the CD task tick and when ServiceFrameSystems
+ * pumps packets, read through a DirectPlay interface that only counts its
+ * reads; and Shutdown before Init. The frontend runs on a display with no window
  * (test_frontend_display.h); presented frames are counted through Aeron's
  * classic frame serial, which rises once for each frame the frontend presents.
  * The test's own screens stand in for the game's. Init is never called, so the
@@ -326,6 +327,73 @@ static void check_service_frame_systems(void)
 	xvt_cd_task_cancel_fade();
 }
 
+static int g_receive_calls;
+
+/* Counts the pump's reads; there is never a message to hand over. */
+static HRESULT AERON_DXAPI counting_receive(IDirectPlay2A *self, DPID *from,
+					    DPID *to, uint32_t flags,
+					    void *data, uint32_t *size)
+{
+	(void)self;
+	(void)from;
+	(void)to;
+	(void)flags;
+	(void)data;
+	(void)size;
+	++g_receive_calls;
+	return DPERR_NOMESSAGES;
+}
+
+static IDirectPlay2AVtbl g_counting_vtbl = {.Receive = counting_receive};
+static IDirectPlay2A g_counting_direct_play = {&g_counting_vtbl};
+
+/* Runs ServiceFrameSystems once with the counting interface as the session's
+ * DirectPlay and returns how often the pump read from it. The interface is put
+ * in after any Begin, whose close of the previous session would call it. */
+static int frame_systems_pumps(void)
+{
+	g_receive_calls = 0;
+	g_front_state.net_direct_play = &g_counting_direct_play;
+	xvt_frontend_task_service_frame_systems();
+	g_front_state.net_direct_play = NULL;
+	return g_receive_calls;
+}
+
+static void check_frame_systems_pump(void)
+{
+	static const GUID game = {1, 2, 3, {4, 5, 6, 7, 8, 9, 10, 11}};
+
+	/* Packets are pumped with no session, and not while the network task
+	 * sets one up. */
+	fresh();
+	XVT_ASSERT_INT_EQ(frame_systems_pumps(), 1);
+	xvt_network_task_begin(XVT_NETWORK_HOST);
+	XVT_ASSERT_INT_EQ(xvt_network_task_is_active(), 1);
+	XVT_ASSERT_INT_EQ(frame_systems_pumps(), 0);
+
+	/* A session set up without the task or the door is pumped. */
+	fresh();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
+			  XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(frame_systems_pumps(), 1);
+
+	/* The door's session is not, while it is set up; it is again once a
+	 * close returns it to idle, and after a failed Begin. */
+	fresh();
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_use_door("http://plain.invalid", &game), 1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
+			  XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(xvt_network_session_door_is_opening(), 1);
+	XVT_ASSERT_INT_EQ(frame_systems_pumps(), 0);
+	xvt_network_session_on_close();
+	XVT_ASSERT_INT_EQ(frame_systems_pumps(), 1);
+	xvt_network_session_service();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host(NULL, "Luke", "", 0),
+			  0);
+	XVT_ASSERT_INT_EQ(frame_systems_pumps(), 1);
+}
+
 static void check_shutdown_before_init(void)
 {
 	static struct cutscene_entry table[1];
@@ -369,6 +437,7 @@ int main(void)
 	check_tick_runs_only_the_dialog();
 	check_wake_delay_takes_cd_sooner();
 	check_service_frame_systems();
+	check_frame_systems_pump();
 	check_shutdown_before_init();
 	check_quit();
 	xvt_dialog_shutdown();

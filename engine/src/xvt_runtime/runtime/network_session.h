@@ -45,6 +45,13 @@ int xvt_network_session_use_door(const char *lobby, const GUID *game);
 /* While the door is in use, marks whether its host's room takes joiners: the door's own wait for
  * its seats stands in for mission setup's screen. Ignored without the door. */
 void xvt_network_session_set_door_accepting(int accepting);
+/* 1 while the door is in use and its session is still being set up, from the close its Begin starts
+ * with through the handshake (join) or registration (host); 0 once in admission, established,
+ * failed or idle, and always 0 without the door. While it holds, the frame's packet pump stays off,
+ * as it does while the network task sets up a menu session: the setup reads its own packets, and a
+ * joiner's roster step empties the receive queue, which would drop the host's first packets if the
+ * pump had already taken them in. */
+int xvt_network_session_door_is_opening(void);
 /* Close the previous session, then advance setup through Update without blocking. */
 /* Starts hosting as player with rating info under name ("<player>'s Game." when empty), listed in
  * the directory when online. Returns -1 when started, and also, doing nothing, while another

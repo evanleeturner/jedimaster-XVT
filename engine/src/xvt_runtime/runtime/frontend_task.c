@@ -37,6 +37,7 @@
 #include "xvt_runtime/runtime/frontend_movies.h"
 #include "xvt_runtime/runtime/launch_task.h"
 #include "xvt_runtime/runtime/movie_task.h"
+#include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/network_task.h"
 #include "xvt_runtime/runtime/presentation.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
@@ -108,7 +109,10 @@ void xvt_frontend_task_service_frame_systems(void)
 		joystick_update_state(1);
 		g_next_joystick_poll_due_us = now + 100000;
 	}
-	if (!xvt_network_task_is_active()) {
+	/* A session being set up reads its own packets; pumping them here first
+	 * would let a joiner's roster step empty them from the queue. */
+	if (!xvt_network_task_is_active() &&
+	    !xvt_network_session_door_is_opening()) {
 		net_pump_incoming_packets();
 	}
 	xvt_cd_task_update();

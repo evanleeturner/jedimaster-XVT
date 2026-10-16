@@ -2,14 +2,17 @@
  * the promises in its header, as far as they hold without a peer or a
  * directory: the player-name split, the refusals of Configure and of the Begin
  * calls, the status a setup reports, the lost mark, a close and its completion,
- * Reset and Shutdown, and the door's directory standing in for the settings'
- * one. No setup is ticked past its first phase, so no DirectPlay
- * session or directory request is ever made. Every case starts from Shutdown
- * with no settings loaded.
+ * Reset and Shutdown, the door's directory standing in for the settings'
+ * one, and whether the door's session is being set up. Only one setup runs a
+ * step past its first phase: the last case's offline host for the door, whose
+ * whole setup runs in this process on DirectPlay's own session, with no peer
+ * and no directory request. Every case starts from Shutdown with no settings
+ * loaded.
  *
- * Not checked here: the setup phases past the close, admission, registration,
- * the listing Service keeps and the flight marks; they need a DirectPlay peer
- * and a multiplayer directory. */
+ * Not checked here: the other setup phases past the close (a join's and an
+ * online host's), admission, registration, the listing Service keeps and the
+ * flight marks; they need a DirectPlay peer and a multiplayer directory. So the
+ * door's setup is not seen ending at a joiner's admission. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -334,6 +337,93 @@ static void check_admission_outside_admission(void)
 	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
 }
 
+static int door_is_opening(void)
+{
+	return xvt_network_session_door_is_opening();
+}
+
+static void check_door_is_opening(void)
+{
+	/* Without the door no setup counts, from the close to the next phase. */
+	fresh();
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
+			  XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+	finish_close();
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+
+	/* With the door: not while idle; from the close a Begin starts with,
+	 * through its completion, into the next phase. */
+	fresh();
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_use_door("http://plain.invalid", &g_room),
+		1);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
+			  XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 1);
+	finish_close();
+	XVT_ASSERT_INT_EQ(door_is_opening(), 1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 1);
+
+	/* A close ends it: idle with the close pending. */
+	xvt_network_session_on_close();
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+	finish_close();
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+
+	/* So does a failure: a join the directory refuses the door's plain
+	 * http address, and a Begin with a missing argument. */
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_begin_join("\x02", "Luke", &g_room),
+		XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 1);
+	finish_close();
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), 0);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_FAILED);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host(NULL, "Luke", "", 0),
+			  0);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+
+	/* Shutdown forgets the door. */
+	xvt_network_session_shutdown();
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
+			  XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+}
+
+/* Runs last: it leaves DirectPlay created. */
+static void check_door_host_setup_to_established(void)
+{
+	fresh();
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_use_door("http://plain.invalid", &g_room),
+		1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host("\x02", "Luke", "", 0),
+			  XVT_NETWORK_PENDING);
+	finish_close();
+	/* The close, creating DirectPlay, opening, the player and the group
+	 * each move to the next phase, which is still setup. */
+	for (int step = 0; step < 5; ++step) {
+		XVT_ASSERT_INT_EQ(xvt_network_session_update(),
+				  XVT_NETWORK_PENDING);
+		XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
+		XVT_ASSERT_INT_EQ(door_is_opening(), 1);
+	}
+	/* The roster establishes the offline host, and the setup is over. */
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), XVT_NETWORK_PENDING);
+	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_ESTABLISHED);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_update(), 1);
+	XVT_ASSERT_INT_EQ(door_is_opening(), 0);
+}
+
 int main(void)
 {
 	check_copy_player_names();
@@ -346,6 +436,8 @@ int main(void)
 	check_close();
 	check_leave_keeps_shutdown_clears();
 	check_admission_outside_admission();
+	check_door_is_opening();
+	check_door_host_setup_to_established();
 	xvt_network_session_shutdown();
 	return 0;
 }

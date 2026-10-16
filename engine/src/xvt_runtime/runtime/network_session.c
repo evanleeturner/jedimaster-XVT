@@ -168,6 +168,15 @@ void xvt_network_session_set_door_accepting(int accepting)
 	}
 }
 
+/* The setup phases are the ones after IDLE and before ADMISSION, in the order
+ * the enum declares them. CLOSE counts: the network task is active from its
+ * Begin on, so a menu session's frame pump is off from CLOSE too. */
+int xvt_network_session_door_is_opening(void)
+{
+	return g_door.active && g_session.phase > SESSION_IDLE &&
+	       g_session.phase < SESSION_ADMISSION;
+}
+
 static const char *xvt_network_session_role(void)
 {
 	return g_session.host ? "host" : "join";

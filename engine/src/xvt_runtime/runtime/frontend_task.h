@@ -34,7 +34,8 @@ void xvt_frontend_task_update(void);
  * program. */
 int xvt_frontend_task_run_frame(void);
 /* Per host frame outside flight: polls both joysticks at most every 100 ms, pumps network packets
- * unless the network task is active, and updates the CD task. */
+ * unless the network task is active or the door's session is being set up (each setup reads its
+ * own packets; see xvt_network_session_door_is_opening), and updates the CD task. */
 void xvt_frontend_task_service_frame_systems(void);
 /* 1 once a frame returned 1 or 2 through Update. */
 int xvt_frontend_task_should_quit(void);
