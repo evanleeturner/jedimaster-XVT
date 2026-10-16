@@ -93,6 +93,10 @@ enum {
 	 * model's own. */
 	BOOKS_SPEED_STEP = 0x2000,
 	BOOKS_RECHARGE_EVEN = 6,
+	/* A group's start point is the mission point ref 0x8000 plus a point
+	 * index below the group's 22 points. */
+	BOOKS_START_POINT_REF = 0x8000,
+	BOOKS_MISSION_POINTS = 22,
 };
 
 static struct craft_data *books_craft(uint16_t object_index)
@@ -310,8 +314,8 @@ static int books_targets_match(uint16_t group, uint8_t first_type,
 
 /* Whether the order's target pair, 0 for targets 1 and 2 and 1 for targets 3
  * and 4, matches flight group group. */
-static int books_pair_matches(const struct mission_order *order, int pair,
-			      uint16_t group)
+int ai_books_pair_matches(const struct mission_order *order, int pair,
+			  uint16_t group)
 {
 	if (pair == 0) {
 		return books_targets_match(group, order->target1_type,
@@ -368,8 +372,8 @@ static int books_pair_has_target_now(uint16_t object_index,
 		const struct object_record *object = &g_object_table[slot];
 		if (object->object_type == 0 ||
 		    object->flight_group_idx == asking->flight_group_idx ||
-		    !books_pair_matches(order, pair,
-					object->flight_group_idx) ||
+		    !ai_books_pair_matches(order, pair,
+					   object->flight_group_idx) ||
 		    !books_target_counts(slot)) {
 			continue;
 		}
@@ -385,11 +389,9 @@ static int books_pair_has_target_now(uint16_t object_index,
 		  g_region_static_object_slot_count;
 	for (int slot = g_region_main_object_slot_end; slot < end; ++slot) {
 		const struct object_record *object = &g_object_table[slot];
-		if (object->object_type != 0 &&
-		    (g_object_type_table[object->object_type].behavior_flags &
-		     BOOKS_STATIC_TARGET_FLAG) != 0 &&
-		    books_pair_matches(order, pair, object->flight_group_idx) &&
-		    books_target_counts((uint16_t)slot)) {
+		if (ai_books_static_is_target((uint16_t)slot) &&
+		    ai_books_pair_matches(order, pair,
+					  object->flight_group_idx)) {
 			return 1;
 		}
 	}
@@ -408,8 +410,22 @@ static int books_pair_has_target_later(const struct mission_order *order,
 			&g_mission_fg_stats[group];
 		if ((stats->arrival_enabled != 0 ||
 		     g_mission_flight_groups[group].player_owner_idx != -1) &&
-		    books_pair_matches(order, pair, group) &&
+		    ai_books_pair_matches(order, pair, group) &&
 		    (stats->has_arrived == 0 || stats->waves_remaining != 0)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* Whether the order in slot has a target in the battle now in either of its
+ * target pairs: books_targets_left without the groups still to arrive. */
+static int books_slot_targets_now(uint16_t object_index, int slot)
+{
+	const struct mission_order *order =
+		&books_group(object_index)->fg.orders[slot];
+	for (int pair = 0; pair < BOOKS_TARGET_PAIRS; ++pair) {
+		if (books_pair_has_target_now(object_index, order, pair)) {
 			return 1;
 		}
 	}
@@ -1013,6 +1029,40 @@ static void books_view_orders(uint16_t object_index,
 		books |= AI_WIRE_BOOKS_ALL_RETURNED;
 	}
 	view->books = (uint16_t)books;
+	view->targets_now = 0;
+	for (int slot = 0; slot < BOOKS_ORDER_SLOTS; ++slot) {
+		if (books_slot_targets_now(object_index, slot)) {
+			view->targets_now |= (uint8_t)(1u << slot);
+		}
+	}
+}
+
+/* Writes the view's start point and its books bit: the world position of
+ * the mission point the craft's group arrived at, once the group has arrived
+ * and its start point reference names one of its points; else 0, 0, 0 and the
+ * bit clear. mission_init sets the reference once for every group, point 0 or
+ * a random enabled variant 1 to 3, and nothing changes it. */
+static void books_view_start_point(uint16_t object_index,
+				   struct ai_wire_craft_view *view)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	const uint16_t group = object->flight_group_idx;
+	unsigned int ref = g_mission_fg_stats[group].current_mission_point_ref;
+	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
+		view->start_point[axis] = 0;
+	}
+	view->books &= (uint16_t)~AI_WIRE_BOOKS_START_POINT;
+	if (g_mission_fg_stats[group].has_arrived == 0 ||
+	    ref < BOOKS_START_POINT_REF ||
+	    ref >= BOOKS_START_POINT_REF + BOOKS_MISSION_POINTS) {
+		return;
+	}
+	mission_resolve_object_or_mission_point_world_loc(BOOKS_START_POINT_REF,
+							  group);
+	view->start_point[0] = g_world_loc_x;
+	view->start_point[1] = g_world_loc_y;
+	view->start_point[2] = g_world_loc_z;
+	view->books |= AI_WIRE_BOOKS_START_POINT;
 }
 
 /* Writes the view's way home and adds its bits: how its group leaves; may
@@ -1096,6 +1146,16 @@ void ai_books_view_craft(uint16_t object_index, struct ai_wire_craft_view *view)
 	}
 	books_view_orders(object_index, view);
 	books_view_home(object_index, view);
+	books_view_start_point(object_index, view);
+}
+
+int ai_books_static_is_target(uint16_t object_index)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	return object->object_type != 0 &&
+	       (g_object_type_table[object->object_type].behavior_flags &
+		BOOKS_STATIC_TARGET_FLAG) != 0 &&
+	       books_target_counts(object_index);
 }
 
 void ai_books_apply_order(uint16_t object_index, uint8_t slot, uint8_t state)

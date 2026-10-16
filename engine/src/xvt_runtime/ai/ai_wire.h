@@ -60,9 +60,19 @@
  * state (an AI_WIRE_LOCK_ value), and u8 skill level (its AI rank, 0 to 7,
  * where skill gives levels 4 and 5 one value), and u32 maneuver timer (the
  * ticks left on the craft's maneuver timer, 0 when none); then the
- * notebook's AI_NOTEBOOK_BYTES. Then u16
- * contact count, u16 zero, and one contact per craft in the active region, at most
- * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
+ * craft it escorts and its station: u16 escorted (the object index of the
+ * craft it escorts, 0xFFFF for none), and i32 x, i32 y, i32 z of its station,
+ * the world position it keeps beside that craft, both given with the books'
+ * station bit (0xFFFF and 0, 0, 0 when not); then its group's start point:
+ * i32 x, i32 y, i32 z, the world position of the mission point the group
+ * arrived at, given with the books' start point bit (0 when not); then u8
+ * targets now (bit n, 0 to 2, set when the order in slot n has a target in the
+ * battle now, by the books' count of targets left without its later half; the
+ * count ignores range and capacity; bits 3 to 7 are 0), and u64 static target
+ * mask (bit n set when static n, in the statics after the contacts, matches
+ * the targets of the craft's order); then the notebook's AI_NOTEBOOK_BYTES.
+ * Then u16 contact count, u16 zero, and one contact per craft in the active
+ * region, at most AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
  * u8 object kind, u8 flags (AI_WIRE_CONTACT_ bits: a player flies it, none of its
  * subsystems work, a team has hit it), i32 x, i32 y, i32 z,
@@ -75,6 +85,16 @@
  * index of the craft that last hit it, 0xFFFF for none, or when that object
  * is not a craft in the active region).
  *
+ * After the last contact: u16 static count, u16 zero, and one static per
+ * static object that counts as a target, at most AI_WIRE_STATICS_MAX, in
+ * object slot order, each in the contact form (AI_WIRE_CONTACT_BYTES) with
+ * AI_WIRE_CONTACT_STATIC in its flags. A static is a buoy, mine or other
+ * fixed object with no craft record: its team is its flight group's, its
+ * disabled flag is set once an ion hit took its working systems, and its
+ * speed, shields, hull, activity and warhead fields are 0, its target, last attacker and hit by
+ * 0xFFFF, its object kind 0. Its object index is its slot in the object
+ * table, which no contact has.
+ *
  * An answer (kind 2) holds one craft answer per craft, in the question's
  * order: u16 object index, the new notebook, u8 action count, then each
  * action as a u8 kind and its fields:
@@ -83,7 +103,7 @@
  *   3 activity: u8, an AI_ACTIVITY_ value other than arriving from
  *     hyperspace and leaving a hangar, which the engine alone sets
  *   4 think interval: u16 ticks, 1 or more
- *   5 target: u16 object index, a contact's or 0xFFFF for none
+ *   5 target: u16 object index, a contact's or a static's, or 0xFFFF for none
  *   6 lasers: for cannon group 0 then 1, u8 link mode (0 holds fire, 1 to 3
  *     fire one cannon at a time, pairs, all) and u8 burst shots, 1 or more
  *     with a mode and 0 without; a group the view does not count holds 0, 0
@@ -135,12 +155,12 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 13,
+	AI_WIRE_VERSION = 14,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 313 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 348 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
@@ -151,6 +171,8 @@ enum ai_wire_constant {
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
+	/* The static object slots; the static target mask has a bit for each. */
+	AI_WIRE_STATICS_MAX = 64,
 	AI_WIRE_CANNON_GROUPS = 2,
 	AI_WIRE_WARHEAD_LAUNCHERS = 2,
 	/* Weapon slots a craft has, and so turrets one answer may aim. */
@@ -233,6 +255,10 @@ enum ai_wire_books {
 	AI_WIRE_BOOKS_PLACE = 0x400,
 	/* Every craft its mission asks it to bring home has returned. */
 	AI_WIRE_BOOKS_ALL_RETURNED = 0x800,
+	/* It escorts a craft, so its escorted craft and station are given. */
+	AI_WIRE_BOOKS_STATION = 0x1000,
+	/* Its group has arrived, so its start point is given. */
+	AI_WIRE_BOOKS_START_POINT = 0x2000,
 };
 
 /* A craft view's countermeasure, the engine's countermeasure type; the
@@ -249,6 +275,8 @@ enum ai_wire_contact_flag {
 	AI_WIRE_CONTACT_DISABLED = 0x02,
 	/* Some team has hit it. */
 	AI_WIRE_CONTACT_ATTACKED = 0x04,
+	/* A static object, not a craft; see the statics after the contacts. */
+	AI_WIRE_CONTACT_STATIC = 0x08,
 };
 
 /* A craft's lock state in its view, as a player's missile_lock_state: no
@@ -327,6 +355,11 @@ struct ai_wire_craft_view {
 	uint8_t lock_state;
 	uint8_t skill_level;
 	uint32_t maneuver_timer;
+	uint16_t escorted;
+	int32_t station[AI_WIRE_POINT_AXES];
+	int32_t start_point[AI_WIRE_POINT_AXES];
+	uint8_t targets_now;
+	uint64_t static_target_mask;
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -370,6 +403,8 @@ struct ai_wire_question {
 	const struct ai_wire_craft_view *craft;
 	int contact_count;
 	const struct ai_wire_contact *contacts;
+	int static_count;
+	const struct ai_wire_contact *statics;
 };
 
 /* One craft's answer as read. Bit (1 << kind) of actions is set for each
@@ -416,22 +451,24 @@ enum ai_wire_result {
 	/* An unknown action kind, a kind sent twice, an activity at or past
 	 * AI_ACTIVITY_COUNT or one the engine alone sets, a think interval of 0,
 	 * an arrival's arriving past 1 or speed past AI_WIRE_ARRIVAL_SPEED_MAX,
-	 * a target, cannon group, launcher or turret the question did not
-	 * show, an order the view does not allow, a depart or dock its books
+	 * a target the question did not show as a contact or a static, a
+	 * cannon group, launcher or turret it did not show, an order the view does not allow, a depart or dock its books
 	 * do not show, or both, a countermeasure the view does not show
 	 * ready, an evaded with no evade command shown, a turret ion past 1, or
 	 * a maneuver timer past 0x7FFFFFFF. */
 	AI_WIRE_BAD_ACTION,
 };
 
-/* Bytes in a question about craft_count craft with contact_count contacts,
- * the length field included. */
-size_t ai_wire_question_bytes(int craft_count, int contact_count);
+/* Bytes in a question about craft_count craft with contact_count contacts and
+ * static_count statics, the length field included. */
+size_t ai_wire_question_bytes(int craft_count, int contact_count,
+			      int static_count);
 
 /* Writes the question into out. Returns the bytes written,
  * ai_wire_question_bytes of its counts, or 0 and writes nothing when the
  * craft count is outside 0 to UINT16_MAX, the contact count outside 0 to
- * AI_WIRE_CONTACTS_MAX, or capacity is short. */
+ * AI_WIRE_CONTACTS_MAX, the static count outside 0 to AI_WIRE_STATICS_MAX, or
+ * capacity is short. */
 size_t ai_wire_write_question(uint8_t *out, size_t capacity,
 			      const struct ai_wire_question *question);
 

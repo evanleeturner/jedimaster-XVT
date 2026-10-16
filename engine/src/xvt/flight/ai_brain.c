@@ -106,12 +106,14 @@ enum {
 };
 
 /* The craft due to think that one question asks about, in slot order, and
- * the contacts every question of the step shows. */
+ * the contacts and statics every question of the step shows. */
 struct ai_brain_batch {
 	int count;
 	struct ai_wire_craft_view views[AI_BRAIN_QUESTION_CRAFT];
 	int contact_count;
 	struct ai_wire_contact contacts[AI_WIRE_CONTACTS_MAX];
+	int static_count;
+	struct ai_wire_contact statics[AI_WIRE_STATICS_MAX];
 };
 
 static ai_brain_exchange_fn g_ai_brain_exchange;
@@ -220,6 +222,62 @@ static void ai_brain_view_contacts(struct ai_brain_batch *batch)
 	}
 }
 
+/* Writes what the pilot program is told about the static object in
+ * object_index, a static slot whose type counts as an order target. A static
+ * has no mobile object and no craft record, so only what the object record
+ * and its flight group hold is given: the genus is its type's (0 is a
+ * starfighter), the team is the group's, and the
+ * disabled flag is set when the object's working-systems word is 0, after an
+ * ion hit. The rest reads 0, and the target, last attacker and hit by read
+ * UINT16_MAX. */
+static void ai_brain_view_static(uint16_t object_index,
+				 struct ai_wire_contact *contact)
+{
+	const struct object_record *object = &g_object_table[object_index];
+
+	memset(contact, 0, sizeof *contact);
+	contact->object_index = object_index;
+	contact->object_signature = object->object_signature;
+	contact->object_type = object->object_type;
+	contact->genus = g_object_type_table[object->object_type].genus_id;
+	contact->team =
+		g_mission_flight_groups[object->flight_group_idx].fg.team;
+	contact->flight_group = (uint8_t)object->flight_group_idx;
+	contact->flags = AI_WIRE_CONTACT_STATIC;
+	if (object->type_specific_word == 0) {
+		contact->flags |= AI_WIRE_CONTACT_DISABLED;
+	}
+	contact->x = object->world_x;
+	contact->y = object->world_y;
+	contact->z = object->world_z;
+	contact->yaw = object->yaw;
+	contact->pitch = object->pitch;
+	contact->target = UINT16_MAX;
+	contact->last_attacker = UINT16_MAX;
+	contact->hit_by = UINT16_MAX;
+	contact->size = (uint32_t)g_object_type_table[object->object_type]
+				.max_bounds_extent;
+}
+
+/* Fills the batch's statics: each static slot, in slot order, whose object
+ * counts as an order target (ai_books_static_is_target), at most
+ * AI_WIRE_STATICS_MAX. */
+static void ai_brain_view_statics(struct ai_brain_batch *batch)
+{
+	batch->static_count = 0;
+	const int end = g_region_main_object_slot_end +
+			g_region_static_object_slot_count;
+	for (int slot = g_region_main_object_slot_end;
+	     slot < end && batch->static_count < AI_WIRE_STATICS_MAX; ++slot) {
+		if (!ai_books_static_is_target((uint16_t)slot)) {
+			continue;
+		}
+		ai_brain_view_static((uint16_t)slot,
+				     &batch->statics[batch->static_count]);
+		++batch->static_count;
+	}
+}
+
 /* Whether the object matches the targets of the order in order_slot of the
  * flight group: targets 1 and 2, joined by "or" when target1_or_target2 is
  * 1, else by "and", or targets 3 and 4, joined the same way by
@@ -311,13 +369,16 @@ static void ai_brain_view_weapons(const struct craft_data *craft,
  * steering turns; the heading and
  * roll are the object's. Bit n of the order target mask is set when the
  * batch's contact n matches the targets of the craft's current order, and bit
- * n of the enemy mask when contact n is hostile to the craft. The leader is
+ * n of the enemy mask when contact n is hostile to the craft; bit n of the
+ * static target mask is set when the batch's static n matches them. The leader is
  * the craft's leader_obj_idx, 0xFFFF when it leads. Its countermeasures
  * and the homing shots aimed at it come from
  * ai_countermeasures_view_craft, its group's waypoints from
  * ai_waypoints_view_craft, a player's commands from
  * ai_commands_view_craft, its formation place from ai_formation_view_craft,
- * and its lock and skill level from ai_warheads_view_craft. */
+ * its escorted craft and station from ai_formation_view_escort, its start
+ * point and the orders with a target now from ai_books_view_craft, and its
+ * lock and skill level from ai_warheads_view_craft. */
 static void ai_brain_view_craft(uint16_t object_index,
 				const struct ai_brain_batch *batch,
 				struct ai_wire_craft_view *view)
@@ -348,6 +409,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 	view->random_seed = controller->saved_rand_seed;
 	view->order_target_mask = 0;
 	view->enemy_mask = 0;
+	view->static_target_mask = 0;
 	for (int contact = 0; contact < batch->contact_count; ++contact) {
 		if (ai_brain_order_targets_match(
 			    object->flight_group_idx,
@@ -360,6 +422,14 @@ static void ai_brain_view_craft(uint16_t object_index,
 			view->enemy_mask |= 1u << contact;
 		}
 	}
+	for (int target = 0; target < batch->static_count; ++target) {
+		if (ai_brain_order_targets_match(
+			    object->flight_group_idx,
+			    controller->current_order_slot,
+			    batch->statics[target].object_index)) {
+			view->static_target_mask |= (uint64_t)1 << target;
+		}
+	}
 	view->leader = craft->leader_obj_idx == UINT8_MAX
 			       ? UINT16_MAX
 			       : craft->leader_obj_idx;
@@ -368,6 +438,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 	ai_waypoints_view_craft(object_index, view);
 	ai_commands_view_craft(object_index, view);
 	ai_formation_view_craft(object_index, view);
+	ai_formation_view_escort(object_index, view);
 	ai_warheads_view_craft(object_index, view);
 	view->maneuver_timer =
 		craft->ai_controller.maneuver_timer < 0
@@ -619,15 +690,21 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
 		question[AI_WIRE_HEAD_BYTES +
 			 AI_BRAIN_QUESTION_CRAFT * AI_WIRE_CRAFT_VIEW_BYTES +
 			 AI_WIRE_CONTACT_HEAD_BYTES +
-			 AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES];
+			 AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES +
+			 AI_WIRE_CONTACT_HEAD_BYTES +
+			 AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES];
 	static uint8_t answer[AI_WIRE_HEAD_BYTES +
 			      AI_BRAIN_QUESTION_CRAFT *
 				      AI_WIRE_CRAFT_ANSWER_BYTES_MAX];
 	static struct ai_wire_craft_answer answers[AI_BRAIN_QUESTION_CRAFT];
 
-	const struct ai_wire_question asked = {tick, batch->count, batch->views,
+	const struct ai_wire_question asked = {tick,
+					       batch->count,
+					       batch->views,
 					       batch->contact_count,
-					       batch->contacts};
+					       batch->contacts,
+					       batch->static_count,
+					       batch->statics};
 	size_t question_length =
 		ai_wire_write_question(question, sizeof question, &asked);
 	size_t answer_length = g_ai_brain_exchange(question, question_length,
@@ -635,9 +712,9 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
 	enum ai_wire_result result =
 		ai_wire_read_answer(answer, answer_length, &asked, answers);
 	XVT_LOG_DEBUG(
-		"ai.think tick=%u craft=%d contacts=%d question_bytes=%d answer_bytes=%d predicted=%d",
+		"ai.think tick=%u craft=%d contacts=%d statics=%d question_bytes=%d answer_bytes=%d predicted=%d",
 		(unsigned)tick, batch->count, batch->contact_count,
-		(int)question_length, (int)answer_length,
+		batch->static_count, (int)question_length, (int)answer_length,
 		g_flight_sim_side_effects_suppressed);
 	if (result == AI_WIRE_OK) {
 		for (int index = 0; index < batch->count; ++index) {
@@ -757,6 +834,7 @@ void ai_brain_think_due_craft(void)
 	ai_books_finish_jumps();
 	ai_brain_name_lost_leaders();
 	ai_brain_view_contacts(&batch);
+	ai_brain_view_statics(&batch);
 	for (uint16_t object_index =
 		     (uint16_t)g_active_region_object_slot_start;
 	     object_index < g_active_region_craft_object_slot_end;

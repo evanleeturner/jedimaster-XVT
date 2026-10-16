@@ -58,6 +58,9 @@ DISTINCT = CraftView(
      0x28272625, -8), 0x29, 0x2B2A, 0x2D2C, (0x31302F2E, 0x35343332, -9),
     0x3736, 0x3938, 0x3A, 0x3B,
     maneuver_timer=0x3F3E3D3C,
+    escorted=0x4241, station=(0x46454443, 0x4A494847, -10),
+    start_point=(0x4E4D4C4B, 0x5251504F, -11), targets_now=0x07,
+    static_target_mask=0xA09F9E9D9C9B9A99,
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
@@ -66,6 +69,9 @@ DISTINCT_CONTACT = Contact(
     -4, 0x5453, 0x5655, 0x5857, 0x5A59, 0x5C5B, -5, 0x605F5E5D, 0x64636261,
     0x68676665, 0x69, 0x6D6C6B6A, 0x6E, 0x7271706F, 0x7473,
 )  # fmt: skip
+# static_with_distinct_bytes in the C test: the contact's bytes, a static's
+# object index and flag.
+DISTINCT_STATIC = dataclasses.replace(DISTINCT_CONTACT, object_index=0x7271, flags=0x08)
 
 
 def _c_bytes(text: str, name: str) -> bytes:
@@ -77,10 +83,17 @@ def engine_question_bytes() -> bytes:
     """Return the C test's expected question, its notebook bytes added."""
     text = C_TEST.read_text()
     head = _c_bytes(text, "expected")
-    return head + DISTINCT.notebook + _c_bytes(text, "expected_contacts")
+    return (
+        head
+        + DISTINCT.notebook
+        + _c_bytes(text, "expected_contacts")
+        + _c_bytes(text, "expected_statics")
+    )
 
 
-DISTINCT_QUESTION = Question(TEST_TICK, (DISTINCT,), (DISTINCT_CONTACT,))
+DISTINCT_QUESTION = Question(
+    TEST_TICK, (DISTINCT,), (DISTINCT_CONTACT,), (DISTINCT_STATIC,)
+)
 
 
 def test_reads_the_engines_question() -> None:
@@ -125,12 +138,14 @@ CRAFT_7 = plain_view(
     commands=Commands.EVADE,
 )
 CONTACTS = tuple(plain_contact(index) for index in (7, 9, 12))
+# Statics 40 and 41, which no contact is.
+STATICS = tuple(plain_contact(index) for index in (40, 41))
 
 
 def good_answer() -> tuple[Question, Answer]:
     """The C test's good answer: craft 7 sends every kind but depart, craft 9
     none."""
-    question = Question(TEST_TICK, (CRAFT_7, plain_view(9)), CONTACTS)
+    question = Question(TEST_TICK, (CRAFT_7, plain_view(9)), CONTACTS, STATICS)
     every = Actions(
         Steer(0x1234, 0x4000, 0xFFFF),
         0x8000,
@@ -214,8 +229,15 @@ def test_question_shorter_than_its_header_is_refused() -> None:
 def test_question_of_the_wrong_length_is_refused(cut: int) -> None:
     body = engine_question_bytes()[4:]
     body = body[:cut] if cut < 0 else body + b"\0"
-    with pytest.raises(wire.WireError, match="about 1 craft"):
+    with pytest.raises(wire.WireError, match="1 statics"):
         wire.read_question(body)
+
+
+def test_question_cut_inside_its_contacts_is_refused() -> None:
+    body = engine_question_bytes()[4:]
+    cut = wire.HEADER.size + wire.CRAFT_VIEW_BYTES + wire.CONTACT_HEAD.size + 10
+    with pytest.raises(wire.WireError, match="1 contacts"):
+        wire.read_question(body[:cut])
 
 
 def answer_with_actions(actions: bytes) -> bytes:
@@ -226,7 +248,7 @@ def answer_with_actions(actions: bytes) -> bytes:
 
 # Craft 7 as the C test's check_shown_faults sees it: cannon groups 0 and 1,
 # launcher 0, turrets in slots 3 and 5; contacts 7, 9 and 12.
-QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
+QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
 
 
 @pytest.mark.parametrize(
@@ -242,6 +264,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x02\x02\x01\x00", "ends inside a value"),
         (b"\x00\x00", "past its end"),
         (b"\x01\x05\x0b\x00", "target 11 is not a contact"),
+        (b"\x01\x05\x2a\x00", "target 42 is not a contact or a static"),
+        (b"\x01\x08\x01\x03\x28\x00\x00", "turret target 40 is not a contact"),
         (b"\x01\x06\x04\x01\x00\x00", "out of range"),
         (b"\x01\x06\x01\x00\x00\x00", "out of range"),
         (b"\x01\x06\x00\x05\x00\x00", "out of range"),
@@ -270,7 +294,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
     ],
     ids=[
         "kind 0", "kind 16", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
-        "target not shown", "link mode 4", "mode without burst", "burst without mode",
+        "target not shown", "target past the statics", "turret aimed at a static",
+        "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
         "not a turret", "slot 16", "slot twice", "ion 2", "timer past the limit",
         "turret target not shown", "turret cut off", "timer cut off", "arriving 2", "speed 3601", "arrival cut off",
@@ -287,7 +312,9 @@ def test_answer_breaking_the_engines_rules_is_refused(
 
 def _actions_of(body: bytes, view: CraftView) -> Actions:
     return (
-        wire.read_answer(body, Question(TEST_TICK, (view,), CONTACTS)).craft[0].actions
+        wire.read_answer(body, Question(TEST_TICK, (view,), CONTACTS, STATICS))
+        .craft[0]
+        .actions
     )
 
 
@@ -411,10 +438,10 @@ def test_answer_naming_what_the_question_showed_is_read() -> None:
 
 @pytest.mark.parametrize(
     ("cut", "match"),
-    [(-1, "1 contacts"), (1, "1 contacts")],
-    ids=["contact short", "contact long"],
+    [(-1, "1 statics"), (1, "1 statics")],
+    ids=["static short", "static long"],
 )
-def test_question_with_a_contact_of_the_wrong_length_is_refused(
+def test_question_with_a_static_of_the_wrong_length_is_refused(
     cut: int, match: str
 ) -> None:
     body = engine_question_bytes()[4:]
@@ -526,3 +553,36 @@ def test_the_ion_switch_is_written_and_read() -> None:
     message = wire.answer_bytes(answer)
     assert message[-11:] == bytes.fromhex("0108020309000105090000")
     assert wire.read_answer(message[4:], QUESTION_7) == answer
+
+
+def test_answer_may_target_a_listed_static() -> None:
+    """The C test's target_static_40 and _41: a static the question listed is
+    a target; a turret still takes contacts only."""
+    for index in (40, 41):
+        body = answer_with_actions(b"\x01\x05" + bytes([index, 0]))
+        assert _actions_of(body, CRAFT_7).target == index
+
+
+def test_statics_are_read_and_written_after_the_contacts() -> None:
+    question = Question(TEST_TICK, (plain_view(7),), CONTACTS, STATICS)
+    message = wire.question_bytes(question)
+    assert wire.read_question(message[4:]) == question
+    assert message[wire.HEAD_BYTES + wire.CRAFT_VIEW_BYTES :][
+        wire.CONTACT_HEAD.size + 3 * wire.CONTACT_FIELDS.size :
+    ][:4] == struct.pack("<HH", 2, 0)
+
+
+def test_the_most_statics_is_64() -> None:
+    many = tuple(plain_contact(index) for index in range(64))
+    question = Question(TEST_TICK, (), (), many)
+    assert wire.read_question(wire.question_bytes(question)[4:]) == question
+    too_many = Question(TEST_TICK, (), (), many + (plain_contact(64),))
+    with pytest.raises(wire.WireError, match="statics"):
+        wire.read_question(wire.question_bytes(too_many)[4:])
+
+
+def test_a_static_count_with_a_nonzero_pad_is_refused() -> None:
+    body = bytearray(wire.question_bytes(Question(TEST_TICK, (), (), STATICS))[4:])
+    body[wire.HEADER.size + wire.CONTACT_HEAD.size + 2] = 1
+    with pytest.raises(wire.WireError, match="statics"):
+        wire.read_question(bytes(body))

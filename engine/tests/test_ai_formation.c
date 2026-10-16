@@ -36,9 +36,10 @@ enum {
 	STALE = 0x5A,
 };
 
-static struct object_record g_test_objects[CRAFT_SLOTS];
-static struct mobile_object g_test_mobiles[CRAFT_SLOTS];
-static struct craft_data g_test_craft[CRAFT_SLOTS];
+/* One slot past the craft slots is a static's. */
+static struct object_record g_test_objects[CRAFT_SLOTS + 1];
+static struct mobile_object g_test_mobiles[CRAFT_SLOTS + 1];
+static struct craft_data g_test_craft[CRAFT_SLOTS + 1];
 
 /* A world's leader and follower, as the 1997 answers were asked about. */
 struct place_world {
@@ -81,6 +82,8 @@ static void fresh_world(void)
 	g_test_craft[LEADER].leader_obj_idx = UINT8_MAX;
 	g_active_region_object_slot_start = LEADER;
 	g_active_region_craft_object_slot_end = OUTSIDER;
+	g_region_main_object_slot_end = CRAFT_SLOTS;
+	g_region_static_object_slot_count = 0;
 	g_flight_sim_side_effects_suppressed = 0;
 }
 
@@ -313,6 +316,200 @@ static void check_closed_spacing_moves_place(void)
 	XVT_ASSERT_INT_EQ(close.place[0], 199);
 }
 
+enum {
+	/* The escort tests: the escort is LEADER, of flight group GROUP; the
+	 * groups it may escort are NEAR_GROUP, FAR_GROUP and EMPTY_GROUP, which
+	 * has no craft. */
+	NEAR_GROUP = OTHER_GROUP,
+	FAR_GROUP = 4,
+	EMPTY_GROUP = 5,
+	GROUP_COUNT = 6,
+	STATIC_SLOT = CRAFT_SLOTS,
+	STATIC_TYPE = 9,
+	TEST_TYPE = 5,
+	BIG_EXTENT = 3000,
+};
+
+/* The escort's world: LEADER at 0, 0, 0 on an Escort order whose targets are
+ * flight group NEAR_GROUP or FAR_GROUP, variable1 as given. FOLLOWER (x
+ * 1,000) is of NEAR_GROUP and follows STRANGER; STRANGER (50,000, -4,000,
+ * 700) is of NEAR_GROUP and leads; SECOND_FOLLOWER (x 90,000) is of FAR_GROUP
+ * and leads. STRANGER's axes turn an offset of 3,072 to a half, a quarter and
+ * an eighth of it: 1,536 on x, 768 on y and 384 on z. */
+static void escort_world(int variable1)
+{
+	fresh_world();
+	memset(g_mission_flight_groups, 0,
+	       GROUP_COUNT * sizeof g_mission_flight_groups[0]);
+	g_mission_header.num_flight_groups = GROUP_COUNT;
+	struct mission_order *order =
+		&g_mission_flight_groups[GROUP].fg.orders[0];
+	order->order = MISSION_ORDER_ESCORT;
+	order->variable1 = (uint8_t)variable1;
+	order->target1_type = 1;
+	order->target1 = NEAR_GROUP;
+	order->target1_or_target2 = 1;
+	order->target2_type = 1;
+	order->target2 = FAR_GROUP;
+	g_test_craft[LEADER].leader_obj_idx = UINT8_MAX;
+	g_test_objects[FOLLOWER].flight_group_idx = NEAR_GROUP;
+	g_test_craft[FOLLOWER].leader_obj_idx = STRANGER;
+	g_test_objects[FOLLOWER].world_x = 1000;
+	g_test_objects[STRANGER].flight_group_idx = NEAR_GROUP;
+	g_test_objects[STRANGER].world_x = 50000;
+	g_test_objects[STRANGER].world_y = -4000;
+	g_test_objects[STRANGER].world_z = 700;
+	g_test_craft[STRANGER].leader_obj_idx = UINT8_MAX;
+	g_test_objects[SECOND_FOLLOWER].flight_group_idx = FAR_GROUP;
+	g_test_objects[SECOND_FOLLOWER].world_x = 90000;
+	g_test_craft[SECOND_FOLLOWER].leader_obj_idx = UINT8_MAX;
+	g_test_mobiles[STRANGER].orient_matrix_dirty = 0;
+	g_test_mobiles[STRANGER].cached_side_x = 0x4000;
+	g_test_mobiles[STRANGER].cached_up_y = 0x2000;
+	g_test_mobiles[STRANGER].cached_fwd_z = 0x1000;
+	g_object_type_table[TEST_TYPE].max_bounds_extent = BIG_EXTENT - 1;
+}
+
+/* The escort's view, over stale bytes. */
+static struct ai_wire_craft_view escort_view(void)
+{
+	struct ai_wire_craft_view view;
+	memset(&view, STALE, sizeof view);
+	ai_formation_view_escort(LEADER, &view);
+	return view;
+}
+
+static void assert_no_station(const struct ai_wire_craft_view *view)
+{
+	XVT_ASSERT_INT_EQ(view->escorted, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(view->books & AI_WIRE_BOOKS_STATION, 0);
+	for (int axis = 0; axis < 3; ++axis) {
+		XVT_ASSERT_INT_EQ(view->station[axis], 0);
+	}
+}
+
+static void assert_station(const struct ai_wire_craft_view *view, int escorted,
+			   int32_t x, int32_t y, int32_t z)
+{
+	XVT_ASSERT_INT_EQ(view->escorted, escorted);
+	XVT_ASSERT_INT_EQ(view->books & AI_WIRE_BOOKS_STATION,
+			  AI_WIRE_BOOKS_STATION);
+	XVT_ASSERT_INT_EQ(view->station[0], x);
+	XVT_ASSERT_INT_EQ(view->station[1], y);
+	XVT_ASSERT_INT_EQ(view->station[2], z);
+}
+
+/* The craft escorted is the first with no leader in the flight group of the
+ * nearest object the order names: not the nearest object itself when it
+ * follows, not the farther group's; a static is an object too, and the
+ * second target pair is used only when the first names nothing. */
+static void check_escorted_pick(void)
+{
+	escort_world(27);
+	/* FOLLOWER is the nearest object; its group's first craft with no
+	 * leader is STRANGER, though SECOND_FOLLOWER leads and is later. */
+	XVT_ASSERT_INT_EQ(escort_view().escorted, STRANGER);
+	/* The other group's craft is escorted once it is the nearest. */
+	g_test_objects[SECOND_FOLLOWER].world_x = 10;
+	XVT_ASSERT_INT_EQ(escort_view().escorted, SECOND_FOLLOWER);
+	g_test_objects[SECOND_FOLLOWER].world_x = 90000;
+	/* Of two equally near objects the first is taken. */
+	g_test_objects[SECOND_FOLLOWER].world_x = 1000;
+	XVT_ASSERT_INT_EQ(escort_view().escorted, STRANGER);
+	g_test_objects[SECOND_FOLLOWER].world_x = 90000;
+	/* A static nearer than any craft names its group, which has no craft:
+	 * none is escorted, and no station is given. */
+	struct mission_order *order =
+		&g_mission_flight_groups[GROUP].fg.orders[0];
+	order->target2 = EMPTY_GROUP;
+	g_region_static_object_slot_count = 1;
+	g_test_objects[STATIC_SLOT].object_type = STATIC_TYPE;
+	g_test_objects[STATIC_SLOT].flight_group_idx = EMPTY_GROUP;
+	g_test_objects[STATIC_SLOT].world_x = 500;
+	struct ai_wire_craft_view view = escort_view();
+	assert_no_station(&view);
+	/* Farther than the craft, the static is passed over. */
+	g_test_objects[STATIC_SLOT].world_x = 5000000;
+	XVT_ASSERT_INT_EQ(escort_view().escorted, STRANGER);
+	/* The second pair is used when the first names no object. */
+	g_test_objects[STATIC_SLOT].object_type = 0;
+	order->target1 = EMPTY_GROUP;
+	order->target2_type = 0;
+	order->secondary_target_types[0] = 1;
+	order->secondary_targets[0] = NEAR_GROUP;
+	order->target3_or_target4 = 1;
+	XVT_ASSERT_INT_EQ(escort_view().escorted, STRANGER);
+	/* The first pair wins when it names an object, however far. */
+	order->target1 = FAR_GROUP;
+	XVT_ASSERT_INT_EQ(escort_view().escorted, SECOND_FOLLOWER);
+}
+
+/* The station is the escorted craft's position plus the offset the order's
+ * first variable picks along its axes: 27 is on it, 0, 14 and 26 are a
+ * corner, a face and the opposite corner; sixteen times as far for 3,000 or
+ * more of size, not for 2,999. */
+static void check_station_offsets(void)
+{
+	escort_world(27);
+	struct ai_wire_craft_view view = escort_view();
+	assert_station(&view, STRANGER, 50000, -4000, 700);
+	escort_world(0);
+	view = escort_view();
+	assert_station(&view, STRANGER, 50000 - 1536, -4000 + 768, 700 + 384);
+	escort_world(14);
+	view = escort_view();
+	assert_station(&view, STRANGER, 50000 + 1536, -4000, 700);
+	escort_world(26);
+	view = escort_view();
+	assert_station(&view, STRANGER, 50000 + 1536, -4000 - 768, 700 - 384);
+	escort_world(0);
+	g_object_type_table[TEST_TYPE].max_bounds_extent = BIG_EXTENT;
+	view = escort_view();
+	assert_station(&view, STRANGER, 50000 - 24576, -4000 + 12288,
+		       700 + 6144);
+	g_object_type_table[TEST_TYPE].max_bounds_extent = BIG_EXTENT - 1;
+}
+
+/* A first variable of 27 is the last station and gives one; 28 and more read
+ * past 1997's tables and give none, the escorted craft with it. */
+static void check_station_variable_limit(void)
+{
+	escort_world(27);
+	struct ai_wire_craft_view view = escort_view();
+	XVT_ASSERT_INT_EQ(view.books & AI_WIRE_BOOKS_STATION,
+			  AI_WIRE_BOOKS_STATION);
+	escort_world(28);
+	view = escort_view();
+	assert_no_station(&view);
+	escort_world(255);
+	view = escort_view();
+	assert_no_station(&view);
+}
+
+/* No station off an Escort order, and none for a follower, which flies its
+ * formation place; the stale station bit is cleared either way. */
+static void check_station_only_for_escorting_leaders(void)
+{
+	escort_world(27);
+	g_mission_flight_groups[GROUP].fg.orders[0].order =
+		MISSION_ORDER_ATTACK;
+	struct ai_wire_craft_view view = escort_view();
+	assert_no_station(&view);
+	escort_world(27);
+	g_test_craft[LEADER].leader_obj_idx = SECOND_FOLLOWER;
+	view = escort_view();
+	assert_no_station(&view);
+	/* The current order slot, not slot 0, decides. */
+	escort_world(27);
+	g_mission_flight_groups[GROUP].fg.orders[1] =
+		g_mission_flight_groups[GROUP].fg.orders[0];
+	g_mission_flight_groups[GROUP].fg.orders[0].order =
+		MISSION_ORDER_ATTACK;
+	XVT_ASSERT_INT_EQ(escort_view().escorted, UINT16_MAX);
+	g_test_craft[LEADER].ai_controller.current_order_slot = 1;
+	XVT_ASSERT_INT_EQ(escort_view().escorted, STRANGER);
+}
+
 int main(void)
 {
 	check_follower_place_is_1997s();
@@ -322,5 +519,9 @@ int main(void)
 	check_other_changes_keep_formation();
 	check_going_home_closes_spacing();
 	check_closed_spacing_moves_place();
+	check_escorted_pick();
+	check_station_offsets();
+	check_station_variable_limit();
+	check_station_only_for_escorting_leaders();
 	return 0;
 }

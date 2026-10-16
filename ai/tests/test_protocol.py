@@ -35,14 +35,13 @@ AI_WIRE_H = ENGINE / "src" / "xvt_runtime" / "ai" / "ai_wire.h"
 AI_STATE_H = ENGINE / "src" / "xvt" / "flight" / "ai_state.h"
 MISSION_H = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.h"
 MISSION_C = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.c"
-# What the program names before the engine sends it, until the header adds it.
-AWAITED_BOOKS = {"STATION": 0x1000, "START_POINT": 0x2000}
 C_TYPES = {
     "uint8_t": "B",
     "uint16_t": "H",
     "int16_t": "h",
     "int32_t": "i",
     "uint32_t": "I",
+    "uint64_t": "Q",
 }
 # Array sizes the wire's structs name, by the program's own numbers.
 C_SIZES = {
@@ -116,6 +115,7 @@ def test_wire_constants_match() -> None:
         "CONTACT_HEAD_BYTES": wire.CONTACT_HEAD.size,
         "CONTACT_BYTES": wire.CONTACT_FIELDS.size,
         "CONTACTS_MAX": world.CONTACTS_MAX,
+        "STATICS_MAX": world.STATICS_MAX,
         "CANNON_GROUPS": world.CANNON_GROUPS,
         "WARHEAD_LAUNCHERS": world.WARHEAD_LAUNCHERS,
         "WEAPON_SLOTS": world.WEAPON_SLOTS,
@@ -130,8 +130,7 @@ def test_wire_constants_match() -> None:
 
 def test_books_bits_match() -> None:
     books = c_enum(AI_WIRE_H, "ai_wire_books", "AI_WIRE_BOOKS_")
-    assert books | AWAITED_BOOKS == {bit.name: bit.value for bit in world.Books}
-    assert not books.keys() & AWAITED_BOOKS.keys()
+    assert books == {bit.name: bit.value for bit in world.Books}
 
 
 def test_commands_bits_match() -> None:
@@ -195,7 +194,7 @@ def test_contact_fields_match() -> None:
 
 def test_contact_flags_match() -> None:
     flags = c_enum(AI_WIRE_H, "ai_wire_contact_flag", "AI_WIRE_CONTACT_")
-    assert flags == {"PLAYER": 1, "DISABLED": 2, "ATTACKED": 4}
+    assert flags == {"PLAYER": 1, "DISABLED": 2, "ATTACKED": 4, "STATIC": 8}
     assert flags == {flag.name: flag.value for flag in world.ContactFlags}
     assert Contact(*([0] * 7), flags["PLAYER"], *([0] * 17)).player_flown
 

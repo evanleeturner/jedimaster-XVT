@@ -27,7 +27,8 @@ enum {
 static uint8_t g_question[AI_WIRE_HEAD_BYTES +
 			  TEST_CRAFT_MAX * AI_WIRE_CRAFT_VIEW_BYTES +
 			  AI_WIRE_CONTACT_HEAD_BYTES +
-			  AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES];
+			  AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES +
+			  AI_WIRE_CONTACT_HEAD_BYTES];
 static uint8_t g_answer[AI_WIRE_HEAD_BYTES +
 			TEST_CRAFT_MAX * AI_WIRE_CRAFT_ANSWER_BYTES_MAX];
 static struct ai_wire_craft_view g_views[TEST_CRAFT_MAX];
@@ -92,12 +93,12 @@ static size_t question_about(int count, uint32_t tick)
 		g_contacts[craft].target = UINT16_MAX;
 		g_contacts[craft].last_attacker = UINT16_MAX;
 	}
-	g_asked = (struct ai_wire_question){tick, count, g_views, count,
-					    g_contacts};
+	g_asked = (struct ai_wire_question){tick,	count, g_views, count,
+					    g_contacts, 0,     NULL};
 	size_t length = ai_wire_write_question(g_question, sizeof(g_question),
 					       &g_asked);
 	XVT_ASSERT_INT_EQ((int)length,
-			  (int)ai_wire_question_bytes(count, count));
+			  (int)ai_wire_question_bytes(count, count, 0));
 	return length;
 }
 

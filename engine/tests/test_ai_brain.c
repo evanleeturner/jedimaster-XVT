@@ -31,11 +31,21 @@ enum {
 	QUESTION_CAPACITY = AI_WIRE_HEAD_BYTES +
 			    QUESTION_CRAFT * AI_WIRE_CRAFT_VIEW_BYTES +
 			    AI_WIRE_CONTACT_HEAD_BYTES +
-			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES,
+			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES +
+			    AI_WIRE_CONTACT_HEAD_BYTES +
+			    AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where its maneuver timer starts, the 4 bytes before the notebook. */
-	VIEW_TIMER = VIEW_NOTEBOOK - 4,
+	/* Where its escorted craft starts, the 35 bytes before the notebook:
+	 * escorted 2, station 12, start point 12, targets now 1, static target
+	 * mask 8. */
+	VIEW_ESCORTED = VIEW_NOTEBOOK - 35,
+	VIEW_STATION = VIEW_ESCORTED + 2,
+	VIEW_START_POINT = VIEW_STATION + 12,
+	VIEW_TARGETS_NOW = VIEW_START_POINT + 12,
+	VIEW_STATIC_MASK = VIEW_TARGETS_NOW + 1,
+	/* Where its maneuver timer starts, the 4 bytes before those. */
+	VIEW_TIMER = VIEW_ESCORTED - 4,
 	/* Where its lock starts, the 6 bytes before the timer: lock ticks,
 	 * lock needed, lock state, skill level. */
 	VIEW_LOCK = VIEW_TIMER - 6,
@@ -336,8 +346,8 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
 	const uint8_t *q = g_fake.question[0];
 	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
-			  ai_wire_question_bytes(1, 1));
-	XVT_ASSERT_INT_EQ(get_u32(q), ai_wire_question_bytes(1, 1) - 4);
+			  ai_wire_question_bytes(1, 1, 0));
+	XVT_ASSERT_INT_EQ(get_u32(q), ai_wire_question_bytes(1, 1, 0) - 4);
 	XVT_ASSERT_INT_EQ(get_u32(q + 4), AI_WIRE_MAGIC);
 	XVT_ASSERT_INT_EQ(get_u16(q + 8), AI_WIRE_VERSION);
 	XVT_ASSERT_INT_EQ(get_u16(q + 10), AI_WIRE_KIND_QUESTION);
@@ -449,7 +459,7 @@ static void check_contacts_and_order_targets(void)
 	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
 	const uint8_t *q = g_fake.question[0];
 	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
-			  ai_wire_question_bytes(1, 4));
+			  ai_wire_question_bytes(1, 4, 0));
 	const uint8_t *view = q + AI_WIRE_HEAD_BYTES;
 	/* Contacts 1, 2, 4, 6: bits 1 and 3 are flight group TEST_GROUP + 1. */
 	XVT_ASSERT_INT_EQ(get_u32(view + 38), 0xA);
@@ -1253,6 +1263,189 @@ static void check_attack_target(void)
 	XVT_ASSERT_INT_EQ(ai_brain_attack_target(&craft), UINT16_MAX);
 }
 
+/* The statics after the contacts: each static slot whose object type carries
+ * behavior flag 2, in slot order, in the contact form with the static flag
+ * and the group's team; an empty slot or a flagless type is left out. The
+ * craft's static target mask has a bit for each static its order's targets
+ * match, and an answer may aim at a static. Static slots have no mobile
+ * object. */
+static void check_statics(void)
+{
+	enum {
+		FIRST_STATIC = 30,
+		STATIC_SLOTS = 5,
+		FLAGGED_TYPE = 21,
+		FLAGLESS_TYPE = 22,
+		FLAGGED_GROUP = 3,
+		OTHER_GROUP = 4,
+	};
+	fresh_world();
+	g_region_main_object_slot_end = FIRST_STATIC;
+	g_region_static_object_slot_count = STATIC_SLOTS;
+	for (int slot = FIRST_STATIC; slot < FIRST_STATIC + STATIC_SLOTS;
+	     ++slot) {
+		g_test_objects[slot].mobj = NULL;
+	}
+	g_object_type_table[FLAGGED_TYPE].behavior_flags = 2;
+	g_object_type_table[FLAGGED_TYPE].max_bounds_extent = 777;
+	g_object_type_table[FLAGGED_TYPE].genus_id = 9;
+	g_object_type_table[FLAGLESS_TYPE].behavior_flags = 1;
+	g_mission_flight_groups[FLAGGED_GROUP].fg.team = 6;
+	g_mission_flight_groups[OTHER_GROUP].fg.team = 8;
+	struct mission_order *order =
+		&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	order->target1_type = 1;
+	order->target1 = FLAGGED_GROUP;
+	order->target1_or_target2 = 1;
+	/* Slot 30 is listed and matches; 31 has a flagless type; 32 is empty;
+	 * 33 is listed but of another group, and disabled; 34 is listed and of
+	 * the matching group too. */
+	struct object_record *object = &g_test_objects[FIRST_STATIC];
+	object[0] = (struct object_record){.object_signature = 0x77,
+					   .genus_id = 0,
+					   .object_type = FLAGGED_TYPE,
+					   .world_x = -100,
+					   .world_y = 200,
+					   .world_z = -300,
+					   .yaw = 0x1111,
+					   .pitch = 0x2222,
+					   .flight_group_idx = FLAGGED_GROUP,
+					   .type_specific_word = 1023};
+	object[1] = (struct object_record){.object_type = FLAGLESS_TYPE,
+					   .flight_group_idx = FLAGGED_GROUP,
+					   .type_specific_word = 1023};
+	object[3] = (struct object_record){.object_signature = 0x78,
+					   .object_type = FLAGGED_TYPE,
+					   .flight_group_idx = OTHER_GROUP,
+					   .type_specific_word = 0};
+	object[4] = (struct object_record){.object_signature = 0x79,
+					   .object_type = FLAGGED_TYPE,
+					   .flight_group_idx = FLAGGED_GROUP,
+					   .type_specific_word = 1023};
+	due_craft(1);
+	g_fake.echo = 1;
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *q = g_fake.question[0];
+	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
+			  ai_wire_question_bytes(1, 1, 3));
+	const uint8_t *view = q + AI_WIRE_HEAD_BYTES;
+	/* Statics 0 and 2, the ones of the order's group, in the mask. */
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_STATIC_MASK), 0x5);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_STATIC_MASK + 4), 0);
+	const uint8_t *head = view + AI_WIRE_CRAFT_VIEW_BYTES +
+			      AI_WIRE_CONTACT_HEAD_BYTES +
+			      AI_WIRE_CONTACT_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(head), 3);
+	XVT_ASSERT_INT_EQ(get_u16(head + 2), 0);
+	const uint8_t *first = head + AI_WIRE_CONTACT_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(first), FIRST_STATIC);
+	XVT_ASSERT_INT_EQ(get_u16(first + 2), 0x77);
+	XVT_ASSERT_INT_EQ(first[4], FLAGGED_TYPE);
+	XVT_ASSERT_INT_EQ(first[5], 9);
+	XVT_ASSERT_INT_EQ(first[6], 6);
+	XVT_ASSERT_INT_EQ(first[7], FLAGGED_GROUP);
+	XVT_ASSERT_INT_EQ(first[8], 0);
+	XVT_ASSERT_INT_EQ(first[9], 0x08);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(first + 10), -100);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(first + 14), 200);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(first + 18), -300);
+	XVT_ASSERT_INT_EQ(get_u16(first + 22), 0x1111);
+	XVT_ASSERT_INT_EQ(get_u16(first + 24), 0x2222);
+	XVT_ASSERT_INT_EQ(get_u16(first + 26), 0);
+	XVT_ASSERT_INT_EQ(get_u16(first + 28), 0xFFFF);
+	XVT_ASSERT_INT_EQ(get_u16(first + 30), 0xFFFF);
+	for (int byte = 32; byte < 49; ++byte) {
+		XVT_ASSERT_INT_EQ(first[byte], 0);
+	}
+	XVT_ASSERT_INT_EQ(get_u32(first + 49), 777);
+	XVT_ASSERT_INT_EQ(first[53], 0);
+	XVT_ASSERT_INT_EQ(get_u32(first + 54), 0);
+	XVT_ASSERT_INT_EQ(get_u16(first + 58), 0xFFFF);
+	/* The second listed static is slot 33, of another group, disabled; the
+	 * third is slot 34. */
+	const uint8_t *second = first + AI_WIRE_CONTACT_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(second), FIRST_STATIC + 3);
+	XVT_ASSERT_INT_EQ(second[5], 9);
+	XVT_ASSERT_INT_EQ(second[6], 8);
+	XVT_ASSERT_INT_EQ(second[9], 0x08 | 0x02);
+	XVT_ASSERT_INT_EQ(get_u16(second + AI_WIRE_CONTACT_BYTES),
+			  FIRST_STATIC + 4);
+
+	/* An answer aims at a static, and its signature is the target's. */
+	fresh_world();
+	g_region_main_object_slot_end = FIRST_STATIC;
+	g_region_static_object_slot_count = STATIC_SLOTS;
+	g_test_objects[FIRST_STATIC].mobj = NULL;
+	g_test_objects[FIRST_STATIC].object_type = FLAGGED_TYPE;
+	g_test_objects[FIRST_STATIC].object_signature = 0x77;
+	g_test_objects[FIRST_STATIC].type_specific_word = 1023;
+	struct craft_data *craft = due_craft(1);
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0, 1);
+	*at++ = AI_WIRE_ACTION_TARGET;
+	at = put_u16(at, FIRST_STATIC);
+	g_fake.answer_length = finish_answer(g_fake.answer, at);
+	ai_brain_think_due_craft();
+	XVT_ASSERT_INT_EQ(craft->ai_controller.target_obj_idx, FIRST_STATIC);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.target_signature, 0x77);
+	g_region_main_object_slot_end = SLOT_COUNT;
+	g_region_static_object_slot_count = 0;
+}
+
+/* The escorted craft, station, start point and targets now reach the view
+ * from the engine's books: a craft on an Escort order whose target is the
+ * flight group of another craft, with its group arrived. */
+static void check_view_escort_start_and_targets_now(void)
+{
+	enum { TARGET_GROUP = 3, ESCORTED = 5 };
+	fresh_world();
+	g_mission_header.num_flight_groups = 6;
+	struct mission_flight_group *group =
+		&g_mission_flight_groups[TEST_GROUP];
+	group->fg.orders[1].order = MISSION_ORDER_ESCORT;
+	group->fg.orders[1].variable1 = 27;
+	group->fg.orders[1].target1_type = 1;
+	group->fg.orders[1].target1 = TARGET_GROUP;
+	group->fg.orders[1].target1_or_target2 = 1;
+	group->fg.mission_point_x[1] = 3;
+	group->fg.mission_point_y[1] = 4;
+	group->fg.mission_point_z[1] = 5;
+	g_mission_fg_stats[TEST_GROUP].has_arrived = 1;
+	g_mission_fg_stats[TEST_GROUP].current_mission_point_ref = 0x8001;
+	struct craft_data *craft = due_craft(1);
+	craft->ai_controller.current_order_slot = 1;
+	g_test_objects[ESCORTED].object_type = 5;
+	g_test_objects[ESCORTED].flight_group_idx = TARGET_GROUP;
+	g_test_objects[ESCORTED].world_x = 4000;
+	g_test_objects[ESCORTED].world_y = 5000;
+	g_test_objects[ESCORTED].world_z = 6000;
+	g_test_craft[ESCORTED].object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	g_test_craft[ESCORTED].leader_obj_idx = UINT8_MAX;
+	g_test_craft[ESCORTED].ai_controller.think_timer = 99;
+	g_fake.echo = 1;
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(view + VIEW_ESCORTED), ESCORTED);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(view + VIEW_STATION), 4000);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(view + VIEW_STATION + 4), 5000);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(view + VIEW_STATION + 8), 6000);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(view + VIEW_START_POINT), 768);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(view + VIEW_START_POINT + 4), -1024);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(view + VIEW_START_POINT + 8), 1280);
+	XVT_ASSERT_INT_EQ(view[VIEW_TARGETS_NOW], 0x2);
+	/* The books field starts 77 bytes into the view. */
+	unsigned int books = get_u16(view + 77);
+	XVT_ASSERT_INT_EQ(books & AI_WIRE_BOOKS_STATION, AI_WIRE_BOOKS_STATION);
+	XVT_ASSERT_INT_EQ(books & AI_WIRE_BOOKS_START_POINT,
+			  AI_WIRE_BOOKS_START_POINT);
+}
+
 int main(void)
 {
 	check_stat_level();
@@ -1278,6 +1471,8 @@ int main(void)
 	check_view_contact_flags_and_shooter();
 	check_maneuver_timer();
 	check_turret_ion();
+	check_statics();
+	check_view_escort_start_and_targets_now();
 	ai_brain_set_exchange(NULL);
 	return 0;
 }

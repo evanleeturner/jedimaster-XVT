@@ -662,6 +662,133 @@ static void check_targets_left(void)
 	g_object_type_table[STATIC_TYPE].behavior_flags = flags;
 }
 
+/* The start point: the world position of the mission point the group's start
+ * point reference names, point 0 or a variant, given with its bit once the
+ * group has arrived; 0, 0, 0 and the bit clear before, or when the reference
+ * names none of the group's 22 points. */
+static void check_start_point(void)
+{
+	fresh_world();
+	make_craft(1, TEST_GROUP);
+	struct mission_flight_group *group =
+		&g_mission_flight_groups[TEST_GROUP];
+	group->fg.mission_point_x[0] = 3;
+	group->fg.mission_point_y[0] = 4;
+	group->fg.mission_point_z[0] = 5;
+	group->fg.mission_point_x[2] = 7;
+	group->fg.mission_point_y[2] = 8;
+	group->fg.mission_point_z[2] = 9;
+	group->fg.mission_point_x[21] = 11;
+	group->fg.mission_point_y[21] = 12;
+	group->fg.mission_point_z[21] = 13;
+	struct mission_fg_runtime_stats *stats =
+		&g_mission_fg_stats[TEST_GROUP];
+	stats->current_mission_point_ref = 0x8002;
+	struct ai_wire_craft_view view = view_of(1);
+	XVT_ASSERT_INT_EQ(view.books & AI_WIRE_BOOKS_START_POINT, 0);
+	for (int axis = 0; axis < 3; ++axis) {
+		XVT_ASSERT_INT_EQ(view.start_point[axis], 0);
+	}
+	stats->has_arrived = 1;
+	view = view_of(1);
+	XVT_ASSERT_INT_EQ(view.books & AI_WIRE_BOOKS_START_POINT,
+			  AI_WIRE_BOOKS_START_POINT);
+	XVT_ASSERT_INT_EQ(view.start_point[0], 7 * 256);
+	XVT_ASSERT_INT_EQ(view.start_point[1], -8 * 256);
+	XVT_ASSERT_INT_EQ(view.start_point[2], 9 * 256);
+	stats->current_mission_point_ref = 0x8000;
+	view = view_of(1);
+	XVT_ASSERT_INT_EQ(view.start_point[0], 3 * 256);
+	XVT_ASSERT_INT_EQ(view.start_point[1], -4 * 256);
+	XVT_ASSERT_INT_EQ(view.start_point[2], 5 * 256);
+	/* The last of the 22 points is one; the next is none, and nor is an
+	 * unset reference. */
+	stats->current_mission_point_ref = 0x8015;
+	view = view_of(1);
+	XVT_ASSERT_INT_EQ(view.books & AI_WIRE_BOOKS_START_POINT,
+			  AI_WIRE_BOOKS_START_POINT);
+	XVT_ASSERT_INT_EQ(view.start_point[2], 13 * 256);
+	stats->current_mission_point_ref = 0x8016;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_START_POINT));
+	stats->current_mission_point_ref = 0;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_START_POINT));
+	/* Another group's arrival is not this group's. */
+	stats->current_mission_point_ref = 0x8000;
+	stats->has_arrived = 0;
+	g_mission_fg_stats[CARGO_GROUP].has_arrived = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_START_POINT));
+}
+
+/* Targets now: bit n is set when the order in slot n has a target in the
+ * battle now in either target pair, by the books' count; a group still to
+ * arrive does not count, a target that may not count does not, and the other
+ * bits are 0. */
+static void check_targets_now(void)
+{
+	fresh_world();
+	make_craft(1, TEST_GROUP);
+	struct mission_flight_group *group =
+		&g_mission_flight_groups[TEST_GROUP];
+	/* Slot 0: the cargo group, first pair. Slot 1: the alternate group,
+	 * which is not here but still to arrive. Slot 2: the cargo group,
+	 * second pair only. */
+	group->fg.orders[0].target1_type = 1;
+	group->fg.orders[0].target1 = CARGO_GROUP;
+	group->fg.orders[0].target1_or_target2 = 1;
+	group->fg.orders[1].target1_type = 1;
+	group->fg.orders[1].target1 = ALTERNATE_GROUP;
+	group->fg.orders[1].target1_or_target2 = 1;
+	group->fg.orders[2].secondary_target_types[0] = 1;
+	group->fg.orders[2].secondary_targets[0] = CARGO_GROUP;
+	group->fg.orders[2].target3_or_target4 = 1;
+	/* A fourth order is no bit of the three. */
+	group->fg.orders[3] = group->fg.orders[0];
+	g_mission_fg_stats[ALTERNATE_GROUP].arrival_enabled = 1;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0);
+	struct craft_data *target = make_craft(2, CARGO_GROUP);
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0x5);
+	target->object_kind = CRAFT_OBJECT_KIND_EXPLODING;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0);
+	target->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	make_craft(3, ALTERNATE_GROUP);
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0x7);
+	/* The current slot does not matter. */
+	g_craft[1].ai_controller.current_order_slot = 1;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0x7);
+	g_objects[3].object_type = 0;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0x5);
+	/* Later targets count in TARGETS_LEFT but not here. */
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+}
+
+/* A static counts as a target when its slot holds an object whose type
+ * carries behavior flag 2 and the books would count it, without a mobile
+ * object to read. */
+static void check_static_is_target(void)
+{
+	fresh_world();
+	enum { STATIC_SLOT = SLOT_COUNT - 1, STATIC_TYPE = 20 };
+	g_region_main_object_slot_end = STATIC_SLOT;
+	g_region_static_object_slot_count = 1;
+	g_objects[STATIC_SLOT].mobj = NULL;
+	uint8_t flags = g_object_type_table[STATIC_TYPE].behavior_flags;
+	g_object_type_table[STATIC_TYPE].behavior_flags = 2;
+	XVT_ASSERT_TRUE(!ai_books_static_is_target(STATIC_SLOT));
+	/* An empty slot is no static, whatever the flags of type 0 say. */
+	g_object_type_table[0].behavior_flags = 2;
+	XVT_ASSERT_TRUE(!ai_books_static_is_target(STATIC_SLOT));
+	g_object_type_table[0].behavior_flags = 0;
+	g_objects[STATIC_SLOT].object_type = STATIC_TYPE;
+	XVT_ASSERT_TRUE(ai_books_static_is_target(STATIC_SLOT));
+	g_object_type_table[STATIC_TYPE].behavior_flags = 0;
+	XVT_ASSERT_TRUE(!ai_books_static_is_target(STATIC_SLOT));
+	g_object_type_table[STATIC_TYPE].behavior_flags = 1;
+	XVT_ASSERT_TRUE(!ai_books_static_is_target(STATIC_SLOT));
+	g_object_type_table[STATIC_TYPE].behavior_flags = 3;
+	XVT_ASSERT_TRUE(ai_books_static_is_target(STATIC_SLOT));
+	g_object_type_table[STATIC_TYPE].behavior_flags = flags;
+}
+
 /* The all-returned book, the 1997 order 32's test: every other flight group
  * that leaves into the craft's group as its mothership has arrived, has no
  * wave left and has no craft in the battle. A group with arrival off and no
@@ -1144,6 +1271,9 @@ int main(void)
 	check_books_kept_by_order();
 	check_targets_left();
 	check_all_returned();
+	check_start_point();
+	check_targets_now();
+	check_static_is_target();
 	check_full_speed();
 	check_mothership_gone();
 	return 0;

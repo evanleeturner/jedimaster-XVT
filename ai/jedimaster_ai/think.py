@@ -57,12 +57,13 @@ def think(
     debug = logger.isEnabledFor(logging.DEBUG)
     if debug:
         logger.debug(
-            "think.question tick=%d craft=%d contacts=%d",
+            "think.question tick=%d craft=%d contacts=%d statics=%d",
             question.tick,
             len(question.craft),
             len(question.contacts),
+            len(question.statics),
         )
-        for contact in question.contacts:
+        for contact in question.contacts + question.statics:
             _log_contact(contact)
     answers = []
     for view in question.craft:
@@ -136,7 +137,8 @@ def _log_view(view: CraftView) -> None:
         "countermeasure=%d countermeasures_left=%d countermeasure_working=%d "
         "chaff_seconds=%d countermeasure_cooldown=%d threats=%d waypoints=%d "
         "commands=%d command_target=%d avoid_target=%d place_x=%d place_y=%d "
-        "place_z=%d timer=%d "
+        "place_z=%d timer=%d escorted=%d station_x=%d station_y=%d station_z=%d "
+        "start_x=%d start_y=%d start_z=%d targets_now=%d static_targets=%d "
         'notebook="%s"',
         view.object_index,
         view.object_signature,
@@ -203,6 +205,15 @@ def _log_view(view: CraftView) -> None:
         view.place[1],
         view.place[2],
         view.maneuver_timer,
+        view.escorted,
+        view.station[0],
+        view.station[1],
+        view.station[2],
+        view.start_point[0],
+        view.start_point[1],
+        view.start_point[2],
+        view.targets_now,
+        view.static_target_mask,
         view.notebook.hex(),
     )
     for threat in view.threats:

@@ -50,6 +50,12 @@ static uint8_t *put_commands(uint8_t *at, const struct ai_wire_craft_view *view)
 	return put_u16(at, view->avoid_target);
 }
 
+static uint8_t *put_u64(uint8_t *at, uint64_t value)
+{
+	at = put_u32(at, (uint32_t)(value & 0xFFFFFFFFu));
+	return put_u32(at, (uint32_t)(value >> 32));
+}
+
 static uint8_t *put_craft_view(uint8_t *at,
 			       const struct ai_wire_craft_view *view)
 {
@@ -132,6 +138,11 @@ static uint8_t *put_craft_view(uint8_t *at,
 	*at++ = view->lock_state;
 	*at++ = view->skill_level;
 	at = put_u32(at, view->maneuver_timer);
+	at = put_u16(at, view->escorted);
+	at = put_point(at, view->station);
+	at = put_point(at, view->start_point);
+	*at++ = view->targets_now;
+	at = put_u64(at, view->static_target_mask);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -166,12 +177,14 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	return at;
 }
 
-size_t ai_wire_question_bytes(int craft_count, int contact_count)
+size_t ai_wire_question_bytes(int craft_count, int contact_count,
+			      int static_count)
 {
-	return AI_WIRE_HEAD_BYTES +
-	       (size_t)craft_count * AI_WIRE_CRAFT_VIEW_BYTES +
-	       AI_WIRE_CONTACT_HEAD_BYTES +
-	       (size_t)contact_count * AI_WIRE_CONTACT_BYTES;
+	size_t crafts = (size_t)craft_count * AI_WIRE_CRAFT_VIEW_BYTES;
+	size_t contacts = (size_t)contact_count * AI_WIRE_CONTACT_BYTES;
+	size_t statics = (size_t)static_count * AI_WIRE_CONTACT_BYTES;
+	return AI_WIRE_HEAD_BYTES + crafts + AI_WIRE_CONTACT_HEAD_BYTES +
+	       contacts + AI_WIRE_CONTACT_HEAD_BYTES + statics;
 }
 
 size_t ai_wire_write_question(uint8_t *out, size_t capacity,
@@ -179,11 +192,17 @@ size_t ai_wire_write_question(uint8_t *out, size_t capacity,
 {
 	int count = question->craft_count;
 	int contacts = question->contact_count;
-	if (count < 0 || count > UINT16_MAX || contacts < 0 ||
-	    contacts > AI_WIRE_CONTACTS_MAX) {
+	int statics = question->static_count;
+	if (count < 0 || count > UINT16_MAX) {
 		return 0;
 	}
-	size_t total = ai_wire_question_bytes(count, contacts);
+	if (contacts < 0 || contacts > AI_WIRE_CONTACTS_MAX) {
+		return 0;
+	}
+	if (statics < 0 || statics > AI_WIRE_STATICS_MAX) {
+		return 0;
+	}
+	size_t total = ai_wire_question_bytes(count, contacts, statics);
 	if (total > capacity) {
 		return 0;
 	}
@@ -201,6 +220,11 @@ size_t ai_wire_write_question(uint8_t *out, size_t capacity,
 	at = put_u16(at, 0);
 	for (int index = 0; index < contacts; ++index) {
 		at = put_contact(at, &question->contacts[index]);
+	}
+	at = put_u16(at, (unsigned int)statics);
+	at = put_u16(at, 0);
+	for (int index = 0; index < statics; ++index) {
+		at = put_contact(at, &question->statics[index]);
 	}
 	return total;
 }
@@ -264,6 +288,18 @@ static int is_contact_or_none(const struct ai_wire_question *question,
 	}
 	for (int index = 0; index < question->contact_count; ++index) {
 		if (question->contacts[index].object_index == object_index) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* Whether object_index is one of the question's statics. */
+static int is_static(const struct ai_wire_question *question,
+		     unsigned int object_index)
+{
+	for (int index = 0; index < question->static_count; ++index) {
+		if (question->statics[index].object_index == object_index) {
 			return 1;
 		}
 	}
@@ -419,8 +455,11 @@ static int take_action(struct wire_reader *reader,
 		return reader->short_read || answer->think_interval != 0;
 	case AI_WIRE_ACTION_TARGET:
 		answer->target = (uint16_t)take_u16(reader);
-		return reader->short_read ||
-		       is_contact_or_none(question, answer->target);
+		if (reader->short_read) {
+			return 1;
+		}
+		return is_contact_or_none(question, answer->target) ||
+		       is_static(question, answer->target);
 	case AI_WIRE_ACTION_LASERS:
 		return take_lasers(reader, view, answer);
 	case AI_WIRE_ACTION_WARHEAD:

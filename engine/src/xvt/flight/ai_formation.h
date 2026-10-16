@@ -31,6 +31,23 @@ extern "C" {
 void ai_formation_view_craft(uint16_t object_index,
 			     struct ai_wire_craft_view *view);
 
+/* Writes into view the craft escorted and its station, for a craft whose
+ * current order is Escort and that leads or flies alone (a follower flies its
+ * formation place). As the 1997 escort order did on each think, the escorted
+ * craft is the first craft with no leader, in the active region's craft
+ * slots, of the flight group of the nearest object, craft or static, that
+ * matches the order's first target pair, else its second. The station is one
+ * of 28 offsets of plus or minus 3,072 along the escorted craft's axes, the
+ * one the order's first variable picks, 16 times as far for a craft whose
+ * type has a max_bounds_extent of 3,000 or more, added to its position; it
+ * is given with AI_WIRE_BOOKS_STATION, with the escorted craft. A variable of
+ * 28 or more, or no craft to escort, gives neither: 0xFFFF, 0, 0, 0 and the
+ * bit clear. Changes no game state but the g_rotated_ globals, the rough
+ * distance globals and, when the escorted craft's axes are stale, its cached
+ * axes. */
+void ai_formation_view_escort(uint16_t object_index,
+			      struct ai_wire_craft_view *view);
+
 /* Keeps the formation books as the pilot program's activity action moves
  * the craft in object_index from activity was to activity now. A craft
  * whose leaving-hangar mark ends gives every craft of its flight group in

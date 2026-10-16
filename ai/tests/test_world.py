@@ -82,3 +82,31 @@ def test_craft_answer_needs_a_whole_notebook() -> None:
 def test_a_turret_fires_its_usual_shots_unless_set_to_ion() -> None:
     assert Turret(3, 9).ion is False
     assert Turret(3, 9, True).ion is True
+
+
+def test_new_view_and_question_names_default_to_nothing() -> None:
+    """Until the engine sends them: no craft escorted, no station, no start
+    point, no order with a target now, no static, no static target."""
+    from conftest import VIEW
+
+    from jedimaster_ai.world import Books
+    from jedimaster_ai.world import NO_OBJECT
+    from jedimaster_ai.world import Question
+
+    fields = {
+        field: getattr(VIEW, field)
+        for field in ("escorted", "station", "start_point", "targets_now")
+    }
+    assert fields == {
+        "escorted": NO_OBJECT,
+        "station": (0, 0, 0),
+        "start_point": (0, 0, 0),
+        "targets_now": 0,
+    }
+    assert VIEW.static_target_mask == 0
+    assert Question(1, (VIEW,)).statics == ()
+    assert Books.STATION == 0x1000 and Books.START_POINT == 0x2000
+
+
+def test_the_static_flag_is_a_contact_flag() -> None:
+    assert ContactFlags.STATIC == 8

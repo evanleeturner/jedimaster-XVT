@@ -13,6 +13,8 @@
 
 #include "xvt_runtime/ai/ai_wire.h"
 
+struct mission_order;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,11 +24,24 @@ extern "C" {
  * then writes into view what the question tells the pilot program about
  * them: each order slot's code and completion state, the current order's
  * throttle, variables and speed, the craft's full speed, the AI_WIRE_BOOKS_
- * bits, its mothership with that craft's two hangar points, and its home
- * point. Call it before the view's order fields are read: a follower takes
+ * bits, its mothership with that craft's two hangar points, its home
+ * point, its group's start point once the group has arrived, and which of
+ * its three orders have a target in the battle now. Call it before the view's order fields are read: a follower takes
  * its leader's order slot here. */
 void ai_books_view_craft(uint16_t object_index,
 			 struct ai_wire_craft_view *view);
+
+/* Whether flight group group matches the order's target pair, 0 for targets 1
+ * and 2 and 1 for targets 3 and 4, as the 1997 count joined them: both, or
+ * either when the pair is joined by "or". */
+int ai_books_pair_matches(const struct mission_order *order, int pair,
+			  uint16_t group);
+
+/* Whether the object in object_index, a static slot, counts as an order
+ * target by the 1997 rule the books use: the slot holds an object, its type
+ * carries behavior flag 2 and it may count as a target left. Whether it
+ * matches a particular order is a separate question. */
+int ai_books_static_is_target(uint16_t object_index);
 
 /* The order action: the craft works on slot from now, and the slot it worked
  * on takes completion state state when state is not 0; a move to slot 3 marks

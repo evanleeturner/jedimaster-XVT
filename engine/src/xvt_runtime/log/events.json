@@ -180,8 +180,8 @@
     },
     "ai.think": {
       "level": "D",
-      "fields": ["tick", "craft", "contacts", "question_bytes", "answer_bytes", "predicted"],
-      "text": "At tick {tick} the pilot program was asked about {craft} craft due to think, showing {contacts} contacts, in {question_bytes} bytes and answered in {answer_bytes} bytes ({predicted} is 1 in a predicted step, run again once confirmed)"
+      "fields": ["tick", "craft", "contacts", "statics", "question_bytes", "answer_bytes", "predicted"],
+      "text": "At tick {tick} the pilot program was asked about {craft} craft due to think, showing {contacts} contacts and {statics} statics, in {question_bytes} bytes and answered in {answer_bytes} bytes ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.withdraw_timing": {
       "level": "D",

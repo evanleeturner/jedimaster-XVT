@@ -30,6 +30,8 @@ WARHEAD_LAUNCHERS = 2
 WEAPON_SLOTS = 16
 # Contacts a question shows at most: the active region's craft slots.
 CONTACTS_MAX = 32
+# The static object slots; the static target mask has a bit for each.
+STATICS_MAX = 64
 # The fastest speed an arrival may set: the 1997 AI's speed out of hyperspace.
 ARRIVAL_SPEED_MAX = 3600
 # A flight group's order slots, 0 to 3, and the axes of a point.
@@ -145,8 +147,8 @@ class Books(enum.IntFlag):
     - STATION: it escorts a craft, so ``escorted`` and ``station`` are given
     - START_POINT: its group has arrived, so ``start_point`` is given
 
-    ALL_RETURNED comes with wire version 13, STATION and START_POINT after
-    it; the engine sends none of them before.
+    ALL_RETURNED comes with wire version 13, STATION and START_POINT with
+    14; the engine sends none of them before.
     """
 
     ORDERS_DONE = 0x001
@@ -171,14 +173,17 @@ class ContactFlags(enum.IntFlag):
     - PLAYER: a player flies the craft
     - DISABLED: none of its subsystems work, its ``working_subsystems`` 0
     - ATTACKED: a craft of some team, any of the ten, has hit it
+    - STATIC: a static object, not a craft: a buoy, mine or other fixed
+      object, listed in ``Question.statics``
 
-    DISABLED and ATTACKED come with wire version 13; the engine sends
-    neither before it.
+    DISABLED and ATTACKED come with wire version 13 and STATIC with 14; the
+    engine sends none of them before.
     """
 
     PLAYER = 0x1
     DISABLED = 0x2
     ATTACKED = 0x4
+    STATIC = 0x8
 
 
 @dataclasses.dataclass(frozen=True)
@@ -239,7 +244,13 @@ class CraftView:
     arrived: the group's start point, or the variant the engine picked at
     arrival, a world position as ``waypoint`` gives one; it comes with the
     START_POINT book and reads (0, 0, 0) until the engine sends it.
-    ``maneuver_timer`` comes with wire version 13 and reads 0 before it.
+    ``targets_now`` holds bits 0 to 2: bit n is set when the order in slot n
+    has a target in the battle now, by the books' count of targets left
+    without its later half; it ignores range and capacity. Bit n of
+    ``static_target_mask`` is set when the question's static n matches the
+    targets of the craft's order. ``maneuver_timer`` comes with wire version
+    13 and reads 0 before it; ``targets_now`` and ``static_target_mask`` come
+    with 14 and read 0.
     """
 
     object_index: int
@@ -312,6 +323,8 @@ class CraftView:
     escorted: int = NO_OBJECT
     station: tuple[int, int, int] = (0, 0, 0)
     start_point: tuple[int, int, int] = (0, 0, 0)
+    targets_now: int = 0
+    static_target_mask: int = 0
 
     @property
     def threats(self) -> tuple[Threat, ...]:
@@ -372,6 +385,12 @@ class Contact:
     ``flags`` holds ``ContactFlags`` bits. ``hit_by`` is the object whose
     shot last hit the craft, NO_OBJECT for none; it comes with wire version
     13 and reads NO_OBJECT before it.
+
+    A static, flagged STATIC, has no craft record: its ``team`` is its
+    flight group's, DISABLED means an ion hit took its working systems, and
+    its ``object_kind``, ``speed``, shields, hull, ``activity`` and
+    warheads read 0, its ``target``, ``last_attacker`` and ``hit_by``
+    NO_OBJECT. Its ``object_index`` is its slot in the object table.
     """
 
     object_index: int
@@ -419,11 +438,13 @@ class Contact:
 @dataclasses.dataclass(frozen=True)
 class Question:
     """The craft due to think at one reference step, in the engine's order,
-    and every contact the step shows."""
+    every contact the step shows, and the static objects that count as
+    targets, at most STATICS_MAX, in slot order."""
 
     tick: int
     craft: tuple[CraftView, ...]
     contacts: tuple[Contact, ...] = ()
+    statics: tuple[Contact, ...] = ()
 
 
 def _check_u16(name: str, value: int, low: int = 0) -> None:

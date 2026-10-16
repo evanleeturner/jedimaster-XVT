@@ -268,3 +268,24 @@ def test_debug_records_the_timer_evaded_and_ion_actions(caplog) -> None:
     assert "think.answer object=4 actions=49408 " in caplog.text
     assert "think.turret object=4 slot=3 target=9 ion=1" in caplog.text
     assert "think.turret object=4 slot=5 target=9 ion=0" in caplog.text
+
+
+def test_debug_records_the_new_view_values_and_the_statics(
+    view, contact, caplog
+) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    static = contact(object_index=40, flags=8)
+    craft = view(
+        escorted=9,
+        station=(11, 12, 13),
+        start_point=(21, 22, 23),
+        targets_now=5,
+        static_target_mask=1,
+    )
+    think(Question(1000, (craft,), (contact(),), (static,)))
+    assert "think.question tick=1000 craft=1 contacts=1 statics=1" in caplog.text
+    assert "think.contact object=40 " in caplog.text
+    assert (
+        " escorted=9 station_x=11 station_y=12 station_z=13 start_x=21 "
+        "start_y=22 start_z=23 targets_now=5 static_targets=1 " in caplog.text
+    )

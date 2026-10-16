@@ -82,6 +82,11 @@ static struct ai_wire_craft_view view_with_distinct_bytes(void)
 		0x3A,
 		0x3B,
 		0x3F3E3D3C,
+		0x4241,
+		{0x46454443, 0x4A494847, -10},
+		{0x4E4D4C4B, 0x5251504F, -11},
+		0x07,
+		0xA09F9E9D9C9B9A99u,
 		{0}};
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		view.notebook[byte] = (uint8_t)(0x40 + byte);
@@ -100,10 +105,19 @@ static struct ai_wire_contact contact_with_distinct_bytes(void)
 	return contact;
 }
 
+/* The same bytes as a contact but for the object index and the static flag. */
+static struct ai_wire_contact static_with_distinct_bytes(void)
+{
+	struct ai_wire_contact object = contact_with_distinct_bytes();
+	object.object_index = 0x7271;
+	object.flags = 0x08;
+	return object;
+}
+
 static void check_question_bytes(void)
 {
-	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 313] = {
-		0xC9, 0x01, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x0D, 0x00,
+	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 348] = {
+		0x2C, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x0E, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x00, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
@@ -136,7 +150,10 @@ static void check_question_bytes(void)
 		0x27, 0x28, 0xF8, 0xFF, 0xFF, 0xFF, 0x29, 0x2A, 0x2B, 0x2C,
 		0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0xF7,
 		0xFF, 0xFF, 0xFF, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C,
-		0x3D, 0x3E, 0x3F};
+		0x3D, 0x3E, 0x3F, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
+		0x48, 0x49, 0x4A, 0xF6, 0xFF, 0xFF, 0xFF, 0x4B, 0x4C, 0x4D,
+		0x4E, 0x4F, 0x50, 0x51, 0x52, 0xF5, 0xFF, 0xFF, 0xFF, 0x07,
+		0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F, 0xA0};
 	static const uint8_t expected_contacts[AI_WIRE_CONTACT_HEAD_BYTES +
 					       AI_WIRE_CONTACT_BYTES] = {
 		0x01, 0x00, 0x00, 0x00, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
@@ -146,12 +163,24 @@ static void check_question_bytes(void)
 		0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66,
 		0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x70,
 		0x71, 0x72, 0x73, 0x74};
+	static const uint8_t expected_statics[AI_WIRE_CONTACT_HEAD_BYTES +
+					      AI_WIRE_CONTACT_BYTES] = {
+		0x01, 0x00, 0x00, 0x00, 0x71, 0x72, 0x43, 0x44, 0x45, 0x46,
+		0x47, 0x48, 0x49, 0x08, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50,
+		0x51, 0x52, 0xFC, 0xFF, 0xFF, 0xFF, 0x53, 0x54, 0x55, 0x56,
+		0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0xFB, 0xFF, 0xFF, 0xFF,
+		0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66,
+		0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x70,
+		0x71, 0x72, 0x73, 0x74};
 	struct ai_wire_craft_view view = view_with_distinct_bytes();
 	struct ai_wire_contact contact = contact_with_distinct_bytes();
-	struct ai_wire_question question = {TEST_TICK, 1, &view, 1, &contact};
+	struct ai_wire_contact object = static_with_distinct_bytes();
+	struct ai_wire_question question = {TEST_TICK, 1, &view,  1,
+					    &contact,  1, &object};
 	uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
+		    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES +
 		    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES];
-	XVT_ASSERT_INT_EQ(ai_wire_question_bytes(1, 1), sizeof out);
+	XVT_ASSERT_INT_EQ(ai_wire_question_bytes(1, 1, 1), sizeof out);
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
 			  sizeof out);
 	for (size_t byte = 0; byte < sizeof expected; ++byte) {
@@ -166,19 +195,32 @@ static void check_question_bytes(void)
 	for (size_t byte = 0; byte < sizeof expected_contacts; ++byte) {
 		XVT_ASSERT_INT_EQ(contacts[byte], expected_contacts[byte]);
 	}
+	const uint8_t *statics = contacts + sizeof expected_contacts;
+	for (size_t byte = 0; byte < sizeof expected_statics; ++byte) {
+		XVT_ASSERT_INT_EQ(statics[byte], expected_statics[byte]);
+	}
 }
 
 static void check_question_refusals(void)
 {
 	struct ai_wire_craft_view view = view_with_distinct_bytes();
 	struct ai_wire_contact contact = contact_with_distinct_bytes();
-	struct ai_wire_question question = {TEST_TICK, 1, &view, 1, &contact};
-	uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
-		    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES];
+	struct ai_wire_contact objects[65];
+	for (int index = 0; index < 65; ++index) {
+		objects[index] = static_with_distinct_bytes();
+	}
+	struct ai_wire_question question = {TEST_TICK, 1, &view,  1,
+					    &contact,  0, objects};
+	static uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
+			   AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES +
+			   AI_WIRE_CONTACT_HEAD_BYTES + 65 * 60];
+	const size_t base = AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
+			    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES +
+			    AI_WIRE_CONTACT_HEAD_BYTES;
 	memset(out, 0xEE, sizeof out);
-	XVT_ASSERT_INT_EQ(
-		ai_wire_write_question(out, sizeof out - 1, &question), 0);
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, base - 1, &question), 0);
 	XVT_ASSERT_INT_EQ(out[0], 0xEE);
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, base, &question), base);
 	question.craft_count = -1;
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
 			  0);
@@ -189,15 +231,38 @@ static void check_question_refusals(void)
 	question.contact_count = -1;
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
 			  0);
-	question.contact_count = AI_WIRE_CONTACTS_MAX + 1;
+	question.contact_count = 33;
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
 			  0);
-	/* No craft due and no contacts: the header and the contact count. */
+	/* 32 contacts are the most. */
+	struct ai_wire_contact many[32];
+	for (int index = 0; index < 32; ++index) {
+		many[index] = contact;
+	}
+	question.contacts = many;
+	question.contact_count = 32;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  20 + 4 + 32 * 60 + 4);
+	question.contacts = &contact;
+	/* No craft due and no contacts: the header and the two counts. */
 	question.contact_count = 0;
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
-			  AI_WIRE_HEAD_BYTES + AI_WIRE_CONTACT_HEAD_BYTES);
-	XVT_ASSERT_INT_EQ(out[0],
-			  AI_WIRE_HEAD_BYTES + AI_WIRE_CONTACT_HEAD_BYTES - 4);
+			  20 + 4 + 4);
+	XVT_ASSERT_INT_EQ(out[0], 20 + 4 + 4 - 4);
+	/* Statics: 64 are the most, 65 or fewer than 0 are refused. */
+	question.static_count = -1;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  0);
+	question.static_count = 65;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  0);
+	question.static_count = 64;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  20 + 4 + 4 + 64 * 60);
+	const uint8_t *last = out + 20 + 4 + 4 + 63 * 60;
+	XVT_ASSERT_INT_EQ(last[0], 0x71);
+	XVT_ASSERT_INT_EQ(last[9], 0x08);
+	XVT_ASSERT_INT_EQ(out[20 + 4], 64);
 }
 
 /* An answer built byte by byte; finish_answer sets its length field. */
@@ -274,8 +339,12 @@ static struct ai_wire_craft_view g_views[2] = {
 	{.object_index = 9}};
 static struct ai_wire_contact g_contacts[3] = {
 	{.object_index = 7}, {.object_index = 9}, {.object_index = 12}};
-static struct ai_wire_question g_question = {TEST_TICK, 2, g_views, 3,
-					     g_contacts};
+/* Two statics, objects 40 and 41, which no contact is. */
+static struct ai_wire_contact g_statics[2] = {
+	{.object_index = 40, .flags = AI_WIRE_CONTACT_STATIC},
+	{.object_index = 41, .flags = AI_WIRE_CONTACT_STATIC}};
+static struct ai_wire_question g_question = {TEST_TICK,	 2, g_views,  3,
+					     g_contacts, 2, g_statics};
 
 /* Craft 7 sends every action kind but depart, last to first, aiming two
  * turrets, the first with ion shots; craft 9 sends none. */
@@ -463,6 +532,12 @@ static void check_shown_faults(void)
 					      0xFF};
 	static const uint8_t target_9[] = {AI_WIRE_ACTION_TARGET, 9, 0};
 	static const uint8_t target_11[] = {AI_WIRE_ACTION_TARGET, 11, 0};
+	static const uint8_t target_static_40[] = {AI_WIRE_ACTION_TARGET, 40,
+						   0};
+	static const uint8_t target_static_41[] = {AI_WIRE_ACTION_TARGET, 41,
+						   0};
+	static const uint8_t target_static_42[] = {AI_WIRE_ACTION_TARGET, 42,
+						   0};
 	static const uint8_t lasers_ok[] = {AI_WIRE_ACTION_LASERS, 1, 1, 0, 0};
 	static const uint8_t mode_4[] = {AI_WIRE_ACTION_LASERS, 4, 1, 0, 0};
 	static const uint8_t mode_no_burst[] = {AI_WIRE_ACTION_LASERS, 1, 0, 0,
@@ -485,12 +560,26 @@ static void check_shown_faults(void)
 		AI_WIRE_ACTION_TURRETS, 2, 3, 0xFF, 0xFF, 0, 3, 0xFF, 0xFF, 0};
 	static const uint8_t turret_11[] = {
 		AI_WIRE_ACTION_TURRETS, 1, 3, 11, 0, 0};
+	static const uint8_t turret_static[] = {
+		AI_WIRE_ACTION_TURRETS, 1, 3, 40, 0, 0};
 	XVT_ASSERT_INT_EQ(read_actions(1, target_none, sizeof target_none),
 			  AI_WIRE_OK);
 	XVT_ASSERT_INT_EQ(read_actions(1, target_9, sizeof target_9),
 			  AI_WIRE_OK);
 	XVT_ASSERT_INT_EQ(read_actions(1, target_11, sizeof target_11),
 			  AI_WIRE_BAD_ACTION);
+	/* A target cut off by the end of the message. */
+	XVT_ASSERT_INT_EQ(read_actions(1, target_none, sizeof target_none - 1),
+			  AI_WIRE_SHORT);
+	XVT_ASSERT_INT_EQ(
+		read_actions(1, target_static_40, sizeof target_static_40),
+		AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(
+		read_actions(1, target_static_41, sizeof target_static_41),
+		AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(
+		read_actions(1, target_static_42, sizeof target_static_42),
+		AI_WIRE_BAD_ACTION);
 	XVT_ASSERT_INT_EQ(read_actions(1, lasers_ok, sizeof lasers_ok),
 			  AI_WIRE_OK);
 	XVT_ASSERT_INT_EQ(read_actions(1, mode_4, sizeof mode_4),
@@ -536,6 +625,8 @@ static void check_shown_faults(void)
 	XVT_ASSERT_INT_EQ(read_actions(1, slot_twice, sizeof slot_twice),
 			  AI_WIRE_BAD_ACTION);
 	XVT_ASSERT_INT_EQ(read_actions(1, turret_11, sizeof turret_11),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, turret_static, sizeof turret_static),
 			  AI_WIRE_BAD_ACTION);
 	/* A turret cut off by the end of the message. */
 	XVT_ASSERT_INT_EQ(read_actions(1, turret_ok, sizeof turret_ok - 1),

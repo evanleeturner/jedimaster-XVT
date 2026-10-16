@@ -49,12 +49,13 @@ from .world import NOTEBOOK_BYTES
 from .world import ORDER_SLOTS
 from .world import OrderMove
 from .world import Question
+from .world import STATICS_MAX
 from .world import Steer
 from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 13
+VERSION = 14
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -130,6 +131,11 @@ VIEW_LAYOUT = (
     ("lock_state", "B", 1),
     ("skill_level", "B", 1),
     ("maneuver_timer", "I", 1),
+    ("escorted", "H", 1),
+    ("station", "i", 3),
+    ("start_point", "i", 3),
+    ("targets_now", "B", 1),
+    ("static_target_mask", "Q", 1),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -260,11 +266,23 @@ def read_question(body: bytes) -> Question:
         )
     contact_count, zero = CONTACT_HEAD.unpack_from(body, views_end)
     contacts_at = views_end + CONTACT_HEAD.size
-    expected = contacts_at + contact_count * CONTACT_FIELDS.size
-    if zero != 0 or contact_count > CONTACTS_MAX or len(body) != expected:
+    contacts_end = contacts_at + contact_count * CONTACT_FIELDS.size
+    if (
+        zero != 0
+        or contact_count > CONTACTS_MAX
+        or len(body) < contacts_end + CONTACT_HEAD.size
+    ):
         raise WireError(
             f"a question about {count} craft and {contact_count} contacts "
-            f"(zero={zero}) holds {len(body)} bytes, not {expected}"
+            f"(zero={zero}) holds {len(body)} bytes, too few or too many"
+        )
+    static_count, static_zero = CONTACT_HEAD.unpack_from(body, contacts_end)
+    statics_at = contacts_end + CONTACT_HEAD.size
+    expected = statics_at + static_count * CONTACT_FIELDS.size
+    if static_zero != 0 or static_count > STATICS_MAX or len(body) != expected:
+        raise WireError(
+            f"a question with {static_count} statics (zero={static_zero}) "
+            f"holds {len(body)} bytes, not {expected}"
         )
     craft = []
     for offset in range(HEADER.size, views_end, CRAFT_VIEW_BYTES):
@@ -272,9 +290,13 @@ def read_question(body: bytes) -> Question:
         craft.append(_view_from(VIEW_FIELDS.unpack_from(body, offset), notebook))
     contacts = tuple(
         Contact(*CONTACT_FIELDS.unpack_from(body, offset))
-        for offset in range(contacts_at, expected, CONTACT_FIELDS.size)
+        for offset in range(contacts_at, contacts_end, CONTACT_FIELDS.size)
     )
-    return Question(tick, tuple(craft), contacts)
+    statics = tuple(
+        Contact(*CONTACT_FIELDS.unpack_from(body, offset))
+        for offset in range(statics_at, expected, CONTACT_FIELDS.size)
+    )
+    return Question(tick, tuple(craft), contacts, statics)
 
 
 def question_bytes(question: Question) -> bytes:
@@ -289,6 +311,11 @@ def question_bytes(question: Question) -> bytes:
         body += view.notebook
     body += CONTACT_HEAD.pack(len(question.contacts), 0)
     for contact in question.contacts:
+        body += CONTACT_FIELDS.pack(
+            *(getattr(contact, name) for name, _ in CONTACT_LAYOUT)
+        )
+    body += CONTACT_HEAD.pack(len(question.statics), 0)
+    for contact in question.statics:
         body += CONTACT_FIELDS.pack(
             *(getattr(contact, name) for name, _ in CONTACT_LAYOUT)
         )
@@ -477,8 +504,9 @@ def _check_order(order: OrderMove, view: CraftView) -> None:
 def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     """Raise WireError when the actions name what the question did not show.
 
-    The engine's reader refuses the whole answer for: a target or turret
-    target that is neither NO_OBJECT nor a contact, a firing cannon group
+    The engine's reader refuses the whole answer for: a target that is
+    neither NO_OBJECT, a contact nor a static, a turret target that is
+    neither NO_OBJECT nor a contact, a firing cannon group
     the view does not count, a launcher the view does not count or shows
     cooling down or empty, a turret slot the view's turret mask does not name, an
     order from a craft that follows a leader or to a slot other than its
@@ -488,8 +516,9 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     evade command in the view's commands.
     """
     shown = {contact.object_index for contact in question.contacts} | {NO_OBJECT}
-    if actions.target is not None and actions.target not in shown:
-        raise WireError(f"target {actions.target} is not a contact")
+    targets = shown | {static.object_index for static in question.statics}
+    if actions.target is not None and actions.target not in targets:
+        raise WireError(f"target {actions.target} is not a contact or a static")
     for group, cannons in enumerate(actions.lasers or ()):
         if cannons.burst and group >= view.cannon_group_count:
             raise WireError(f"cannon group {group} is not one of the craft's")
