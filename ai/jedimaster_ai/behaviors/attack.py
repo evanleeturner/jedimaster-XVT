@@ -1,7 +1,7 @@
 """Attack: the dogfight a craft flies for the Attack order.
 
 Purpose:
-    A craft with the Attack order picks the nearest craft its order names,
+    A craft with the Attack order picks the nearest craft or static its order names,
     turns toward it, closes, and fires its cannons while the target sits
     inside its aim cone and firing range. Inside the target's clearance
     (``tactics.clearance``, which grows with the target's size), with the
@@ -217,7 +217,9 @@ def think(view: CraftView, question: Question) -> Decision:
     fight back; a player's commands first."""
     if view.commands & Commands.EVADE:
         return _evade_ordered(view, question)
-    targets = tactics.commanded(view, question, tactics.order_targets(view, question))
+    named = tactics.order_targets(view, question)
+    named += tactics.order_statics(view, question)
+    targets = tactics.commanded(view, question, named)
     if not targets:
         chaser = pursuer(view, question)
         if chaser is not None and fights_back(view, question, chaser):

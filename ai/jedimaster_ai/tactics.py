@@ -2,16 +2,18 @@
 
 Purpose:
     The judgments every behavior shares: a craft's skill tier, its own entry
-    among the contacts, which contacts it may fight, which its order names,
-    where a contact sits from it, how far from it to keep, which
-    targets a player's commands leave it, and the throttle that gives a
-    speed.
+    among the contacts, which contacts it may fight, which contacts and
+    static objects its order names, where a contact sits from it, how far
+    from it to keep, which targets a player's commands leave it, and the
+    throttle that gives a speed.
 
 Invariants:
     - A craft fights only a craft the engine marks hostile by the mission's
       alliances (``CraftView.enemy_mask``), never itself, and never one that
       is breaking up, exploding or in hyperspace. The engine never marks the
-      craft's own team or a team allied with it.
+      craft's own team or a team allied with it. A static object its order
+      names it may fight whatever its team: 1997's scan of the statics had
+      no alliance test (ruling 77).
     - Lists keep the question's contact order, so every machine sees the same.
 """
 
@@ -87,6 +89,18 @@ def order_targets(view: CraftView, question: Question) -> list[Contact]:
         contact
         for position, contact in enumerate(question.contacts)
         if view.order_target_mask >> position & 1 and can_fight(view, position, contact)
+    ]
+
+
+def order_statics(view: CraftView, question: Question) -> list[Contact]:
+    """Return the static objects the craft's order names (bit n of
+    ``static_target_mask`` names ``question.statics[n]``) in an object kind
+    a craft may be fought in."""
+    return [
+        static
+        for position, static in enumerate(question.statics)
+        if view.static_target_mask >> position & 1
+        and static.object_kind in _FIGHTABLE_KINDS
     ]
 
 
