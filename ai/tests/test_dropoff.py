@@ -285,9 +285,11 @@ def test_done_is_logged_once_per_order_slot(carrier, ask, lines) -> None:
 
 @pytest.fixture
 def leader(contact):
-    """Return the leader: 20,000 units ahead, dropping."""
+    """Return the leader: on the carrier's team, 20,000 units ahead,
+    dropping."""
     return contact(
         object_index=LEADER,
+        team=1,
         x=HERE[0],
         y=HERE[1] + 20_000,
         z=HERE[2],
