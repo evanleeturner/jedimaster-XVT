@@ -23,6 +23,7 @@ from jedimaster_ai.behaviors import avoidance
 from jedimaster_ai.behaviors import kamikaze
 from jedimaster_ai.behaviors import patrol
 from jedimaster_ai.geometry import LEVEL
+from jedimaster_ai.orders import BEHAVIORS
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Commands
@@ -172,6 +173,10 @@ def written(phase: int, memory: kamikaze.Memory) -> bytes:
         kamikaze.CODE, phase, dice=1, phase_tick=0, scratch=memory.write()
     )
     return book.encode()
+
+
+def test_the_order_is_flown_by_kamikaze() -> None:
+    assert BEHAVIORS[OrderCode.KAMIKAZE] is kamikaze.think
 
 
 def test_it_dives_at_its_target_at_full_throttle(craft, foe, ask, caplog) -> None:

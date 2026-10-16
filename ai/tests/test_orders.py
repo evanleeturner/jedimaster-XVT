@@ -11,6 +11,7 @@ from jedimaster_ai.behaviors import drift
 from jedimaster_ai.behaviors import escort
 from jedimaster_ai.behaviors import hold
 from jedimaster_ai.behaviors import home
+from jedimaster_ai.behaviors import kamikaze
 from jedimaster_ai.behaviors import patrol
 from jedimaster_ai.behaviors import protect
 from jedimaster_ai.behaviors import starship
@@ -35,6 +36,7 @@ def test_each_order_has_its_behavior_and_every_other_order_drifts() -> None:
     for code in (24, 25):
         expected[orders.OrderCode(code)] = starship.protect
     expected[orders.OrderCode.SS_PATROL_AND_DISABLE] = starship.patrol_and_disable
+    expected[orders.OrderCode.KAMIKAZE] = kamikaze.think
     assert dict(orders.BEHAVIORS) == expected
 
 
