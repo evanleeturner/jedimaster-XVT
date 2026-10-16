@@ -23,7 +23,8 @@ Flow:
     ``plants_models_read``, ``plants_models_draw``,
     ``plants_models_output``, ``plants_movies_read``,
     ``plants_movies_subtitles``, ``plants_movies_output``, ``plants_page``, ``plants_bot``,
-    ``plants_launch``, ``plants_page_open`` and ``plants_builds``;
+    ``plants_launch``, ``plants_page_open``, ``plants_builds`` and
+    ``plants_matchmaker``;
     ``PLANTS`` joins them in that order.
 
 Invariants:
@@ -57,6 +58,7 @@ from plants_icons import ICONS_PLANTS
 from plants_launch import LAUNCH_PLANTS
 from plants_lists_output import LISTS_OUTPUT_PLANTS
 from plants_lists_read import LISTS_READ_PLANTS
+from plants_matchmaker import MATCHMAKER_PLANTS
 from plants_mission import MISSION_PLANTS
 from plants_models_draw import MODELS_DRAW_PLANTS
 from plants_models_output import MODELS_OUTPUT_PLANTS
@@ -134,6 +136,7 @@ PLANTS: list[Plant] = [
     *LAUNCH_PLANTS,
     *PAGE_OPEN_PLANTS,
     *BUILDS_PLANTS,
+    *MATCHMAKER_PLANTS,
 ]
 
 

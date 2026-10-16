@@ -13,6 +13,7 @@ dependencies = []
 test = ["pytest", "jsonschema", "pytest-aiohttp"]
 page = ["aiohttp==3.14.4"]
 bot = ["discord.py==2.7.1"]
+matchmaker = ["cryptography==50.0.2"]
 
 [project.scripts]
 jedimaster = "jedimaster.__main__:main"

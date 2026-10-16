@@ -2,7 +2,7 @@
 
 Purpose:
     The commands are ``dump``, ``export``, ``lists``, ``icons``, ``text``,
-    ``fonts``, ``pictures``, ``pilot``, ``models``, ``movies``, ``page``, ``bot``, ``briefing``, ``launch`` and ``update``.
+    ``fonts``, ``pictures``, ``pilot``, ``models``, ``movies``, ``page``, ``bot``, ``briefing``, ``launch``, ``update`` and ``matchmaker``.
     Print one mission in the answer-sheet text format, or export every
     mission of an install as JSON files; ``lists`` does the same for the game's text lists;
     ``icons`` reads the briefing map's icon sheets; ``text``, ``fonts`` and
@@ -11,7 +11,8 @@ Purpose:
     files; ``movies`` reads the movies and their subtitle files; ``page``
     serves the launcher's local web page; ``bot`` sets up and manages its
     Discord bot; ``update`` installs the newest CI game build and makes it
-    the current one.
+    the current one; ``matchmaker`` serves the host's matchmaker for
+    network battles.
 
 Flow:
     ``dump <mission>``: read the file (or, when no such file exists, resolve
@@ -65,6 +66,7 @@ from .lists import ListFormatError
 from .lists import read_list
 from .lists import render_raw
 from .lists.files import KINDS
+from .matchmaker import cli as matchmaker_cli
 from .mission import mission_to_json
 from .mission import MissionFormatError
 from .mission import read_mission
@@ -91,6 +93,7 @@ SUBCOMMANDS = {
     "launch": launch_cli,
     "ai-setup": launch_cli,
     "update": update_cli,
+    "matchmaker": matchmaker_cli,
 }
 """The commands whose modules parse and run their own subcommands."""
 
@@ -128,6 +131,7 @@ def _parser() -> argparse.ArgumentParser:
     briefing_cli.add_parser(sub)
     launch_cli.add_parser(sub)
     update_cli.add_parser(sub)
+    matchmaker_cli.add_parser(sub)
     return parser
 
 
