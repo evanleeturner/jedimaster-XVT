@@ -42,6 +42,7 @@ class BehaviorCode(enum.IntEnum):
     WAITING = 8
     STARSHIP = 9
     KAMIKAZE = 10
+    BOARD = 11
     SELF_DESTRUCT = 12
 
 
