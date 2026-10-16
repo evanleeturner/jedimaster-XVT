@@ -1282,10 +1282,10 @@ static void check_player_hit_counts_as_attacked(void)
 		0);
 }
 
-/* Known failure uncaptured_special_cargo, issue #123: mission.h gives
- * team_special_cargo_uncaptured_lost as the special cargo craft ended
- * uncaptured. Group 0's special cargo craft is number 2; craft number 1 ends
- * uncaptured, and every other team's mark is set anyway. */
+/* mission.h gives team_special_cargo_uncaptured_lost as the special cargo
+ * craft ended uncaptured (issue #123). Group 0's special cargo craft is
+ * number 2; craft number 1 ends uncaptured, so no team's mark is set, though
+ * the uncaptured-lost count is. */
 static void check_uncaptured_special_cargo_mark(void)
 {
 	fresh_world();
@@ -12231,8 +12231,6 @@ int main(int argc, char **argv)
 			{"bonus_failed_team", check_bonus_failed_for_team},
 			{"player_hit_not_attacked",
 			 check_player_hit_counts_as_attacked},
-			{"uncaptured_special_cargo",
-			 check_uncaptured_special_cargo_mark},
 			{"dropoff_group_past_table",
 			 check_dropoff_naming_missing_group},
 			{"expired_team_goal_score",
@@ -12301,6 +12299,7 @@ int main(int argc, char **argv)
 	check_outcome_counted_once();
 	check_outcome_untouched_craft();
 	check_outcome_touched_craft();
+	check_uncaptured_special_cargo_mark();
 	check_outcome_departures();
 	check_outcome_closes_arrivals();
 	check_outcome_moves_dependents();

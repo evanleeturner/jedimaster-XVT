@@ -3773,7 +3773,8 @@ int16_t mission_object_matches_trigger_variable(uint16_t object_idx,
  * complete, counts as not departed. Every team that had not identified it
  * counts it uninspected-lost, and it counts as not disabled (unless
  * not_disabled_accounting_suppress is set), not captured (and uncaptured-lost
- * for every other team), not attacked, not boarded and not docked as its
+ * for every other team, marking special cargo uncaptured-lost only when it is
+ * the group's special cargo craft), not attacked, not boarded and not docked as its
  * state says. On a destroyed craft, groups that arrive from its group are
  * closed with mission_close_unavailable_flight_group_accounting, groups that
  * depart through it move their mothership-dependent counts to lost with
@@ -3918,9 +3919,13 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 			    index) {
 				++g_mission_fg_stats[flight_group_idx]
 					  .team_uncaptured_lost[index];
-				g_mission_fg_stats[flight_group_idx]
-					.team_special_cargo_uncaptured_lost
-						[index] = 1;
+				if (craft->craft_ordinal ==
+				    g_mission_flight_groups[flight_group_idx]
+					    .fg.special_cargo_craft) {
+					g_mission_fg_stats[flight_group_idx]
+						.team_special_cargo_uncaptured_lost
+							[index] = 1;
+				}
 			}
 		}
 	}
