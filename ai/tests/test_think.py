@@ -275,6 +275,26 @@ def test_a_craft_past_its_mission_wait_stops_showing_it(view) -> None:
     assert said.activity == Activity.NONE
 
 
+@pytest.mark.parametrize("line", [Activity.DISABLED, Activity.HOLDING_STATION])
+def test_a_craft_no_longer_waiting_to_be_boarded_stops_showing_it(view, line) -> None:
+    """A craft that still shows the line of Disabled or Await Boarding, an
+    order it left, clears it when its new order names no activity."""
+    craft = view(order_code=OrderCode.HOLD_STEADY, activity=line)
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert said.activity == Activity.NONE
+
+
+def test_a_craft_waiting_to_be_boarded_stops_and_keeps_its_line(view) -> None:
+    craft = view(
+        order_code=OrderCode.AWAIT_BOARDING,
+        order_variable1=2,
+        throttle=40000,
+        activity=Activity.HOLDING_STATION,
+    )
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert (said.throttle, said.activity) == (0, Activity.HOLDING_STATION)
+
+
 def test_debug_records_the_maneuver_timer(view, caplog) -> None:
     caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
     think(Question(1000, (view(maneuver_timer=1180),)))

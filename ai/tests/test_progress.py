@@ -16,6 +16,7 @@ import pytest
 from jedimaster_ai import progress
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import board
+from jedimaster_ai.behaviors import boarded
 from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.behaviors import dropoff
 from jedimaster_ai.behaviors import waiting
@@ -153,6 +154,28 @@ def test_drop_off_is_done_once_all_is_dropped(view) -> None:
     assert progress.decide(dropped) == progress.Progress(move=OrderMove(1, 2))
     at_point = view(**dropping | {"books": Books.DROP_POINT | Books.AT_DROP_POINT})
     assert progress.decide(at_point) == progress.STAY
+
+
+def test_disabled_and_await_boarding_end_when_the_boarded_behavior_says_so() -> None:
+    assert progress.GOALS[OrderCode.DISABLED] is boarded.done
+    assert progress.GOALS[OrderCode.AWAIT_BOARDING] is boarded.done
+
+
+# An Await Boarding leader to be boarded twice, on slot 0 of a group with
+# orders in slots 0 and 1.
+AWAITING = {
+    "order_code": OrderCode.AWAIT_BOARDING,
+    "order_codes": (OrderCode.AWAIT_BOARDING, OrderCode.ATTACK, 0, 0),
+    "order_variable1": 2,
+    "books": 0,
+}
+
+
+def test_await_boarding_moves_on_once_boarded_variable1_times(view) -> None:
+    craft = view(**AWAITING, order_progress=(2, 0, 0, 0))
+    assert progress.decide(craft) == progress.Progress(move=OrderMove(1, 2))
+    once = view(**AWAITING, order_progress=(1, 0, 0, 0))
+    assert progress.decide(once) == progress.STAY
 
 
 # A Give leader asked for one boarding, on slot 0 of a group with orders in

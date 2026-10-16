@@ -39,6 +39,7 @@ from .behaviors import arrival
 from .behaviors import avoidance
 from .behaviors import Behavior
 from .behaviors import board
+from .behaviors import boarded
 from .behaviors import captured
 from .behaviors import countermeasures
 from .behaviors import dropoff
@@ -101,6 +102,7 @@ def think(
                 decision = progress.with_move(behavior(view, question), step.move)
                 decision = wait.ended(view, decision)
                 decision = waiting.ended(view, decision)
+                decision = boarded.ended(view, decision)
             if arrival.is_leaving_hangar(view):
                 decision = arrival.leave_hangar(view, decision)
             decision = avoidance.steer_clear(view, question, decision)

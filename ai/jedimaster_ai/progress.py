@@ -38,6 +38,7 @@ import types
 import typing as t
 
 from .behaviors import board
+from .behaviors import boarded
 from .behaviors import Decision
 from .behaviors import dropoff
 from .behaviors import patrol
@@ -82,7 +83,8 @@ def _all_launched(view: CraftView) -> bool:
 # the order's time is up. SS Await Return: every group that goes home into
 # the craft's group is back. SS Launch: every group that comes out of the
 # craft's group has arrived with no waves left. Drop Off: its group is
-# delivered, or there is nothing to deliver (``dropoff.done``).
+# delivered, or there is nothing to deliver (``dropoff.done``). Disabled and
+# Await Boarding: the boardings counted for the order reached its variable1.
 GOALS: t.Mapping[int, t.Callable[[CraftView], bool]] = types.MappingProxyType(
     {
         OrderCode.ATTACK: _no_target_left,
@@ -101,6 +103,8 @@ GOALS: t.Mapping[int, t.Callable[[CraftView], bool]] = types.MappingProxyType(
         OrderCode.SS_AWAIT_RETURN: _all_returned,
         OrderCode.SS_LAUNCH: _all_launched,
         OrderCode.DROP_OFF: dropoff.done,
+        OrderCode.DISABLED: boarded.done,
+        OrderCode.AWAIT_BOARDING: boarded.done,
     }
 )
 
