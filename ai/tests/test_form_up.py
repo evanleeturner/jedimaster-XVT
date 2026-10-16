@@ -13,7 +13,9 @@ from jedimaster_ai import wire
 from jedimaster_ai.behaviors import arrival
 from jedimaster_ai.behaviors import BehaviorCode
 from jedimaster_ai.behaviors import formation
+from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.orders import OrderCode
+from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Answer
@@ -32,9 +34,18 @@ OWN_INTERVAL = 236
 OWN = 4
 LEADER = 20
 MATE = 21
+DESTROYER = 30
 FOE = 9
 LAUNCH_YAW = 0x1000
 LAUNCH_PITCH = 0x4000
+# An Imperial Star Destroyer: retail size and hull box (``test_hull.py``'s
+# source); level at yaw 0, its box_max side faces a craft south of it.
+ISD = {
+    "genus": 4,
+    "size": 65396,
+    "box_min": (-19140, -40940, -7132),
+    "box_max": (19140, 24456, 12570),
+}
 PLACE = (-0x400, 0x300, 7)
 # A flight's other craft sit this far off, clear of any steering around them.
 AWAY = 0x40000
@@ -388,3 +399,69 @@ def test_only_a_forming_leader_logs_its_heading(
         f"arrival.leading object=4 yaw={LAUNCH_YAW} pitch={LAUNCH_PITCH} "
         f"throttle={0xE000} left={LIMIT}"
     ]
+
+
+def test_think_flies_a_flight_leaving_a_hangar_by_its_form_up(
+    launching, mate, caplog
+) -> None:
+    caplog.set_level(logging.INFO, logger="jedimaster_ai")
+    craft = launching()
+    question = Question(START_TICK, (craft,), (mate(activity=Activity.LEAVING_HANGAR),))
+    answer = think(question).craft[0]
+    book = notebook.decode(answer.notebook)
+    assert (book.behavior, book.phase) == (BehaviorCode.ARRIVAL, arrival.FORMING_UP)
+    assert answer.actions.activity == Activity.IN_FORMATION
+    events = [r.getMessage().split()[0] for r in caplog.records]
+    assert [event for event in events if event.startswith("arrival.")] == [
+        "arrival.forming_up"
+    ]
+
+
+def test_after_its_form_up_a_craft_flies_its_order_with_its_dice(
+    launching, mate
+) -> None:
+    craft = launching()
+    tick = START_TICK
+    while craft.activity != Activity.NONE:
+        assert tick < START_TICK + 4000, "still forming up after 4000 ticks"
+        answer = think(Question(tick, (craft,), (mate(),))).craft[0]
+        kept = notebook.decode(answer.notebook)
+        actions = answer.actions
+        craft = dataclasses.replace(
+            craft,
+            notebook=answer.notebook,
+            activity=craft.activity if actions.activity is None else actions.activity,
+            think_interval=actions.think_interval or craft.think_interval,
+        )
+        tick += craft.think_interval
+    order = notebook.decode(
+        think(Question(tick, (craft,), (mate(),))).craft[0].notebook
+    )
+    assert kept.behavior == BehaviorCode.ARRIVAL
+    assert order.behavior == BehaviorCode.ATTACK
+    assert order.dice == kept.dice
+
+
+def test_a_forming_leader_steers_clear_of_a_star_destroyer_ahead(
+    launching, mate, contact
+) -> None:
+    """On yaw 0 the leader heads at the destroyer's hull 8,000 ahead, inside
+    LOOK_AHEAD of the 4,096 kept off it."""
+    craft = launching(x=0, y=0, z=0, yaw=0)
+    own = contact(object_index=OWN, genus=0, x=0, y=0, z=0, target=NO_OBJECT)
+    destroyer = contact(
+        object_index=DESTROYER,
+        x=0,
+        y=ISD["box_max"][1] + 8000,
+        z=0,
+        yaw=0,
+        pitch=LEVEL,
+        roll=0,
+        target=NO_OBJECT,
+        **ISD,
+    )
+    question = Question(START_TICK, (craft,), (own, destroyer, mate()))
+    assert arrival.form_up(craft, question).actions.steer == Steer(0, LAUNCH_PITCH, 0)
+    actions = think(question).craft[0].actions
+    assert actions.steer.yaw != 0
+    assert actions.activity == Activity.IN_FORMATION

@@ -71,6 +71,9 @@ def think(
             _log_view(view)
         if arrival.is_arriving(view):
             decision = arrival.think(view, question)
+        elif arrival.forms_up(view, question):
+            decision = arrival.form_up(view, question)
+            decision = avoidance.steer_clear(view, question, decision)
         else:
             if view.commands & Commands.WAIT:
                 decision = wait.think(view, question)
