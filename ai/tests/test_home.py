@@ -459,6 +459,19 @@ def test_a_weave_home_ends_when_the_tail_clears_though_the_enemy_is_after_it(
     assert not weave.Weave.read(notebook.decode(ahead.notebook).scratch).flying
 
 
+def test_each_answer_built_from_the_weave_home_says_weaving(view, mine, enemy) -> None:
+    """Still going home evading once the tail clears, the craft says it no
+    longer weaves."""
+    craft = view(**JUMPING)
+    hit = {"last_attacker": CHASER} | HURT
+    first, held = weave_home(craft, lambda c: [mine(c, **hit), enemy()], [1000, 1016])
+    assert first.actions.weaving and held.actions.weaving
+    later = view(**JUMPING | {"notebook": held.notebook})
+    ahead = decide(later, [mine(later, **hit), enemy(x=AHEAD_X)], tick=1032)
+    assert ahead.actions.activity == Activity.GOING_HOME_EVADING
+    assert not ahead.actions.weaving
+
+
 def test_weaving_home_the_dice_move_on_at_each_swerve(view, mine, enemy) -> None:
     craft = view(**JUMPING)
     decisions = weave_home(

@@ -117,6 +117,20 @@ def test_a_weave_flies_on_and_ends_when_the_tail_is_clear(
     )
 
 
+def test_every_answer_of_a_weave_says_weaving_until_the_tail_clears(
+    craft, foe, ask
+) -> None:
+    """The engine moves a weaving craft's shield power to its engines while
+    each answer carries the flag, and stops at the first answer without it."""
+    target, chaser = foe(x=0x4000, y=0x1000), foe(object_index=12, y=-0x2000, target=ME)
+    first = ask(craft(), target, chaser, tick=1000)
+    held = ask(craft(notebook=first.notebook), target, chaser, tick=1016)
+    assert phase_of(first) == phase_of(held) == attack.EVADE
+    assert first.actions.weaving and held.actions.weaving
+    out = ask(craft(notebook=held.notebook), target, tick=1032)
+    assert phase_of(out) == attack.ATTACK and not out.actions.weaving
+
+
 def weave_of(decision) -> weave.Weave:
     return attack.Memory.read(notebook.decode(decision.notebook).scratch).weave
 
@@ -293,6 +307,21 @@ def test_an_ordered_weave_flies_every_swerve_with_no_chaser(
     memory = attack.Memory.read(notebook.decode(decision.notebook).scratch)
     assert memory.ordered == 0
     assert f'reason="clear" swerves={weave.SWERVES_MAX} rest_until=0' in caplog.text
+
+
+def test_an_evade_command_says_weaving_on_every_swerve_and_not_after(
+    craft, foe, ask
+) -> None:
+    target = foe(x=0x4000, y=0x1000)
+    decision = ask(craft(commands=Commands.EVADE), target, tick=1000)
+    assert decision.actions.weaving and decision.actions.evaded
+    tick, flags = 1000, []
+    while phase_of(decision) == attack.EVADE and tick < 5000:
+        flags.append(decision.actions.weaving)
+        tick += attack.FIGHT_INTERVAL
+        decision = ask(craft(notebook=decision.notebook), target, tick=tick)
+    assert len(flags) > 1 and all(flags)
+    assert phase_of(decision) == attack.ATTACK and not decision.actions.weaving
 
 
 def test_the_memory_keeps_the_ordered_weave() -> None:

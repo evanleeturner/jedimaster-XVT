@@ -238,7 +238,8 @@ def evade(
     state: int,
 ) -> tuple[weave.Weave, Actions, int]:
     """Return the weave, actions and dice of a Circle and Evade craft: it
-    weaves about its course while an enemy sits on its tail."""
+    weaves about its course while an enemy sits on its tail, each answer
+    built from the weave's move flagged ``weaving``."""
     tick = question.tick
     threat = attack.tail_threat(view, question)
     move = None
@@ -255,6 +256,7 @@ def evade(
             steer=move.steer,
             throttle=FULL_THROTTLE,
             countermeasure=move.flare,
+            weaving=True,
         )
     return flown, actions, state
 

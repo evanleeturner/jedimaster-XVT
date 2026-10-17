@@ -58,6 +58,16 @@ def test_a_damaged_craft_with_no_order_target_only_weaves(
     )
 
 
+def test_a_damaged_craft_weaving_with_no_target_says_so_until_the_tail_clears(
+    craft, foe, ask
+) -> None:
+    first = ask(craft(order_target_mask=0), foe(**BEHIND), tick=1000, **HURT)
+    assert phase_of(first) == attack.EVADE and first.actions.weaving
+    me = craft(order_target_mask=0, notebook=first.notebook)
+    clear = ask(me, tick=1016, **HURT)
+    assert phase_of(clear) == attack.SEEK and not clear.actions.weaving
+
+
 def test_a_damaged_sith_lord_with_no_order_target_still_fights(
     craft, foe, ask, caplog
 ) -> None:

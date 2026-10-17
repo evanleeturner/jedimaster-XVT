@@ -370,7 +370,7 @@ def _weaving(
     view: CraftView, book: notebook.Notebook, memory: Memory, move: weave.Move
 ) -> Decision:
     """Return the evade command's weave: the move at full throttle, no
-    target, the cannons cold."""
+    target, the cannons cold, flagged ``weaving``."""
     actions = Actions(
         steer=move.steer,
         throttle=tactics.FULL_THROTTLE,
@@ -378,6 +378,7 @@ def _weaving(
         target=NO_OBJECT,
         lasers=(HOLD_FIRE, HOLD_FIRE),
         countermeasure=move.flare,
+        weaving=True,
     )
     return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
 

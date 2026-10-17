@@ -43,7 +43,10 @@ Purpose:
     may fight it, and the one an ignore order named is never picked
     (``tactics.commanded``). An evade command drops the target and starts
     a weave that flies all its swerves, chased or not; the ``evaded`` action
-    tells the engine it was taken up.
+    tells the engine it was taken up. Every answer built from a weave's move
+    carries the ``weaving`` action, so the engine moves the craft's shield
+    power to its engines while it weaves, as the 1997 game did for a craft
+    avoiding an attacker.
 
     The rules' shape follows Starshatter Open's fighter pilot (target choice,
     fire control, breaking off), written new in this program's integer
@@ -845,13 +848,14 @@ def _clear_of_all(view: CraftView, question: Question, move: weave.Move) -> weav
 
 def _weave_actions(move: weave.Move, interval: int | None) -> Actions:
     """Return the actions of a weaving craft: the weave's move at full
-    throttle, its cannons cold."""
+    throttle, its cannons cold, flagged ``weaving``."""
     return Actions(
         steer=move.steer,
         throttle=FULL_THROTTLE,
         think_interval=interval,
         lasers=(HOLD_FIRE, HOLD_FIRE),
         countermeasure=move.flare,
+        weaving=True,
     )
 
 

@@ -582,6 +582,28 @@ def test_the_evade_weave_is_flown_out_unchased_then_it_dives(craft, foe, ask) ->
     assert memory_of(dive).ordered == 0
 
 
+def test_the_evade_weave_flown_on_says_weaving_and_the_dive_after_does_not(
+    craft, foe, ask
+) -> None:
+    flying = weave.Weave(swerves=1, swerve_ends=1100)
+    ordered = written(kamikaze.EVADE, kamikaze.Memory(weave=flying, ordered=1))
+    still = ask(craft(notebook=ordered), foe())
+    assert phase_of(still) == kamikaze.EVADE and still.actions.weaving
+    last = weave.Weave(swerves=weave.SWERVES_MAX, swerve_ends=900)
+    done = written(kamikaze.EVADE, kamikaze.Memory(weave=last, ordered=1))
+    dive = ask(craft(notebook=done), foe())
+    assert phase_of(dive) == kamikaze.DIVE and not dive.actions.weaving
+
+
+def test_an_evade_command_says_weaving_and_the_dive_before_it_does_not(
+    craft, foe, ask
+) -> None:
+    first = ask(craft(), foe())
+    evading = ask(craft(notebook=first.notebook, commands=Commands.EVADE), foe())
+    assert not first.actions.weaving
+    assert evading.actions.weaving and evading.actions.evaded
+
+
 def test_avoidance_leaves_its_target_alone_and_turns_it_round_another(
     craft, foe, shown
 ) -> None:

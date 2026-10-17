@@ -402,6 +402,19 @@ def test_circle_and_evade_goes_back_to_its_round_once_the_tail_is_clear(
     assert route(clear.notebook) == (0, 0, 0, 0)
 
 
+def test_circle_and_evade_says_weaving_while_it_weaves_and_not_after(
+    patrolling, mine, enemy
+) -> None:
+    craft = patrolling(order_code=CIRCLE_AND_EVADE)
+    first = decide(craft, [mine(craft), enemy()])
+    later = patrolling(order_code=CIRCLE_AND_EVADE, notebook=first.notebook)
+    held = decide(later, [mine(later), enemy()], tick=1016)
+    assert first.actions.weaving and held.actions.weaving
+    later = patrolling(order_code=CIRCLE_AND_EVADE, notebook=held.notebook)
+    clear = decide(later, [mine(later), enemy(target=15)], tick=1032)
+    assert flown(held.notebook).flying and not clear.actions.weaving
+
+
 def test_a_follower_flies_the_round_too_and_moves_no_slot(patrolling, mine) -> None:
     craft = patrolling(leader=7, order_variable1=1, notebook=book(rounds=1))
     assert decide(craft, [mine(craft)]).actions.steer == toward(P0)

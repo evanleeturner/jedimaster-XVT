@@ -172,7 +172,8 @@ def _fighting(decision: Decision) -> Decision:
 
 def _evade(view: CraftView, question: Question, actions: Actions) -> Decision:
     """Fly the route's actions going home evading, weaving about the route's
-    heading while an enemy sits on the craft's tail."""
+    heading while an enemy sits on the craft's tail; each answer built from
+    the weave's move is flagged ``weaving``."""
     tick = question.tick
     book = notebook.open_for(view, CODE, tick)
     flown = weave.Weave.read(book.scratch)
@@ -194,6 +195,7 @@ def _evade(view: CraftView, question: Question, actions: Actions) -> Decision:
             steer=move.steer,
             throttle=FULL_THROTTLE,
             countermeasure=move.flare,
+            weaving=True,
         )
     return Decision(book.encode(), actions)
 
