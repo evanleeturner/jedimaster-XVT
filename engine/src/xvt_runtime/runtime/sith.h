@@ -2,6 +2,7 @@
 #define XVT_RUNTIME_SITH_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,9 +103,34 @@ const char *xvt_sith_rank_tag(int ai_rank);
  * change or a hit to the player's systems), an appended tag also logs
  * sith.target_tag. Returns 1 when a tag was appended, else 0. */
 int xvt_sith_append_target_tag(unsigned int object_slot, int log_change);
+/* The rates a computer-flown craft turns, loops and banks at, in the unit of
+ * its model's rates (angle per 236 ticks). */
+struct xvt_sith_rates {
+	uint16_t turn;
+	uint16_t pitch;
+	uint16_t roll;
+};
+struct craft_data;
+/* Fills out with the turn, pitch and roll rates the steering of the craft in
+ * object slot object_slot uses. A craft whose ai_rank is not
+ * XVT_SITH_APPRENTICE_LEVEL or XVT_SITH_LORD_LEVEL gets its own three fields
+ * and nothing is logged. A Sith craft gets, on each axis, the rate a player's
+ * craft of its model turns at with the stick pushed all the way over, for the
+ * craft's throttle, but never less than the craft's own rate: the throttle
+ * scales as a player's does (a craft with no working engines counts
+ * as throttle 0), the yaw reads the model's roll rate as a player's yaw
+ * does, and the bank follows the yaw's rule. The player's power settings are
+ * not read: the rate is a player's full-stick rate with power balanced. Only
+ * integer arithmetic is used, so every machine of a network game computes
+ * the same rates. With the log at DEBUG it writes sith.steering_rates when a
+ * Sith craft's rank or throttle scale differs from the last line written for
+ * its slot and object signature. */
+void xvt_sith_steering_rates(unsigned int object_slot,
+			     const struct craft_data *craft,
+			     struct xvt_sith_rates *out);
 /* Ends the flight: the setting returns to none and the Lord's group, the
- * promoted group and the counts are cleared, so a later battle in the same
- * process inherits nothing. */
+ * promoted group, the counts and the steering-rate log memory are cleared, so
+ * a later battle in the same process inherits nothing. */
 void xvt_sith_end_flight(void);
 
 #ifdef __cplusplus

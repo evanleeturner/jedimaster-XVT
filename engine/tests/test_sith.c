@@ -562,6 +562,159 @@ static void check_tag_log_line(void)
 	g_object_table = NULL;
 }
 
+/* ---- the steering rates ------------------------------------------------ */
+
+static struct craft_data g_rate_craft;
+static struct object_record g_rate_objects[4];
+
+/* A craft record at rank with throttle and the model rates (turn, pitch,
+ * roll), engines working unless engines is 0. The three rates differ from
+ * each other so that a swapped field shows. */
+static void seed_rate_craft(int rank, uint16_t throttle, int turn, int pitch,
+			    int roll, int engines)
+{
+	memset(&g_rate_craft, 0, sizeof g_rate_craft);
+	g_rate_craft.ai_rank = (uint8_t)rank;
+	g_rate_craft.throttle_speed = throttle;
+	g_rate_craft.working_subsystems =
+		engines ? 0x03FF
+			: (uint16_t)(0x03FF & ~CRAFT_SUBSYSTEM_FLAG_ENGINES);
+	g_rate_craft.ai_flight.turn_rate = (int16_t)turn;
+	g_rate_craft.ai_flight.pitch_rate = (int16_t)pitch;
+	g_rate_craft.ai_flight.roll_rate = (int16_t)roll;
+}
+
+static void expect_rates(unsigned slot, int turn, int pitch, int roll)
+{
+	struct xvt_sith_rates rates = {1, 2, 3};
+	xvt_sith_steering_rates(slot, &g_rate_craft, &rates);
+	XVT_ASSERT_INT_EQ(rates.turn, turn);
+	XVT_ASSERT_INT_EQ(rates.pitch, pitch);
+	XVT_ASSERT_INT_EQ(rates.roll, roll);
+}
+
+/* An X-wing's rates (10,240 turn, 5,120 pitch, 9,216 roll) at four
+ * throttles and the neighbours of a third, for ranks 6 and 7; the values
+ * are the receipt's (receipt.py). */
+static void check_rates_x_wing(void)
+{
+	static const struct {
+		uint16_t throttle;
+		int turn, pitch, roll;
+	} want[] = {
+		{0, 10240, 5120, 9216},	      {0x5554, 10240, 12700, 9797},
+		{0x5555, 10240, 12700, 9797}, {0x5556, 10240, 12700, 9797},
+		{0xAAAA, 10240, 10584, 9216}, {0xFFFF, 10240, 8466, 9216},
+	};
+	g_object_table = g_rate_objects;
+	for (int rank = 6; rank <= 7; ++rank) {
+		for (size_t k = 0; k < sizeof want / sizeof want[0]; ++k) {
+			seed_rate_craft(rank, want[k].throttle, 10240, 5120,
+					9216, 1);
+			expect_rates(1, want[k].turn, want[k].pitch,
+				     want[k].roll);
+		}
+	}
+	g_object_table = NULL;
+}
+
+/* Other ranks keep the craft's three fields at every throttle, rank 8 is no
+ * Sith, and a Sith craft with its engines out flies at the stopped values. */
+static void check_rates_other_ranks_and_engines(void)
+{
+	static const uint16_t throttles[] = {0, 0x5555, 0xAAAA, 0xFFFF};
+	static const int ranks[] = {0, 5, 8, 255};
+	for (size_t r = 0; r < sizeof ranks / sizeof ranks[0]; ++r) {
+		for (size_t t = 0; t < 4; ++t) {
+			seed_rate_craft(ranks[r], throttles[t], 10240, 5120,
+					9216, 1);
+			expect_rates(1, 10240, 5120, 9216);
+		}
+	}
+	seed_rate_craft(7, 0xFFFF, 10240, 5120, 9216, 0);
+	expect_rates(1, 10240, 5120, 9216);
+	seed_rate_craft(7, 0x5555, 10240, 5120, 9216, 0);
+	expect_rates(1, 10240, 5120, 9216);
+}
+
+/* Models with odd rates: a roll rate of 0 leaves the turn at its own rate
+ * (the yaw reads the roll rate, then the floor holds the turn field); a
+ * pitch rate whose player value passes 32,767 is kept, not wrapped; one
+ * passing 0xFFFF is capped; a rate that is an exact multiple of its
+ * segment has no fractional share. */
+static void check_rates_odd_models(void)
+{
+	seed_rate_craft(6, 0x5555, 10240, 5120, 0, 1);
+	expect_rates(1, 10240, 12700, 0);
+	seed_rate_craft(6, 0x5555, 10240, 16384, 9216, 1);
+	expect_rates(1, 10240, 40640, 9797);
+	seed_rate_craft(7, 0x5555, 10240, 0x7FFF, 9216, 1);
+	expect_rates(1, 10240, 0xFFFF, 9797);
+	/* A pitch rate whose player value is exactly 65,536 is capped too. */
+	seed_rate_craft(7, 0x5555, 10240, 26421, 9216, 1);
+	expect_rates(1, 10240, 0xFFFF, 9797);
+	seed_rate_craft(7, 0x5555, 10240, 5120, 0x3800, 1);
+	expect_rates(1, 15240, 12700, 15240);
+}
+
+/* One line at the first call, none on a repeat, one when the throttle's
+ * scale changes, one for a new craft in the same slot, none for rank 5, and
+ * one again after the flight's end cleared the memory. */
+static void check_rates_log(void)
+{
+	g_object_table = g_rate_objects;
+	memset(g_rate_objects, 0, sizeof g_rate_objects);
+	g_rate_objects[1].object_signature = 100;
+	xvt_sith_end_flight();
+	g_line_count = 0;
+	seed_rate_craft(6, 0x5555, 10240, 5120, 9216, 1);
+	expect_rates(1, 10240, 12700, 9797);
+	XVT_ASSERT_INT_EQ(lines_with("sith.steering_rates"), 1);
+	XVT_ASSERT_INT_EQ(
+		lines_with(
+			"slot=1 rank=6 throttle=21845 scale=65535 turn=10240 pitch=12700 roll=9797"),
+		1);
+	expect_rates(1, 10240, 12700, 9797);
+	XVT_ASSERT_INT_EQ(lines_with("sith.steering_rates"), 1);
+	seed_rate_craft(6, 0xFFFF, 10240, 5120, 9216, 1);
+	expect_rates(1, 10240, 8466, 9216);
+	XVT_ASSERT_INT_EQ(lines_with("sith.steering_rates"), 2);
+	XVT_ASSERT_INT_EQ(
+		lines_with(
+			"slot=1 rank=6 throttle=65535 scale=43690 turn=10240 pitch=8466 roll=9216"),
+		1);
+	g_rate_objects[1].object_signature = 101;
+	expect_rates(1, 10240, 8466, 9216);
+	XVT_ASSERT_INT_EQ(lines_with("sith.steering_rates"), 3);
+	seed_rate_craft(5, 0xFFFF, 10240, 5120, 9216, 1);
+	expect_rates(1, 10240, 5120, 9216);
+	XVT_ASSERT_INT_EQ(lines_with("sith.steering_rates"), 3);
+	seed_rate_craft(7, 0xFFFF, 10240, 5120, 9216, 1);
+	expect_rates(1, 10240, 8466, 9216);
+	XVT_ASSERT_INT_EQ(lines_with("slot=1 rank=7"), 1);
+	xvt_sith_end_flight();
+	expect_rates(1, 10240, 8466, 9216);
+	XVT_ASSERT_INT_EQ(lines_with("sith.steering_rates"), 5);
+	seed_rate_craft(7, 0xFFFF, 10240, 5120, 9216, 1);
+	xvt_sith_promote_flight_groups();
+	expect_rates(1, 10240, 8466, 9216);
+	XVT_ASSERT_INT_EQ(lines_with("sith.steering_rates"), 6);
+	/* Engines out count as throttle 0 in the line. */
+	seed_rate_craft(6, 0xFFFF, 10240, 5120, 9216, 0);
+	expect_rates(2, 10240, 5120, 9216);
+	XVT_ASSERT_INT_EQ(
+		lines_with(
+			"slot=2 rank=6 throttle=0 scale=21845 turn=10240 pitch=5120 roll=9216"),
+		1);
+	/* Slots past the memory still get their rates, and log nothing. */
+	int before = lines_with("sith.steering_rates");
+	seed_rate_craft(6, 0x5555, 10240, 5120, 9216, 1);
+	expect_rates(32, 10240, 12700, 9797);
+	expect_rates(5000, 10240, 12700, 9797);
+	XVT_ASSERT_INT_EQ(lines_with("sith.steering_rates"), before);
+	g_object_table = NULL;
+}
+
 int main(void)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -588,5 +741,9 @@ int main(void)
 	check_tag_appended_for_sith_ranks();
 	check_no_tag_leaves_buffer();
 	check_tag_log_line();
+	check_rates_x_wing();
+	check_rates_other_ranks_and_engines();
+	check_rates_odd_models();
+	check_rates_log();
 	return 0;
 }

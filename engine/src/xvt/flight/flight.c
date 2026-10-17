@@ -6514,8 +6514,10 @@ int32_t flight_pump_window_messages(void) { return 0; }
  * craft (no player owner) with working systems and not held by a beam rolls,
  * pitches and turns toward its AI controller's targets at its flight rates,
  * banking as it turns; pitching through a loop turns its yaw and roll half a
- * circle. Climbs end and dives pull out
- * (flight_update_dive_pullout_pitch_target). An active craft's speed moves
+ * circle. Sith Apprentices and Sith Lords turn, loop and bank at a player's
+ * full-stick rate for their throttle, never below their own. Climbs end and
+ * dives pull out (flight_update_dive_pullout_pitch_target). An active craft's
+ * speed moves
  * toward its commanded speed or its throttle's share of a top speed that rises
  * or falls with the energy settings and doubles unless engine_overdrive_off is
  * set; a player's throttle counts only with working engines. Breaking up and
@@ -6638,6 +6640,10 @@ void flight_update_craft_steering_and_speed(void)
 		    g_cur_craft->working_subsystems != 0 &&
 		    g_cur_craft->beam_effect_accum[1] == 0) {
 			uint8_t roll_state;
+			struct xvt_sith_rates rates;
+
+			xvt_sith_steering_rates(object_idx, g_cur_craft,
+						&rates);
 
 			roll_state = g_cur_craft->ai_flight.roll_state;
 			if (roll_state >= 1 && roll_state <= 3) {
@@ -6651,9 +6657,7 @@ void flight_update_craft_steering_and_speed(void)
 							   .roll);
 				raw_roll_step =
 					(uint16_t)((uint16_t)g_elapsed_ticks *
-						   (uint16_t)g_cur_craft
-							   ->ai_flight
-							   .roll_rate /
+						   (uint16_t)rates.roll /
 						   simulation_rate);
 				roll_step = (uint16_t)math2_fraction(
 					raw_roll_step,
@@ -6672,9 +6676,7 @@ void flight_update_craft_steering_and_speed(void)
 							   xvt_flight_integration_steer(
 								   object_idx,
 								   XVT_INTEGRATE_ROLL,
-								   g_cur_craft
-									   ->ai_flight
-									   .roll_rate,
+								   rates.roll,
 								   g_cur_craft
 									   ->ai_flight
 									   .roll_accel,
@@ -6752,9 +6754,7 @@ void flight_update_craft_steering_and_speed(void)
 				}
 				raw_pitch_step =
 					(uint16_t)((uint16_t)g_elapsed_ticks *
-						   (uint16_t)g_cur_craft
-							   ->ai_flight
-							   .pitch_rate /
+						   (uint16_t)rates.pitch /
 						   simulation_rate);
 				pitch_step = (uint16_t)math2_fraction(
 					raw_pitch_step,
@@ -6767,8 +6767,7 @@ void flight_update_craft_steering_and_speed(void)
 				    g_cur_craft->ai_flight.pitch_state <= 2) {
 					pitch_step = (uint16_t)(xvt_flight_integration_steer(
 						object_idx, XVT_INTEGRATE_PITCH,
-						g_cur_craft->ai_flight
-							.pitch_rate,
+						rates.pitch,
 						g_cur_craft->ai_flight
 							.pitch_accel,
 						g_cur_craft->ai_flight
@@ -6891,9 +6890,8 @@ void flight_update_craft_steering_and_speed(void)
 					raw_turn_step =
 						(uint16_t)((uint16_t)
 								   g_elapsed_ticks *
-							   (uint16_t)g_cur_craft
-								   ->ai_flight
-								   .turn_rate /
+							   (uint16_t)
+								   rates.turn /
 							   simulation_rate);
 					turn_step = (uint16_t)math2_fraction(
 						raw_turn_step,
@@ -6907,8 +6905,7 @@ void flight_update_craft_steering_and_speed(void)
 						turn_step = (uint16_t)(xvt_flight_integration_steer(
 							object_idx,
 							XVT_INTEGRATE_TURN,
-							g_cur_craft->ai_flight
-								.turn_rate,
+							rates.turn,
 							g_cur_craft->ai_flight
 								.turn_accel,
 							g_cur_craft->ai_flight

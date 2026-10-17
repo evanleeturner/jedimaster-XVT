@@ -4841,7 +4841,7 @@ struct steer_case {
 	uint16_t t_roll, t_z, t_xy;
 	int aim_z, world_z, rate, bank;
 	int speed, throttle, commanded, max_speed, levels, overdrive_off;
-	int rank;
+	int rank, rate_turn, rate_pitch, rate_roll;
 	int elapsed, game_time, stamp, carried, carried_none, move_z;
 	int timer, timer2;
 	unsigned rules;
@@ -4913,6 +4913,15 @@ static void steer_craft(int obj, const struct steer_case *c)
 	ai->roll_rate = (int16_t)c->rate;
 	ai->pitch_rate = (int16_t)c->rate;
 	ai->turn_rate = (int16_t)c->rate;
+	if (c->rate_turn) {
+		ai->turn_rate = (int16_t)c->rate_turn;
+	}
+	if (c->rate_pitch) {
+		ai->pitch_rate = (int16_t)c->rate_pitch;
+	}
+	if (c->rate_roll) {
+		ai->roll_rate = (int16_t)c->rate_roll;
+	}
 	ai->roll_accel = (int16_t)0xFFFF;
 	ai->pitch_accel = (int16_t)0xFFFF;
 	ai->turn_accel = (int16_t)0xFFFF;
@@ -9357,6 +9366,68 @@ static void check_sith_lord_speed(void)
 	}
 }
 
+/* A rank 6 craft and a rank 5 craft, the same model, rates and throttle (a
+ * third of full), roll, pitch and turn for one second: the Sith craft's
+ * steps are the receipt's (receipt.py, an X-wing at 33%: pitch 12,700 against
+ * 5,120, turn 9,797 against its own 5,000 because the yaw reads the roll
+ * rate, bank doubled 19,594 against 18,432); a player's craft at rank 6 is
+ * left alone as before. */
+static void check_sith_steering_rates(void)
+{
+	struct steer_case c = {.rank = 6,
+			       .twin = 1,
+			       .throttle = 0x5555,
+			       .roll_state = 1,
+			       .roll = 0x1000,
+			       .t_roll = 0x7000,
+			       .pitch_state = 1,
+			       .pitch = 0x7FFF,
+			       .t_z = 0,
+			       .turn_state = 1,
+			       .yaw = 0x1000,
+			       .t_xy = 0x7000,
+			       .rate_turn = 5000,
+			       .rate_pitch = 5120,
+			       .rate_roll = 9216};
+	steer_world(&c);
+	g_test_craft[CRAFT_B].ai_rank = 5;
+	flight_update_craft_steering_and_speed();
+	XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_A].roll, 0x1000 + 19594);
+	XVT_ASSERT_INT_EQ(g_test_craft[CRAFT_A].pitch, 0x7FFF - 12700);
+	XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_A].yaw, 0x1000 + 9797);
+	XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_B].roll, 0x1000 + 18432);
+	XVT_ASSERT_INT_EQ(g_test_craft[CRAFT_B].pitch, 0x7FFF - 5120);
+	XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_B].yaw, 0x1000 + 5000);
+
+	steer_world(&c);
+	g_test_craft[CRAFT_B].ai_rank = 5;
+	g_test_objects[CRAFT_A].player_owner_idx = PILOT;
+	flight_update_craft_steering_and_speed();
+	XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_A].roll, 0x1000);
+	XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_A].yaw, 0x1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[CRAFT_A].pitch, 0x7FFF);
+
+	/* The same under the unlocked timing, which steers through its own
+	 * integration with the same rates. */
+	for (int sith = 0; sith < 2; ++sith) {
+		c.rank = sith ? 6 : 5;
+		c.twin = 0;
+		xvt_flight_timing_begin_session(
+			XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+		XVT_ASSERT_TRUE(xvt_flight_integration_init(16) != 0);
+		steer_world(&c);
+		flight_update_craft_steering_and_speed();
+		XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_A].roll,
+				  sith ? 23690 : 22528);
+		XVT_ASSERT_INT_EQ(g_test_craft[CRAFT_A].pitch,
+				  sith ? 20067 : 27647);
+		XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_A].yaw,
+				  sith ? 13893 : 9096);
+		xvt_flight_integration_shutdown();
+		xvt_flight_timing_end_session();
+	}
+}
+
 static void check_steer_unlocked_sum(void)
 {
 	static const int ticks[] = {100, 50, 7};
@@ -9529,6 +9600,7 @@ int main(int argc, char **argv)
 	check_steer_turn();
 	check_steer_dive();
 	check_sith_lord_speed();
+	check_sith_steering_rates();
 	check_steer_speed();
 	check_steer_kinds();
 	check_steer_carry();

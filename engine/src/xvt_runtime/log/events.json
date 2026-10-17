@@ -6758,6 +6758,11 @@
       "fields": ["slot", "from", "to"],
       "text": "A Sith Lord in object slot {slot} took its throttle's speed at once, from {from} to {to}"
     },
+    "sith.steering_rates": {
+      "level": "D",
+      "fields": ["slot", "rank", "throttle", "scale", "turn", "pitch", "roll"],
+      "text": "The Sith craft in object slot {slot}, flying at level {rank} with throttle {throttle} (a player's scale {scale}), turns at {turn}, loops at {pitch} and banks at {roll} per 236 ticks"
+    },
     "sith.target_tag": {
       "level": "D",
       "fields": ["slot", "rank", "tag"],
