@@ -24,8 +24,9 @@ Purpose:
     craft, sets its throttle and refuses a target and the maneuver timer, so
     the craft sends none of them, and ``think`` routes it here whatever its
     order and books say until the drop ends. Sent home meanwhile (STOP_BOOKS:
-    1997's STOPGOHOME and ABORTATK left both plans for flyhomepln), it stops
-    the drop with ``drop_off`` 0 and goes home at its next think.
+    1997's STOPGOHOME and ABORTATK left both plans for flyhomepln; a Sith
+    Lord's abort aside, ``lord.home_books``), it stops the drop with
+    ``drop_off`` 0 and goes home at its next think.
 
     Done: ALL_DROPPED, every place delivered, or nothing to deliver (ruling
     134: a group number outside the mission, the group already arrived, a
@@ -72,6 +73,7 @@ import logging
 import struct
 
 from .. import geometry
+from .. import lord
 from .. import notebook
 from .. import tactics
 from ..world import Actions
@@ -216,7 +218,7 @@ def _dropping(view: CraftView, entered: bool) -> Actions:
     """Return the actions while the engine drops: the stop when the craft is
     sent home, else only its status line."""
     delivered = view.order_progress[view.order_slot]
-    if view.books & STOP_BOOKS:
+    if lord.home_books(view, view.books & STOP_BOOKS):
         logger.info(
             "dropoff.stopped object=%d delivered=%d books=%d",
             view.object_index,

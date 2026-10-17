@@ -51,7 +51,7 @@
     "attack.pursued": {
       "level": "D",
       "fields": ["object", "pursuer", "hull_left", "hull_strength", "fights"],
-      "text": "Craft {object} has craft {pursuer} after it, with {hull_left} of its hull strength {hull_strength} left; it fights back: {fights} (1 with cannons, able to move and three quarters of its hull or more left)"
+      "text": "Craft {object} has craft {pursuer} after it, with {hull_left} of its hull strength {hull_strength} left; it fights back: {fights} (1 with cannons, able to move and three quarters of its hull or more left, or a Sith Lord at any hull)"
     },
     "attack.tail_trick": {
       "level": "D",

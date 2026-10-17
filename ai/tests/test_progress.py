@@ -45,6 +45,23 @@ def test_the_home_books_send_any_craft_home(view, books, leader) -> None:
     assert progress.decide(craft) == progress.Progress(home=True)
 
 
+@pytest.mark.parametrize("leader", [0xFFFF, 3])
+def test_a_sith_lords_abort_never_sends_it_home(view, leader) -> None:
+    craft = view(books=Books.ABORTED | Books.TARGETS_LEFT, leader=leader, skill_level=7)
+    assert progress.decide(craft) == progress.STAY
+
+
+@pytest.mark.parametrize("books", [Books.DEPARTURE_DUE, Books.ORDERS_DONE])
+def test_a_sith_lords_departure_or_orders_done_still_send_it_home(view, books) -> None:
+    craft = view(books=books | Books.ABORTED | Books.TARGETS_LEFT, skill_level=7)
+    assert progress.decide(craft) == progress.Progress(home=True)
+
+
+def test_a_sith_apprentices_abort_sends_it_home(view) -> None:
+    craft = view(books=Books.ABORTED | Books.TARGETS_LEFT, skill_level=6)
+    assert progress.decide(craft) == progress.Progress(home=True)
+
+
 def test_an_order_with_targets_left_stays(view) -> None:
     assert progress.decide(view()) == progress.STAY
 

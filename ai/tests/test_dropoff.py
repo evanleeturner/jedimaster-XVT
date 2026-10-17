@@ -252,6 +252,21 @@ def test_sent_home_while_it_drops_it_stops_the_drop(carrier, ask, lines, books) 
     ]
 
 
+def test_a_sith_lords_abort_never_stops_its_drop(carrier, ask, lines) -> None:
+    decision = ask(carrier(books=Books.ABORTED, drop_phase=2, skill_level=7))
+    assert decision.actions.drop_off is None
+    assert lines() == [
+        ("INFO", "dropoff.dropping object=4 group=6"),
+        ("DEBUG", "dropoff.drop object=4 phase=2 delivered=3"),
+    ]
+
+
+def test_a_sith_lords_departure_still_stops_its_drop(carrier, ask) -> None:
+    books = Books.ABORTED | Books.DEPARTURE_DUE
+    decision = ask(carrier(books=books, drop_phase=2, skill_level=7))
+    assert decision.actions == Actions(lasers=HOLD, drop_off=0)
+
+
 @pytest.mark.parametrize(
     "books",
     [Books.ORDERS_DONE, Books.SKIP_DUE, Books.SKIPPED, Books.ALL_DROPPED],

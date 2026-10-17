@@ -8,7 +8,8 @@ Purpose:
     rules are the 1997 leader plans' order conditions 38 to 40, in their
     order:
 
-    - home once its books say aborted, departure due or orders done
+    - home once its books say aborted, departure due or orders done; a
+      Sith Lord's abort never sends it home (``lord.home_books``)
     - an order whose goal is met (GOALS) marks its slot done, state 2; a
       boarding order marks it 2 or 3 by ``board.goal_state``; then
       home, when the craft can move, once every order its group has in slots
@@ -37,6 +38,7 @@ import logging
 import types
 import typing as t
 
+from . import lord
 from .behaviors import board
 from .behaviors import boarded
 from .behaviors import Decision
@@ -128,7 +130,7 @@ STAY = Progress()
 
 def decide(view: CraftView) -> Progress:
     """Return whether the craft goes home and how its order slot moves."""
-    if view.books & HOME_BOOKS:
+    if lord.home_books(view, view.books & HOME_BOOKS):
         return Progress(home=True)
     if view.leader != NO_OBJECT:
         return STAY
