@@ -16,7 +16,7 @@ Invariants:
     - The stand-in engine and AI program answer ``--version`` as the real ones
       do (``ai_wire=11``); the AI program sits where a package keeps it.
     - The stand-in engine's behaviours (``#BEHAVE#`` is filled by ``make_engine``): ``done`` (writes a flown result,
-      exits 0), ``refuse`` (a refused result, exit 3), ``mismatch`` (a flown
+      exits 0), ``done4`` (the same as version 4, one player), ``refuse`` (a refused result, exit 3), ``mismatch`` (a flown
       result, exit 5), ``silent`` (exits 0 without a result), ``hang``
       (sleeps), ``stubborn`` (sleeps and ignores SIGTERM), ``crash``
       (exits 9 without a result). ``--copy=PATH`` saves the description.
@@ -63,6 +63,27 @@ def write(**changes):
     json.dump(dict(RESULT, **changes), open(description["result"], "w"))
 if behave == "done":
     write()
+elif behave == "done4":
+    COUNTS = dict(shots=40, hits=12, warheads=2, warhead_hits=1, losses=0,
+                  losses_to_collisions=0, losses_to_starships=0, losses_to_mines=0,
+                  friendlies_killed=0, special_inspected=0)
+    LISTS = ("on_pilot_ranks", "on_ai_ranks", "killed_by_pilot_ranks",
+             "killed_by_ai_ranks", "on_players", "from_players", "from_flight_groups")
+    write(schema_version=4,
+          sith=dict(setting="none", flight_group=-1, flight_name="", craft_type=-1,
+                    apprentices_flown=0, apprentices_lost=0, lord_flown=0,
+                    lord_lost=0, why=""),
+          local_entry=0,
+          players=[dict(entry=0, slot=0, name="Ace", team=0, flight_group=0,
+                        rating=2, score=10, kills=2, shared=0, assists=1, losses=0,
+                        shots=40, hits=12, warheads=2, warhead_hits=1,
+                        has_left=False)],
+          teams=[dict(team=0, completed=True, score=10, kills=2, shared=0,
+                      losses=0, seconds=61)],
+          detail=dict(COUNTS, by_craft=[dict(craft_type=1, kills=2, shared=0,
+                                             assists=1)],
+                      on_flight_groups=[dict(flight_group=0, kills=2, shared=0)],
+                      **dict.fromkeys(LISTS, [])))
 elif behave == "refuse":
     write(status="refused", exit_code=3, outcome="none", score=0, kills=0,
           losses=0, goals_met_seconds=0, why="The mission is not open.")
@@ -152,7 +173,8 @@ def make_pilots(root: Path, names: tuple[str, ...] = PILOTS) -> Path:
 
 
 BEHAVE_FROM_ARGS = """behave = next((a for a in args if a in
-    ("done", "refuse", "mismatch", "silent", "hang", "stubborn", "crash")), "done")"""
+    ("done", "done4", "refuse", "mismatch", "silent", "hang", "stubborn",
+     "crash")), "done")"""
 
 
 def make_engine(

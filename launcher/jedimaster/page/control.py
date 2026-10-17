@@ -14,7 +14,8 @@ Flow:
     front end; the caller sends them. The last mission shown is kept and
     sent to each page that connects later (``connect_pushes``). The launch and option commands live in
     ``launching``; a battle's ending reaches front ends through
-    ``Control.subscribe``.
+    ``Control.subscribe``, with the debriefing of a flown battle, which is
+    kept (``results``) for ``results.list`` and ``results.get``.
 
 Invariants:
     - Only the commands of ``protocol.COMMANDS`` run; every other name
@@ -34,6 +35,8 @@ from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import datetime
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +55,8 @@ from ..mission import MissionFormatError
 from ..mission import read_mission
 from .battles import Battles
 from .battles import Flight
+from .debrief import build_debrief
+from .debrief import install_names
 from .launching import Launching
 from .launching import option_value_problem
 from .protocol import COMMANDS
@@ -63,6 +68,7 @@ from .protocol import OPTION_NAMES
 from .protocol import SCHEMA_REVISION
 from .protocol import SETTINGS
 from .protocol import UNKNOWN_ID
+from .results import ResultStore
 from .settings import SettingsStore
 from .solo import side_problem
 
@@ -182,6 +188,14 @@ def _cancel_args(args: Json) -> str | None:
     return None
 
 
+def _results_get_args(args: Json) -> str | None:
+    if set(args) != {"result_id"}:
+        return "arguments must be exactly result_id"
+    if not _is_int(args["result_id"]) or not 1 <= args["result_id"] <= MAX_ID:
+        return "result_id must be a whole number from 1 to 2147483647"
+    return None
+
+
 def _options_get_args(args: Json) -> str | None:
     if set(args) != {"player"}:
         return "arguments must be exactly player"
@@ -215,6 +229,8 @@ ARG_CHECKS: dict[str, Callable[[Json], str | None]] = {
     "launch.cancel": _cancel_args,
     "options.get": _options_get_args,
     "options.set": _options_set_args,
+    "results.list": _no_args,
+    "results.get": _results_get_args,
 }
 """Each command's check of its arguments: None when fine, else the reason."""
 
@@ -273,10 +289,12 @@ class Control:
         store: SettingsStore,
         launcher_version: str,
         flight: Flight | None = None,
+        results: ResultStore | None = None,
     ) -> None:
         """Hold the install found (or None), the settings, the version and the game program.
 
-        Without ``flight`` no battle can start. ``pages_open`` and
+        Without ``flight`` no battle can start; without ``results`` the
+        debriefings are kept in memory only. ``pages_open`` and
         ``host_player`` and ``host_pilot`` are set by the front end that serves
         the pages and by the bot; until then no page is open, no account is
         linked and no pilot is named.
@@ -288,7 +306,8 @@ class Control:
         self.host_player: Callable[[], str | None] = lambda: None
         self.host_pilot: Callable[[], str | None] = lambda: None
         self.listeners: list[Callable[[Json], Awaitable[None]]] = []
-        self.battles = Battles(self._publish)
+        self.results = results if results is not None else ResultStore(None)
+        self.battles = Battles(self._publish, keep=self._keep)
         self.launching = Launching(
             install,
             store,
@@ -311,6 +330,8 @@ class Control:
             "launch.cancel": self.launching.cancel,
             "options.get": self.launching.options_get,
             "options.set": self._options_set,
+            "results.list": self._results_list,
+            "results.get": self._results_get,
         }
         self._pushes: list[Json] = []
         self._shown: Json | None = None
@@ -337,6 +358,24 @@ class Control:
         pushes = [self._shown] if self._shown is not None else []
         running = self.battles.running_push()
         return pushes + [running] if running is not None else pushes
+
+    def _keep(self, battle: Json, result: Json) -> Json:
+        """Build, keep and return the debriefing of a flown battle.
+
+        Raises ``OSError`` when it cannot be kept, ``KeyError`` for a field
+        missing from ``battle`` or ``result``.
+        """
+        names = install_names(self.install, battle["mission_type"], battle["mission"])
+        ended_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        debrief = build_debrief(self.results.next_id(), ended_at, battle, result, names)
+        self.results.add(debrief)
+        return debrief
+
+    def _results_list(self, args: Json) -> Json:
+        return {"results": self.results.summaries()}
+
+    def _results_get(self, args: Json) -> Json:
+        return {"debrief": self.results.get(args["result_id"])}
 
     def _launch_solo(self, args: Json) -> Json:
         result, pushes = self.launching.solo(args)

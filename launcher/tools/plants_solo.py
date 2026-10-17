@@ -730,10 +730,10 @@ CONTROL_PLANTS: list[Plant] = [
     plant(
         "control-revision",
         PRO,
+        "SCHEMA_REVISION = 9",
         "SCHEMA_REVISION = 8",
-        "SCHEMA_REVISION = 7",
         "tests/test_page_control.py::test_hello",
-        "tests/test_page_control.py::test_the_list_has_thirteen",
+        "tests/test_page_control.py::test_the_list_has_fifteen",
     ),
     plant(
         "control-player-digits",
@@ -901,8 +901,8 @@ WIRING_PLANTS: list[Plant] = [
     plant(
         "cli-flight-not-passed",
         PCL,
-        "__version__, flight)",
-        "__version__)",
+        "__version__, flight, results",
+        "__version__, results=results",
         TCL + "test_engine_engine_args_and_pilot_folder_reach_the_control",
     ),
     plant(

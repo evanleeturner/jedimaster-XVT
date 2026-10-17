@@ -103,7 +103,7 @@ test("a hello reply gives the launcher's version", () => {
       message({
         id: 1,
         ok: true,
-        result: { launcher_version: "2.0", schema_revision: 8 },
+        result: { launcher_version: "2.0", schema_revision: 9 },
       }),
     ),
   );
@@ -390,7 +390,12 @@ const STARTED: Message = {
 };
 const ENDED: Message = {
   event: "launch.ended",
-  data: { launch_id: 4, status: "flown", line: "flown: completed, score 10" },
+  data: {
+    launch_id: 4,
+    status: "flown",
+    line: "flown: completed, score 10",
+    debrief: null,
+  },
 };
 
 test("with no battle the page says battles start in Discord and shows no Cancel", () => {
@@ -448,7 +453,7 @@ test("the ending line replaces Cancel", () => {
 test("an ending for another battle is ignored, and so is one with none flying", () => {
   const other: Message = {
     event: "launch.ended",
-    data: { launch_id: 9, status: "flown", line: "elsewhere" },
+    data: { launch_id: 9, status: "flown", line: "elsewhere", debrief: null },
   };
   const during = describe(play(message(STARTED), message(other)));
   assert.equal(during.battleEnding, null);

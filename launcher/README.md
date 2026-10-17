@@ -46,6 +46,15 @@ restart. `--engine PROGRAM` and `--ai-program FOLDER` still name a game
 program or AI program by hand; without `--ai-program` the AI program packaged
 beside the game program is used.
 
+## After a battle
+
+When a battle is flown, the launcher keeps its results: each player's score,
+kills and losses, and your own kills by craft type, accuracy and losses. It
+keeps the newest 20, in a `results` folder beside its settings file. The
+page's Debriefing menu shows each one as the game's mission overview and
+player statistics, and `/results` in Discord lists them. The battle summary
+and tournament standings pages, and awards and promotions, are not shown yet.
+
 ## When a battle is refused
 
 Before every battle, the launcher asks the game and its AI program which AI

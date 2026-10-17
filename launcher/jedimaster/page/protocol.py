@@ -1,7 +1,7 @@
 """The control list: every message the page and the launcher exchange.
 
 Purpose:
-    Name, as dataclasses, the one fixed list of commands (revision 8), their
+    Name, as dataclasses, the one fixed list of commands (revision 9), their
     arguments and results, the pushes and the error codes. The schema
     (``schema``) is built from these classes, so the list has one source.
 
@@ -9,8 +9,8 @@ Flow:
     A request is one of the ``*Request`` classes; the launcher answers with
     ``OkReply`` (its ``result`` one of the ``*Result`` classes) or
     ``ErrorReply``; it also sends ``StatusPush``, ``SettingsChangedPush``,
-    ``ShowMissionPush``, ``LaunchStartedPush``, ``LaunchEndedPush`` and
-    ``OptionsChangedPush`` and ``PilotChangedPush``.
+    ``ShowMissionPush``, ``LaunchStartedPush``, ``LaunchEndedPush`` (with the
+    flown battle's ``Debrief``), ``OptionsChangedPush`` and ``PilotChangedPush``.
     The classes describe the JSON shapes; ``control`` builds the dicts.
 
 Invariants:
@@ -36,7 +36,7 @@ from ..briefing.model import BriefingBundle
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 8
+SCHEMA_REVISION = 9
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -88,11 +88,16 @@ LAUNCH_STATUSES: tuple[str, ...] = typing.get_args(LaunchStatus)
 MAX_PLAYER_DIGITS = 20
 """A player is named by a Discord account id: 1 to 20 digits, as text."""
 
+OutcomeName = Literal["none", "completed", "not_completed"]
+"""How a flown battle went for the pilot's team, as the result says."""
+
 ERROR_CODES = ("bad_message", "unknown_command", "bad_arguments")
 ErrorCode = Literal["bad_message", "unknown_command", "bad_arguments"]
 
 
 ID_RANGE = {"minimum": 1, "maximum": MAX_ID}
+COUNT = {"minimum": 0}
+ENTRY = {"minimum": 0, "maximum": 7}
 REPLY_ID_RANGE = {"minimum": 0, "maximum": MAX_ID}
 
 
@@ -189,7 +194,7 @@ class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[8]
+    schema_revision: Literal[9]
 
 
 @dataclass
@@ -324,6 +329,175 @@ class BriefingGetResult:
     bundle: BriefingBundle | None
 
 
+@dataclass
+class ResultsGetArgs:
+    """The kept debriefing to read."""
+
+    result_id: int = field(metadata=ID_RANGE)
+
+
+@dataclass
+class DebriefPlayer:
+    """One player as the battle's end counted it, with its rank and flight group named."""
+
+    entry: int = field(metadata=ENTRY)
+    name: str = field(metadata={"maxLength": 12})
+    rating: int
+    rank: str
+    team: int = field(metadata={"minimum": -1})
+    flight_group: int = field(metadata=COUNT)
+    flight_group_name: str
+    score: int
+    kills: int = field(metadata=COUNT)
+    shared: int = field(metadata=COUNT)
+    assists: int = field(metadata=COUNT)
+    losses: int = field(metadata=COUNT)
+    shots: int
+    hits: int
+    warheads: int = field(metadata=COUNT)
+    warhead_hits: int = field(metadata=COUNT)
+    has_left: bool
+
+
+@dataclass
+class DebriefTeam:
+    """One team of the battle, with its name from the mission."""
+
+    team: int = field(metadata=ENTRY)
+    name: str
+    completed: bool
+    score: int = field(metadata=COUNT)
+    kills: int = field(metadata=COUNT)
+    shared: int = field(metadata=COUNT)
+    losses: int = field(metadata=COUNT)
+    seconds: int
+
+
+@dataclass
+class CraftKills:
+    """The pilot's kills of one craft type, named as the statistics page names it."""
+
+    craft_type: int = field(metadata={"minimum": 0, "maximum": 99})
+    name: str
+    kills: int = field(metadata=COUNT)
+    shared: int = field(metadata=COUNT)
+    assists: int = field(metadata=COUNT)
+
+
+@dataclass
+class RankKills:
+    """The pilot's kills of pilots of one rank."""
+
+    rank: int = field(metadata={"minimum": 0, "maximum": 24})
+    kills: int = field(metadata=COUNT)
+    shared: int = field(metadata=COUNT)
+    assists: int = field(metadata=COUNT)
+
+
+@dataclass
+class RankTimes:
+    """How often a killer of one rank destroyed the pilot."""
+
+    rank: int = field(metadata={"minimum": 0, "maximum": 24})
+    times: int = field(metadata=COUNT)
+
+
+@dataclass
+class PlayerKills:
+    """Kills between the pilot and one player."""
+
+    entry: int = field(metadata=ENTRY)
+    name: str
+    kills: int = field(metadata=COUNT)
+    shared: int = field(metadata=COUNT)
+
+
+@dataclass
+class GroupKills:
+    """Kills between the pilot and one flight group."""
+
+    flight_group: int = field(metadata={"minimum": 0, "maximum": 47})
+    name: str
+    kills: int = field(metadata=COUNT)
+    shared: int = field(metadata=COUNT)
+
+
+@dataclass
+class DebriefDetail:
+    """The local pilot's own tables; the rows hold a number other than 0."""
+
+    shots: int = field(metadata=COUNT)
+    hits: int = field(metadata=COUNT)
+    warheads: int = field(metadata=COUNT)
+    warhead_hits: int = field(metadata=COUNT)
+    losses: int = field(metadata=COUNT)
+    losses_to_collisions: int = field(metadata=COUNT)
+    losses_to_starships: int = field(metadata=COUNT)
+    losses_to_mines: int = field(metadata=COUNT)
+    friendlies_killed: int = field(metadata=COUNT)
+    special_inspected: int = field(metadata=COUNT)
+    by_craft: list[CraftKills]
+    on_pilot_ranks: list[RankKills]
+    on_ai_ranks: list[RankKills]
+    killed_by_pilot_ranks: list[RankTimes]
+    killed_by_ai_ranks: list[RankTimes]
+    on_players: list[PlayerKills]
+    from_players: list[PlayerKills]
+    on_flight_groups: list[GroupKills]
+    from_flight_groups: list[GroupKills]
+
+
+@dataclass
+class Debrief:
+    """One flown battle's debriefing: what was flown, and every number with its name.
+
+    ``players``, ``teams`` and ``detail`` are empty and null for a game build
+    whose result does not carry them; ``local_entry`` is then -1.
+    """
+
+    result_id: int = field(metadata=ID_RANGE)
+    ended_at: str
+    mission_type: MissionTypeName
+    side: SideName
+    mission: str
+    title: str
+    pilot: str
+    outcome: OutcomeName
+    score: int
+    kills: int = field(metadata=COUNT)
+    losses: int = field(metadata=COUNT)
+    goals_met_seconds: int = field(metadata=COUNT)
+    local_entry: int = field(metadata={"minimum": -1, "maximum": 7})
+    players: list[DebriefPlayer]
+    teams: list[DebriefTeam]
+    detail: DebriefDetail | None
+
+
+@dataclass
+class ResultSummary:
+    """One kept debriefing in a line: when, which mission, how it ended."""
+
+    result_id: int = field(metadata=ID_RANGE)
+    ended_at: str
+    title: str
+    outcome: OutcomeName
+    score: int
+
+
+@dataclass
+class ResultsListResult:
+    """The kept debriefings, the newest first."""
+
+    results: list[ResultSummary]
+
+
+@dataclass
+class ResultsGetResult:
+    """The kept debriefing asked for; null when it is not kept."""
+
+    debrief: Debrief | None
+
+
 # ---- requests -------------------------------------------------------------
 
 
@@ -444,6 +618,24 @@ class OptionsSetRequest:
     args: OptionsSetArgs
 
 
+@dataclass
+class ResultsListRequest:
+    """Ask for the kept debriefings, one line each."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["results.list"]
+    args: NoArgs
+
+
+@dataclass
+class ResultsGetRequest:
+    """Ask for one kept debriefing."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["results.get"]
+    args: ResultsGetArgs
+
+
 REQUEST_CLASSES = (
     HelloRequest,
     InstallStatusRequest,
@@ -458,6 +650,8 @@ REQUEST_CLASSES = (
     LaunchCancelRequest,
     OptionsGetRequest,
     OptionsSetRequest,
+    ResultsListRequest,
+    ResultsGetRequest,
 )
 COMMANDS: tuple[str, ...] = tuple(
     typing.get_args(typing.get_type_hints(cls)["command"])[0] for cls in REQUEST_CLASSES
@@ -485,6 +679,8 @@ class OkReply:
         | LaunchSoloResult
         | LaunchCancelResult
         | OptionsResult
+        | ResultsListResult
+        | ResultsGetResult
     )
 
 
@@ -573,11 +769,12 @@ class LaunchStartedPush:
 
 @dataclass
 class LaunchEndedData:
-    """How the battle ended: its status and the one line that says so."""
+    """How the battle ended: its status, the one line that says so, and a flown battle's debriefing."""
 
     launch_id: int = field(metadata={"minimum": 1, "maximum": MAX_ID})
     status: LaunchStatus
     line: str
+    debrief: Debrief | None
 
 
 @dataclass

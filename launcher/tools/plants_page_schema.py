@@ -78,8 +78,8 @@ PROTOCOL_PLANTS: list[Plant] = [
     Plant(
         "page-protocol-result-may-be-text",
         "jedimaster/page/protocol.py",
-        "        | OptionsResult\n    )",
-        "        | OptionsResult\n        | str\n    )",
+        "        | ResultsGetResult\n    )",
+        "        | ResultsGetResult\n        | str\n    )",
         ("tests/test_page_schema.py::test_refused_example[reply-ok-string.json]",),
         True,
     ),
@@ -101,7 +101,7 @@ PROTOCOL_PLANTS: list[Plant] = [
     Plant(
         "page-protocol-revision",
         "jedimaster/page/protocol.py",
-        "    schema_revision: Literal[8]",
+        "    schema_revision: Literal[9]",
         "    schema_revision: Literal[1]",
         (
             "tests/test_page_control.py::test_hello",

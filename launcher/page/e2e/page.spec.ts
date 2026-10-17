@@ -230,7 +230,7 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
     if (document.activeElement instanceof HTMLElement)
       document.activeElement.blur();
   });
-  for (let step = 0; step < 8; step += 1) {
+  for (let step = 0; step < 9; step += 1) {
     await page.keyboard.press("Tab");
     const [name = "", outline = "none", width = "0px"] = await focusRing();
     expect(outline, `${name} shows a focus outline`).not.toBe("none");
@@ -244,6 +244,7 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
     "skip to the page content",
     "missions",
     "battle",
+    "debriefing",
     "pilot",
     "game options",
     "settings",
@@ -537,6 +538,67 @@ test("a battle that ends by itself shows its ending line", async ({
   ).toBeHidden();
 });
 
+test("a flown battle's debriefing is new, opens in its panel and reads by keyboard", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await launcher.behave("done4");
+  await openPage(page, launcher.url);
+  await expect(page.locator("#debrief-note")).toHaveText(
+    "No battle results are kept yet. Fly a battle from Discord.",
+  );
+  const result = await startBattle(context, launcher.origin);
+  expect(result.started).toBe(true);
+  const button = page.locator(".menu-btn[aria-controls=panel-debrief]");
+  await expect(page.locator("#debrief-badge")).toBeVisible();
+  await button.click();
+  await expect(page.locator("#debrief-badge")).toBeHidden();
+  await expect(page.locator("#debrief-title")).toContainText(
+    "First Flight, flown by Ace",
+  );
+  const overview = page.getByRole("tab", { name: "Mission overview" });
+  await expect(overview).toHaveAttribute("aria-selected", "true");
+  const panel = page.getByRole("tabpanel");
+  await expect(panel.locator("caption").first()).toHaveText("Mission overview");
+  await expect(panel.getByRole("row", { name: /Ace \(you\)/ })).toContainText(
+    "2 (0)",
+  );
+  await overview.focus();
+  await page.keyboard.press("ArrowRight");
+  const statistics = page.getByRole("tab", { name: "Player statistics" });
+  await expect(statistics).toBeFocused();
+  await expect(statistics).toHaveAttribute("aria-selected", "true");
+  await expect(panel.getByRole("row", { name: "Total Kills" })).toContainText(
+    "2 (0)",
+  );
+  await expect(
+    panel.getByRole("row", { name: "Laser Accuracy" }),
+  ).toContainText("30%");
+  await page.keyboard.press("Home");
+  await expect(overview).toBeFocused();
+  const found = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+  expect(found.violations).toEqual([]);
+});
+
+test("a page opened after a battle shows the newest kept debriefing", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await launcher.behave("done4");
+  await openPage(page, launcher.url);
+  await startBattle(context, launcher.origin);
+  await expect(page.locator("#debrief-badge")).toBeVisible();
+  const later = await context.newPage();
+  await openPage(later, launcher.url);
+  await later.locator(".menu-btn[aria-controls=panel-debrief]").click();
+  await expect(later.locator("#debrief-pick option")).toHaveCount(1);
+  await expect(later.locator("#debrief-pick")).toHaveValue("1");
+  await expect(later.locator("#debrief-title")).toContainText("First Flight");
+  await expect(later.locator("#debrief-badge")).toBeHidden();
+});
+
 test("a page opened while a battle flies shows it and can cancel it", async ({
   page,
   launcher,
@@ -651,6 +713,7 @@ for (const scheme of ["light", "dark"] as const) {
 const MENUS = [
   "Missions",
   "Battle",
+  "Debriefing",
   "Pilot",
   "Game options",
   "Settings",

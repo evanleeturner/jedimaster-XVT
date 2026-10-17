@@ -59,6 +59,8 @@ from ..launch.model import ai_program_of
 from ..launch.pilots import default_pilot_folder
 from .battles import Flight
 from .control import Control
+from .results import RESULTS_FOLDER
+from .results import ResultStore
 from .settings import default_settings_path
 from .settings import SettingsStore
 
@@ -210,7 +212,10 @@ def run(args: argparse.Namespace) -> int:
     install = find_install(args.install) if args.install else find_install()
     if install is None:
         logger.warning("no install found: the page will say so")
-    control = Control(install, SettingsStore(settings_path), __version__, flight)
+    results = ResultStore(settings_path.parent / RESULTS_FOLDER)
+    control = Control(
+        install, SettingsStore(settings_path), __version__, flight, results
+    )
     key = secrets.token_urlsafe(32)
     extra = {}
     if token is not None:

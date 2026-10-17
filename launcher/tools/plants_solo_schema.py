@@ -232,8 +232,8 @@ SCHEMA_PLANTS: list[Plant] = [
     plant(
         "cli-flight-without-engine",
         PCL,
-        "__version__, flight)",
-        '__version__, Flight("x", (), None))',
+        "__version__, flight, results",
+        '__version__, Flight("x", (), None), results',
         "tests/test_page_cli.py::test_without_an_engine",
     ),
     plant(

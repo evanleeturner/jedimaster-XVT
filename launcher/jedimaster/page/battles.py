@@ -9,7 +9,8 @@ Flow:
     ``Battles.start`` takes the engine settings (``Flight``), the checked
     description and the data of the ``launch.started`` push; it makes a task
     that awaits ``fly_async`` and, when the engine is done, builds the
-    ``launch.ended`` push and hands it to ``notify``. ``cancel`` cancels the
+    ``launch.ended`` push and hands it to ``notify``; for a flown battle
+    ``keep`` first turns the result into the push's debriefing. ``cancel`` cancels the
     task, which stops the engine (terminate, then kill after ten seconds).
 
 Invariants:
@@ -17,6 +18,8 @@ Invariants:
       does, so the caller must check ``busy`` and answer in words.
     - Every started battle ends with exactly one ``launch.ended`` push, whose
       status is the engine's result status, ``cancelled`` or ``error``.
+    - The push carries a debriefing only for a flown battle, and none when
+      ``keep`` fails: that is logged at WARNING and the push still goes.
     - An engine whose exit code disagrees with its result is an ``error``,
       and a result that cannot be trusted is an ``error`` with the reason.
     - A failing listener is logged at WARNING and never stops the others.
@@ -48,6 +51,7 @@ logger = logging.getLogger(__name__)
 
 Json = dict[str, Any]
 Notify = Callable[[Json], Awaitable[None]]
+Keep = Callable[[Json, Json], Json]
 DEFAULT_TIMEOUT = 3600.0
 
 
@@ -72,9 +76,17 @@ class Flight:
 class Battles:
     """The one battle that may be flying, and the pushes about it."""
 
-    def __init__(self, notify: Notify, first_id: int = 1) -> None:
-        """Send every push to ``notify``; launch ids count from ``first_id``."""
+    def __init__(
+        self, notify: Notify, first_id: int = 1, keep: Keep | None = None
+    ) -> None:
+        """Send every push to ``notify``; launch ids count from ``first_id``.
+
+        ``keep(battle, result)`` returns a flown battle's debriefing from the
+        ``launch.started`` data (no id) and the result; without it no push
+        carries one.
+        """
         self._notify = notify
+        self._keep = keep
         self._next_id = first_id
         self._task: asyncio.Task | None = None
         self._current: Json | None = None
@@ -130,40 +142,55 @@ class Battles:
 
     async def _run(self, launch_id: int, flight: Flight, description: Json) -> None:
         self._entered = True
+        result = None
         if self._early_cancel:
             status, line = "cancelled", "cancelled"
         else:
-            status, line = await self._fly(flight, description)
+            status, line, result = await self._fly(flight, description)
+        battle = dict(self._current or {})
+        battle.pop("launch_id", None)
         self._current = None
         logger.info("launch %d ended: %s: %s", launch_id, status, line)
+        debrief = None
+        if status == "flown" and result is not None and self._keep is not None:
+            try:
+                debrief = self._keep(battle, result)
+            except (OSError, KeyError) as exc:
+                logger.warning("launch %d: no debriefing kept: %s", launch_id, exc)
+        data = {"launch_id": launch_id, "status": status, "line": line}
         await self._notify(
-            {
-                "event": "launch.ended",
-                "data": {"launch_id": launch_id, "status": status, "line": line},
-            }
+            {"event": "launch.ended", "data": {**data, "debrief": debrief}}
         )
 
-    async def _fly(self, flight: Flight, description: Json) -> tuple[str, str]:
+    async def _fly(
+        self, flight: Flight, description: Json
+    ) -> tuple[str, str, Json | None]:
         try:
             assert flight.engine is not None
             result, code = await fly_async(
                 flight.engine, description, flight.args, flight.timeout
             )
         except asyncio.CancelledError:
-            return "cancelled", "cancelled"
+            return "cancelled", "cancelled", None
         except LaunchError as exc:
-            return "error", str(exc)
+            return "error", str(exc), None
         except Exception as exc:  # the battle must always end with a push
             logger.exception("the battle could not be run")
-            return "error", f"the battle could not be run ({type(exc).__name__})"
+            return (
+                "error",
+                f"the battle could not be run ({type(exc).__name__})",
+                None,
+            )
         if code != result["exit_code"]:
             logger.error(
                 "the engine exited with %s but its result says %s",
                 code,
                 result["exit_code"],
             )
-            return "error", (
+            return (
+                "error",
                 f"the engine exited with {code} but its result says "
-                f"{result['exit_code']}"
+                f"{result['exit_code']}",
+                None,
             )
-        return result["status"], summary(result)
+        return result["status"], summary(result), result

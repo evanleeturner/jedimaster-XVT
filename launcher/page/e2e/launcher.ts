@@ -49,8 +49,8 @@ export interface Launcher {
   readonly installFolder: string;
   readonly settingsFile: string;
   readonly stop: () => Promise<void>;
-  /** Sets what the stand-in game program does next: "hang" or "done". */
-  readonly behave: (word: "hang" | "done") => Promise<void>;
+  /** Sets what the stand-in game program does next: "hang", "done", or "done4" (a version 4 result). */
+  readonly behave: (word: "hang" | "done" | "done4") => Promise<void>;
   readonly readSettings: () => Promise<unknown>;
 }
 

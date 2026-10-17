@@ -15,6 +15,7 @@ const MENUS = [
   "Pilot",
   "Missions",
   "Battle",
+  "Debriefing",
   "Game options",
   "Status",
   "Settings",

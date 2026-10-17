@@ -110,13 +110,14 @@ def typed_into(modal, text):
 # ---- the table ------------------------------------------------------------
 
 
-def test_the_table_has_the_eight_rows_in_order():
+def test_the_table_has_the_nine_rows_in_order():
     assert [(i.title, i.method, i.where, i.slash) for i in ITEMS] == [
         ("Single player", "solo", "anywhere", "solo"),
         ("Game options", "options", "anywhere", "options"),
         ("Launcher settings", "settings", "dm", "settings"),
         ("Show mission", "missions", "anywhere", "missions"),
         ("Status", "status", "anywhere", "status"),
+        ("Results", "results", "anywhere", "results"),
         ("Link", "link", "dm", "link"),
         ("Unlink", "unlink", "dm", "unlink"),
         ("Pilot", "pilot", "dm", "pilot"),
@@ -155,7 +156,7 @@ def test_a_right_click_item_takes_no_options_and_has_no_description(rig):
 
 def test_the_tree_holds_more_than_discord_py_s_own_five_user_commands(rig):
     users = rig.door.tree.get_commands(type=discord.AppCommandType.user)
-    assert len(users) == 8
+    assert len(users) == 9
 
 
 def test_the_sixteenth_user_command_is_refused(rig):
@@ -164,7 +165,7 @@ def test_the_sixteenth_user_command_is_refused(rig):
     async def nothing(interaction, who: discord.User):
         return None
 
-    for n in range(MAX_USER_COMMANDS - 8):
+    for n in range(MAX_USER_COMMANDS - 9):
         rig.door.tree.add_command(
             app_commands.ContextMenu(
                 name=f"Extra {n}", callback=nothing, type=discord.AppCommandType.user

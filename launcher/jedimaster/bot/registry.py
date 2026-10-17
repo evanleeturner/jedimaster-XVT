@@ -93,6 +93,7 @@ ITEMS: tuple[Item, ...] = (
         defers=True,
     ),
     Item("Status", "status", ANYWHERE, "status", "Show the launcher's status"),
+    Item("Results", "results", ANYWHERE, "results", "List the kept battle results"),
     Item(
         "Link",
         "link",

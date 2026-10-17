@@ -584,11 +584,11 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "page-show-hello-says-revision-1",
         "jedimaster/page/protocol.py",
-        "SCHEMA_REVISION = 8",
+        "SCHEMA_REVISION = 9",
         "SCHEMA_REVISION = 1",
         (
             "tests/test_page_control.py::test_hello",
-            "tests/test_page_control.py::test_the_list_has_thirteen_commands_and_revision_8",
+            "tests/test_page_control.py::test_the_list_has_fifteen_commands_and_revision_9",
         ),
     ),
     Plant(
@@ -597,7 +597,7 @@ SHOW_PLANTS: list[Plant] = [
         "    ShowMissionRequest,\n    BriefingGetRequest,\n",
         "    BriefingGetRequest,\n",
         (
-            "tests/test_page_control.py::test_the_list_has_thirteen_commands_and_revision_8",
+            "tests/test_page_control.py::test_the_list_has_fifteen_commands_and_revision_9",
         ),
         True,
     ),

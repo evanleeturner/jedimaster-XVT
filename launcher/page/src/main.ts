@@ -1,6 +1,7 @@
 import { BriefingPanel } from "./briefing/panel.ts";
 import type { Request } from "./codec.ts";
 import { decode, encodeRequest, isArtScaling, isMissionType } from "./codec.ts";
+import { DebriefPanel } from "./debrief/panel.ts";
 import { FrameSkin } from "./frame/skin.ts";
 import type { BriefingBundle } from "./generated/briefing.ts";
 import { logger } from "./logger.ts";
@@ -56,6 +57,14 @@ const menuButtons = Array.from(
 
 let state: State = initialState();
 const briefingPanel = new BriefingPanel();
+const debriefPanel = new DebriefPanel(
+  (resultId) => {
+    send({ command: "results.get", args: { result_id: resultId } });
+  },
+  (tab) => {
+    dispatch({ kind: "debrief-tab", tab });
+  },
+);
 const frameSkin = new FrameSkin(
   find(HTMLCanvasElement, "#frame-art"),
   (layout) => {
@@ -236,6 +245,9 @@ function setPanel(id: string): void {
     if (panel !== null) panel.hidden = !open;
   }
   if (id === "panel-missions") scrollToMark();
+  if (id === "panel-debrief" && state.debrief.fresh) {
+    dispatch({ kind: "debrief-seen" });
+  }
 }
 
 function openerOf(id: string): HTMLButtonElement | undefined {
@@ -363,6 +375,7 @@ function render(view: View): void {
   renderBriefing(view);
   renderBattle(view);
   renderOptions(view);
+  debriefPanel.render(view.debrief);
   setText(pilotLine, view.pilotLine);
   setText(barPilot, view.pilotBar);
   setText(shownLine, view.shownText);
@@ -416,6 +429,13 @@ function onMessage(event: MessageEvent): void {
       args: { mission_type: message.data.mission_type, id: message.data.id },
     });
   }
+  // A page that connects with results kept shows the newest one's debriefing.
+  if ("ok" in message && message.ok && "results" in message.result) {
+    const newest = message.result.results[0];
+    if (newest !== undefined && state.debrief.shown === null) {
+      send({ command: "results.get", args: { result_id: newest.result_id } });
+    }
+  }
 }
 
 function socketUrl(): URL {
@@ -435,6 +455,7 @@ function connect(): void {
     send({ command: "missions.list", args: {} });
     send({ command: "settings.get", args: {} });
     send({ command: "options.get", args: { player: null } });
+    send({ command: "results.list", args: {} });
   });
   opened.addEventListener("message", onMessage);
   opened.addEventListener("close", () => {

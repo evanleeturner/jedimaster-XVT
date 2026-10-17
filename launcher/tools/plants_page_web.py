@@ -30,6 +30,7 @@ import logging
 
 from plants_briefing_web import BRIEFING_WEB_PLANTS
 from plants_common import Plant
+from plants_debrief_web import DEBRIEF_WEB_PLANTS
 from plants_launch_web import LAUNCH_WEB_PLANTS
 from plants_page_frame_web import FRAME_WEB_PLANTS
 from plants_page_options_web import OPTIONS_WEB_PLANTS
@@ -243,7 +244,7 @@ CODEC_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-revision",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 8) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 9) {',
         '    if (typeof launcher_version === "string" && schema_revision !== 0) {',
         (
             N + "a reply refuses a result that matches no command",
@@ -467,7 +468,7 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-promises-revision-1",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 8) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 9) {',
         '    if (typeof launcher_version === "string" && schema_revision === 1) {',
         (ACC + "reply-ok-hello.json",),
     ),
@@ -636,4 +637,5 @@ WEB_PLANTS: list[Plant] = [
     *LAUNCH_WEB_PLANTS,
     *FRAME_WEB_PLANTS,
     *OPTIONS_WEB_PLANTS,
+    *DEBRIEF_WEB_PLANTS,
 ]

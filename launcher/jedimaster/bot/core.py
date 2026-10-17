@@ -8,7 +8,7 @@ Purpose:
 
 Flow:
     A method (``link``, ``status``, ``missions``, ``pick_mission``,
-    ``settings``, ``pick_setting``, ``unlink``, from ``walk`` ``solo``,
+    ``settings``, ``pick_setting``, ``unlink``, ``results``, from ``walk`` ``solo``,
     ``pick_solo``, ``launch_solo``, ``options``, ``pick_option``, and from
     ``pilot_walk`` ``pilot``, ``keep_name``, ``change_name``,
     ``rename_pilot``) first checks the asker
@@ -75,6 +75,14 @@ NO_PAGE = "No page is open, so nothing changed on screen."
 OPENING = "The launcher is opening its page on its computer."
 NOT_OPENED = "No page is open, and the launcher could not open one on its computer."
 REFUSED = "The launcher refused that request."
+NO_RESULTS = "No battle results are kept yet. Each flown battle's results are kept."
+RESULT_LINES = 10
+"""How many kept results ``/results`` lists, the newest first."""
+OUTCOME_WORDS = {
+    "completed": "completed",
+    "not_completed": "not completed",
+    "none": "no goals",
+}
 BOT_VERSION_NAME = "bot"
 
 LINK_WORDS = {
@@ -285,6 +293,33 @@ class Core(Walk, PilotWalk):
         self._end("status", user_id, "ok")
         return Reply("\n".join(lines))
 
+    def results(self, user_id: int, in_dm: bool = False) -> Reply:
+        """Answer ``/results``: the newest kept battle results, one line each.
+
+        Lists up to ``RESULT_LINES``, says how many more are kept, and points
+        to the page's Debriefing for the full numbers. Returns
+        ``NO_RESULTS`` when none is kept, ``HOST_ONLY`` for another account,
+        ``REFUSED`` if the launcher refused the request.
+        """
+        self._begin("results", user_id)
+        refusal = self._gate("results", user_id, in_dm, dm_only=False)
+        if refusal is not None:
+            return refusal
+        listed = self._result(self.send("results.list", {}))
+        if listed is None:
+            self._end("results", user_id, "error")
+            return Reply(REFUSED)
+        kept = listed["results"]
+        if not kept:
+            self._end("results", user_id, "none")
+            return Reply(NO_RESULTS)
+        lines = [result_line(r) for r in kept[:RESULT_LINES]]
+        if len(kept) > RESULT_LINES:
+            lines.append(f"{len(kept) - RESULT_LINES} older results are kept too.")
+        lines.append("The page's Debriefing shows each one in full.")
+        self._end("results", user_id, "ok")
+        return Reply("\n".join(lines))
+
     def missions(
         self, user_id: int, mission_type: str | None, in_dm: bool = False
     ) -> Reply:
@@ -458,3 +493,13 @@ class Core(Walk, PilotWalk):
         if any(push["event"] != "pilot.changed" for push in reply.pushes):
             return f"{reply.text} {NO_PAGE}"
         return reply.text
+
+
+def result_line(summary: Json) -> str:
+    """Return one kept result as a line: number, mission, outcome, score, time."""
+    when = summary["ended_at"].replace("T", " ")[:16]
+    words = OUTCOME_WORDS.get(summary["outcome"], summary["outcome"])
+    return (
+        f"#{summary['result_id']} {summary['title']}: {words}, "
+        f"score {summary['score']}, {when} UTC"
+    )

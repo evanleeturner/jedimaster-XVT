@@ -1,12 +1,16 @@
 import type { ArtScaling, Message, MissionType } from "./codec.ts";
 import { isMissionType } from "./codec.ts";
+import type { DebriefTab, Table } from "./debrief/view.ts";
+import { headingLine, resultLabel, tablesOf } from "./debrief/view.ts";
 import type { BriefingBundle } from "./generated/briefing.ts";
 import type {
+  Debrief,
   GameOptions,
   InstallStatusResult,
   LaunchStartedData,
   MenuData,
   OkReply,
+  ResultSummary,
   ShownMission,
 } from "./generated/control.ts";
 
@@ -25,6 +29,20 @@ export interface LaunchState {
   readonly ending: string | null;
 }
 
+/** The kept battle results and the debriefing on show. */
+export interface DebriefState {
+  /** The kept results, the newest first; null until the launcher answers. */
+  readonly results: readonly ResultSummary[] | null;
+  /** The debriefing on show, null when none is. */
+  readonly shown: Debrief | null;
+  readonly tab: DebriefTab;
+  /** True when a battle's ending brought the debriefing on show and it has not been opened. */
+  readonly fresh: boolean;
+}
+
+/** How many kept results the page lists, as the launcher keeps them. */
+export const RESULTS_KEPT = 20;
+
 export interface State {
   readonly connection: Connection;
   readonly launcherVersion: string | null;
@@ -42,6 +60,7 @@ export interface State {
    * undefined until the launcher's status names it (the page cannot know).
    */
   readonly pilot: string | null | undefined;
+  readonly debrief: DebriefState;
   readonly problem: string | null;
 }
 
@@ -50,6 +69,8 @@ export type Action =
   | { readonly kind: "opened" }
   | { readonly kind: "closed" }
   | { readonly kind: "cancelling" }
+  | { readonly kind: "debrief-tab"; readonly tab: DebriefTab }
+  | { readonly kind: "debrief-seen" }
   | { readonly kind: "message"; readonly message: Message };
 
 export interface MenuEntryView {
@@ -105,6 +126,23 @@ export interface ShownView {
 
 export const UNGROUPED = "All missions";
 
+/** One kept result in the Debriefing panel's picker. */
+export interface ResultOption {
+  readonly id: number;
+  readonly label: string;
+  readonly current: boolean;
+}
+
+/** The Debriefing panel: the picker, the shown debriefing's heading, tab and tables. */
+export interface DebriefView {
+  readonly note: string | null;
+  readonly options: readonly ResultOption[];
+  readonly heading: string | null;
+  readonly tab: DebriefTab;
+  readonly tables: readonly Table[];
+  readonly fresh: boolean;
+}
+
 export interface View {
   readonly connectionText: string;
   readonly showReconnect: boolean;
@@ -135,6 +173,7 @@ export interface View {
   readonly pilotLine: string;
   /** The frame's bottom bar words. */
   readonly pilotBar: string;
+  readonly debrief: DebriefView;
   readonly problem: string | null;
 }
 
@@ -160,6 +199,7 @@ export function initialState(): State {
     notice: null,
     options: null,
     pilot: undefined,
+    debrief: { results: null, shown: null, tab: "overview", fresh: false },
     problem: null,
   };
 }
@@ -183,6 +223,18 @@ function applyResult(state: State, result: OkReply["result"]): State {
   if ("found" in result) return { ...state, install: result };
   if ("menus" in result) return { ...state, menus: result.menus };
   if ("shown" in result) return state;
+  if ("results" in result) {
+    return { ...state, debrief: { ...state.debrief, results: result.results } };
+  }
+  if ("debrief" in result) {
+    if (result.debrief === null) {
+      return { ...state, notice: "That battle result is no longer kept." };
+    }
+    return {
+      ...state,
+      debrief: { ...state.debrief, shown: result.debrief, fresh: false },
+    };
+  }
   return { ...state, artScaling: result.settings.art_scaling };
 }
 
@@ -221,6 +273,7 @@ function applyMessage(state: State, message: Message): State {
       if (current?.started.launch_id !== message.data.launch_id) return state;
       return {
         ...state,
+        debrief: withEnding(state.debrief, message.data.debrief),
         launch: {
           started: current.started,
           cancelling: false,
@@ -261,9 +314,61 @@ export function reduce(state: State, action: Action): State {
     case "cancelling":
       if (state.launch?.ending !== null) return state;
       return { ...state, launch: { ...state.launch, cancelling: true } };
+    case "debrief-tab":
+      return { ...state, debrief: { ...state.debrief, tab: action.tab } };
+    case "debrief-seen":
+      return { ...state, debrief: { ...state.debrief, fresh: false } };
     case "message":
       return applyMessage(state, action.message);
   }
+}
+
+/** Return the debriefing state after a battle's ending: its debriefing shown and listed first. */
+function withEnding(
+  state: DebriefState,
+  debrief: Debrief | null,
+): DebriefState {
+  if (debrief === null) return state;
+  const summary: ResultSummary = {
+    result_id: debrief.result_id,
+    ended_at: debrief.ended_at,
+    title: debrief.title,
+    outcome: debrief.outcome,
+    score: debrief.score,
+  };
+  const results =
+    state.results === null
+      ? null
+      : [
+          summary,
+          ...state.results.filter((r) => r.result_id !== summary.result_id),
+        ].slice(0, RESULTS_KEPT);
+  return { results, shown: debrief, tab: "overview", fresh: true };
+}
+
+/** Return the Debriefing panel's view. */
+export function debriefView(state: DebriefState): DebriefView {
+  const shown = state.shown;
+  const listed = state.results ?? [];
+  const options = listed.map((r) => ({
+    id: r.result_id,
+    label: resultLabel(r),
+    current: r.result_id === shown?.result_id,
+  }));
+  let note: string | null = null;
+  if (state.results === null)
+    note = "The kept battle results have not arrived yet.";
+  else if (listed.length === 0 && shown === null) {
+    note = "No battle results are kept yet. Fly a battle from Discord.";
+  }
+  return {
+    note,
+    options,
+    heading: shown === null ? null : headingLine(shown),
+    tab: state.tab,
+    tables: shown === null ? [] : tablesOf(shown, state.tab),
+    fresh: state.fresh,
+  };
 }
 
 const CONNECTION_TEXT: Record<Connection, string> = {
@@ -523,6 +628,7 @@ export function describe(state: State): View {
     optionsRows: optionRows(state.options),
     pilotLine: pilotLine(state.pilot),
     pilotBar: pilotBar(state.pilot),
+    debrief: debriefView(state.debrief),
     problem: state.problem,
   };
 }

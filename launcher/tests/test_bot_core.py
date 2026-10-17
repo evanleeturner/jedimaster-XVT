@@ -37,6 +37,8 @@ from pagedata import check_valid
 
 from jedimaster.bot import core as core_module
 from jedimaster.bot.core import HOST_ONLY
+from jedimaster.bot.core import NO_RESULTS
+from jedimaster.bot.core import RESULT_LINES
 from jedimaster.bot.core import SETTING_WORDS
 from jedimaster.bot.reply import Reply
 from jedimaster.page.protocol import MAX_ID
@@ -83,8 +85,17 @@ def commands_sent(bot):
         lambda c, u: c.settings(u, True),
         lambda c, u: c.pick_setting(u, "art_scaling", "engine_fit", True),
         lambda c, u: c.unlink(u, True),
+        lambda c, u: c.results(u),
     ],
-    ids=["status", "missions", "pick_mission", "settings", "pick_setting", "unlink"],
+    ids=[
+        "status",
+        "missions",
+        "pick_mission",
+        "settings",
+        "pick_setting",
+        "unlink",
+        "results",
+    ],
 )
 def test_an_unlinked_account_is_refused_on_each_command(bot, ask, caplog):
     with caplog.at_level(logging.WARNING):
@@ -205,6 +216,51 @@ def test_status_without_an_install(tmp_path):
     made.link_account(HOST)
     made.control.install = None
     assert made.core.status(HOST).text.splitlines()[1] == "No game install was found."
+
+
+# ---- /results ------------------------------------------------------------
+
+
+def kept(result_id: int, outcome: str = "completed") -> dict:
+    return {
+        "result_id": result_id,
+        "ended_at": "2026-10-16T21:30:05Z",
+        "title": f"Battle {result_id}",
+        "outcome": outcome,
+        "score": 10 * result_id,
+    }
+
+
+def test_results_with_none_kept_says_so(bot):
+    assert bot.core.results(HOST).text == NO_RESULTS
+    assert commands_sent(bot) == ["results.list"]
+
+
+def test_results_lists_the_newest_first_one_line_each(bot):
+    for result_id, outcome in ((1, "not_completed"), (2, "none"), (3, "completed")):
+        bot.control.results.add(kept(result_id, outcome))
+    lines = bot.core.results(HOST).text.splitlines()
+    assert lines == [
+        "#3 Battle 3: completed, score 30, 2026-10-16 21:30 UTC",
+        "#2 Battle 2: no goals, score 20, 2026-10-16 21:30 UTC",
+        "#1 Battle 1: not completed, score 10, 2026-10-16 21:30 UTC",
+        "The page's Debriefing shows each one in full.",
+    ]
+
+
+def test_results_lists_ten_and_counts_the_rest(bot):
+    for result_id in range(1, 14):
+        bot.control.results.add(kept(result_id))
+    lines = bot.core.results(HOST).text.splitlines()
+    assert RESULT_LINES == 10
+    assert lines[0].startswith("#13 ") and lines[9].startswith("#4 ")
+    assert lines[10] == "3 older results are kept too."
+    assert len(lines) == 12
+
+
+def test_results_answers_the_host_only(bot):
+    assert bot.core.results(STRANGER).text == HOST_ONLY
+    assert commands_sent(bot) == []
 
 
 # ---- /missions ------------------------------------------------------------

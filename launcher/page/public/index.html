@@ -90,6 +90,73 @@
                   class="menu-btn"
                   type="button"
                   aria-expanded="false"
+                  aria-controls="panel-debrief"
+                >
+                  Debriefing
+                  <span class="flying-badge" id="debrief-badge" hidden
+                    >new</span
+                  >
+                </button>
+                <div class="dd-panel panel-wide" id="panel-debrief" hidden>
+                  <section
+                    class="panel"
+                    id="debrief"
+                    aria-labelledby="debrief-heading"
+                  >
+                    <h2 id="debrief-heading">Debriefing</h2>
+                    <p id="debrief-note"></p>
+                    <div class="debrief-pick" id="debrief-pick-box" hidden>
+                      <label for="debrief-pick">Battle result</label>
+                      <select id="debrief-pick"></select>
+                    </div>
+                    <p class="debrief-title" id="debrief-title" hidden></p>
+                    <div
+                      class="debrief-tabs"
+                      id="debrief-tabs"
+                      role="tablist"
+                      aria-label="Debriefing pages"
+                      hidden
+                    >
+                      <button
+                        class="button"
+                        type="button"
+                        role="tab"
+                        id="debrief-tab-overview"
+                        data-tab="overview"
+                        aria-controls="debrief-page"
+                        aria-selected="true"
+                      >
+                        Mission overview
+                      </button>
+                      <button
+                        class="button"
+                        type="button"
+                        role="tab"
+                        id="debrief-tab-statistics"
+                        data-tab="statistics"
+                        aria-controls="debrief-page"
+                        aria-selected="false"
+                        tabindex="-1"
+                      >
+                        Player statistics
+                      </button>
+                    </div>
+                    <div
+                      class="debrief-page"
+                      id="debrief-page"
+                      role="tabpanel"
+                      aria-labelledby="debrief-tab-overview"
+                      tabindex="0"
+                      hidden
+                    ></div>
+                  </section>
+                </div>
+              </li>
+              <li class="dd">
+                <button
+                  class="menu-btn"
+                  type="button"
+                  aria-expanded="false"
                   aria-controls="panel-pilot"
                 >
                   Pilot

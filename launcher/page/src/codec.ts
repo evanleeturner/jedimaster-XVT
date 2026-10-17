@@ -1,4 +1,5 @@
 import { decodeBundle } from "./briefing/bundle.ts";
+import { decodeDebrief, decodeSummaries } from "./debrief/decode.ts";
 import type {
   BriefingGetRequest,
   ErrorReply,
@@ -20,6 +21,8 @@ import type {
   OptionsSetRequest,
   PilotChangedPush,
   PilotsListRequest,
+  ResultsGetRequest,
+  ResultsListRequest,
   Settings,
   SettingsChangedPush,
   SettingsGetRequest,
@@ -44,7 +47,9 @@ export type Request =
   | LaunchSoloRequest
   | LaunchCancelRequest
   | OptionsGetRequest
-  | OptionsSetRequest;
+  | OptionsSetRequest
+  | ResultsListRequest
+  | ResultsGetRequest;
 export type Decoded =
   | { readonly ok: true; readonly message: Message }
   | { readonly ok: false; readonly reason: string };
@@ -259,7 +264,7 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   if (!isRecord(value)) return fail("a result must be an object");
   if (hasExactly(value, ["launcher_version", "schema_revision"])) {
     const { launcher_version, schema_revision } = value;
-    if (typeof launcher_version === "string" && schema_revision === 8) {
+    if (typeof launcher_version === "string" && schema_revision === 9) {
       return { value: { launcher_version, schema_revision } };
     }
     return fail("a hello result has the wrong values");
@@ -349,6 +354,17 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
       return fail("an options result has the wrong values");
     }
     return { value: { player, options: kept.value } };
+  }
+  if (hasExactly(value, ["results"])) {
+    const results = decodeSummaries(value.results);
+    if ("reason" in results) return fail(results.reason);
+    return { value: { results: results.value } };
+  }
+  if (hasExactly(value, ["debrief"])) {
+    if (value.debrief === null) return { value: { debrief: null } };
+    const debrief = decodeDebrief(value.debrief);
+    if ("reason" in debrief) return fail(debrief.reason);
+    return { value: { debrief: debrief.value } };
   }
   if (hasExactly(value, ["shown"])) {
     const { shown } = value;
@@ -473,7 +489,7 @@ function pushOf(value: Fields): Decoded {
     const { launch_id, status, line } = data;
     const known = LAUNCH_STATUSES.find((s) => s === status);
     if (
-      !hasExactly(data, ["launch_id", "status", "line"]) ||
+      !hasExactly(data, ["launch_id", "status", "line", "debrief"]) ||
       !isWhole(launch_id, 1) ||
       launch_id > MAX_ID ||
       known === undefined ||
@@ -481,9 +497,12 @@ function pushOf(value: Fields): Decoded {
     ) {
       return { ok: false, reason: "launch.ended data has wrong fields" };
     }
+    const debrief =
+      data.debrief === null ? { value: null } : decodeDebrief(data.debrief);
+    if ("reason" in debrief) return { ok: false, reason: debrief.reason };
     const push: LaunchEndedPush = {
       event,
-      data: { launch_id, status: known, line },
+      data: { launch_id, status: known, line, debrief: debrief.value },
     };
     return { ok: true, message: push };
   }
@@ -678,6 +697,21 @@ function requestOf(value: Fields): Decoded {
           args: { player, name, value: text as string },
         },
       };
+    }
+    case "results.list":
+      return empty
+        ? { ok: true, message: { id, command, args: {} } }
+        : { ok: false, reason: `${command} takes no arguments` };
+    case "results.get": {
+      const { result_id } = args;
+      if (
+        !hasExactly(args, ["result_id"]) ||
+        !isWhole(result_id, 1) ||
+        result_id > MAX_ID
+      ) {
+        return { ok: false, reason: "results.get takes a result id from 1" };
+      }
+      return { ok: true, message: { id, command, args: { result_id } } };
     }
     default:
       return { ok: false, reason: "no such command" };

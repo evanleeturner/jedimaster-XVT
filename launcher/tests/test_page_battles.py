@@ -4,7 +4,9 @@ Purpose:
     Prove ``Battles`` flies one battle at a time without blocking, sends
     exactly one ending push whatever happened (flown, refused, cancelled,
     timed out, engine and result disagreeing, a crash), gives the line the
-    summary makes, and keeps going when a listener fails.
+    summary makes, and keeps going when a listener fails; a flown battle's
+    push carries its debriefing, which is kept, and a battle that is not
+    flown carries none.
 
 Flow:
     A ``Control`` with the stand-in engine of ``solodata``; battles are
@@ -23,6 +25,7 @@ import asyncio
 import logging
 
 import pytest
+from pagedata import check_valid
 from pagedata import request
 from solodata import make_control
 from solodata import result_of
@@ -253,3 +256,61 @@ async def test_any_other_failure_still_ends_the_battle_with_a_push(
     assert data["status"] == "error"
     assert data["line"] == "the battle could not be run (OSError)"
     assert any(r.levelno == logging.ERROR for r in caplog.records)
+
+
+async def test_a_flown_battle_carries_its_debriefing_and_keeps_it(tmp_path):
+    control, pushes, _ = await fly(tmp_path, "done4")
+    data = await ending(pushes)
+    check_valid({"event": "launch.ended", "data": data})
+    debrief = data["debrief"]
+    assert debrief["result_id"] == 1
+    assert debrief["title"] == "First Flight" and debrief["pilot"] == "Ace"
+    assert (debrief["score"], debrief["kills"], debrief["losses"]) == (10, 2, 0)
+    player = debrief["players"][0]
+    assert (player["name"], player["kills"], player["assists"]) == ("Ace", 2, 1)
+    # The made-up install has no front text and no mission file: stand-ins.
+    assert (
+        player["rank"] == "Rank 2" and player["flight_group_name"] == "Flight group 1"
+    )
+    assert debrief["teams"][0]["name"] == "Team 1"
+    assert debrief["detail"]["by_craft"] == [
+        {"craft_type": 1, "kills": 2, "shared": 0, "assists": 1, "name": "Craft 1"}
+    ]
+    assert control.results.get(1) == debrief
+
+
+async def test_an_old_result_gives_a_debriefing_with_no_tables(tmp_path):
+    _, pushes, _ = await fly(tmp_path, "done")
+    data = await ending(pushes)
+    check_valid({"event": "launch.ended", "data": data})
+    debrief = data["debrief"]
+    assert (debrief["local_entry"], debrief["players"], debrief["teams"]) == (
+        -1,
+        [],
+        [],
+    )
+    assert debrief["detail"] is None
+
+
+@pytest.mark.parametrize("behave", ["refuse", "mismatch", "crash"])
+async def test_a_battle_not_flown_carries_no_debriefing(tmp_path, behave):
+    control, pushes, _ = await fly(tmp_path, behave)
+    data = await ending(pushes)
+    check_valid({"event": "launch.ended", "data": data})
+    assert data["debrief"] is None
+    assert control.results.summaries() == []
+
+
+async def test_a_debriefing_that_cannot_be_kept_still_ends_the_battle(
+    tmp_path, monkeypatch, caplog
+):
+    control, pushes, _ = await fly(tmp_path, "done4")
+
+    def refuse(debrief):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(control.results, "add", refuse)
+    with caplog.at_level(logging.WARNING):
+        data = await ending(pushes)
+    assert data["status"] == "flown" and data["debrief"] is None
+    assert "no debriefing kept: disk full" in caplog.text

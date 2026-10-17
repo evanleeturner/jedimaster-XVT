@@ -206,8 +206,8 @@ CODEC_PLANTS: list[Plant] = [
     plant(
         "ended-id-zero",
         COD,
-        '      !hasExactly(data, ["launch_id", "status", "line"]) ||\n      !isWhole(launch_id, 1) ||',
-        '      !hasExactly(data, ["launch_id", "status", "line"]) ||\n      !isWhole(launch_id, 0) ||',
+        '      !hasExactly(data, ["launch_id", "status", "line", "debrief"]) ||\n      !isWhole(launch_id, 1) ||',
+        '      !hasExactly(data, ["launch_id", "status", "line", "debrief"]) ||\n      !isWhole(launch_id, 0) ||',
         PUSH,
     ),
     plant(
@@ -228,8 +228,8 @@ CODEC_PLANTS: list[Plant] = [
     plant(
         "revision",
         COD,
+        "schema_revision === 9",
         "schema_revision === 8",
-        "schema_revision === 7",
         ACC + "reply-ok-hello.json",
     ),
     plant(

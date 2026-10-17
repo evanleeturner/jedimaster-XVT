@@ -80,7 +80,7 @@ def test_the_door_asks_for_the_guilds_intent_only(rig):
     assert rig.door.client.intents.value == discord.Intents(guilds=True).value
 
 
-def test_the_commands_are_the_eight_slash_commands_and_the_eight_right_click_items(rig):
+def test_the_commands_are_the_nine_slash_commands_and_the_nine_right_click_items(rig):
     slash = sorted(
         c.name
         for c in rig.door.tree.get_commands(type=discord.AppCommandType.chat_input)
@@ -93,6 +93,7 @@ def test_the_commands_are_the_eight_slash_commands_and_the_eight_right_click_ite
         "missions",
         "options",
         "pilot",
+        "results",
         "settings",
         "solo",
         "status",
@@ -103,6 +104,7 @@ def test_the_commands_are_the_eight_slash_commands_and_the_eight_right_click_ite
         "Launcher settings",
         "Link",
         "Pilot",
+        "Results",
         "Show mission",
         "Single player",
         "Status",
@@ -411,7 +413,7 @@ async def test_the_list_syncs_when_new_and_not_again_while_unchanged(
         assert await rig.door.sync_if_changed() is True
         assert await rig.door.sync_if_changed() is False
     assert syncs == [1]
-    assert "synced 16 commands" in caplog.text
+    assert "synced 18 commands" in caplog.text
     assert rig.store.commands_digest == commands_digest(rig.door.tree)
 
 

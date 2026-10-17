@@ -1,1 +1,1 @@
-{"event": "launch.ended", "data": {"launch_id": 1, "status": "cancelled", "line": "cancelled"}}
+{"event": "launch.ended", "data": {"launch_id": 1, "status": "cancelled", "line": "cancelled", "debrief": null}}

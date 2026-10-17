@@ -185,6 +185,11 @@ html.framed .menu-btn[aria-controls="panel-status"] {
   inset: 19px auto auto 444px;
 }
 
+/* No tab of the 1997 frame names a debriefing: its button sits on the bottom bar. */
+html.framed .menu-btn[aria-controls="panel-debrief"] {
+  inset: 452px auto auto 140px;
+}
+
 html.framed .menu-btn[aria-controls="panel-settings"] {
   inset: 26px auto auto 541px;
 }
@@ -224,7 +229,8 @@ html.framed .problem {
 html.framed .dd-panel,
 html.framed .dd-right .dd-panel,
 html.framed .dd-mega .dd-panel,
-html.framed .dd-panel.panel-medium {
+html.framed .dd-panel.panel-medium,
+html.framed .dd-panel.panel-wide {
   position: absolute;
   inset: 52px auto auto 72px;
   z-index: 20;
@@ -708,4 +714,10 @@ html.framed .options-copy-item.is-wide {
 
 html.framed .options-copy-value {
   color: var(--f-cyan);
+}
+
+/* Framed, the drop-down scrolls; the debriefing's tables scroll with it. */
+html.framed .debrief-page {
+  max-block-size: none;
+  overflow: visible;
 }

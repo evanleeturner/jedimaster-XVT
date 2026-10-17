@@ -19,6 +19,8 @@ export type LauncherControlMessage =
   | LaunchCancelRequest
   | OptionsGetRequest
   | OptionsSetRequest
+  | ResultsListRequest
+  | ResultsGetRequest
   | OkReply
   | ErrorReply
   | StatusPush
@@ -210,6 +212,28 @@ export interface OptionsSetArgs {
   value: string;
 }
 /**
+ * Ask for the kept debriefings, one line each.
+ */
+export interface ResultsListRequest {
+  id: number;
+  command: "results.list";
+  args: NoArgs;
+}
+/**
+ * Ask for one kept debriefing.
+ */
+export interface ResultsGetRequest {
+  id: number;
+  command: "results.get";
+  args: ResultsGetArgs;
+}
+/**
+ * The kept debriefing to read.
+ */
+export interface ResultsGetArgs {
+  result_id: number;
+}
+/**
  * The command ran; its result.
  */
 export interface OkReply {
@@ -226,14 +250,16 @@ export interface OkReply {
     | PilotsListResult
     | LaunchSoloResult
     | LaunchCancelResult
-    | OptionsResult;
+    | OptionsResult
+    | ResultsListResult
+    | ResultsGetResult;
 }
 /**
  * The launcher's version and the revision of the control list.
  */
 export interface HelloResult {
   launcher_version: string;
-  schema_revision: 8;
+  schema_revision: 9;
 }
 /**
  * The install found (home shown as ~) and whether Balance of Power is in it.
@@ -480,6 +506,152 @@ export interface GameOptions {
   sith: "none" | "apprentices" | "lord";
 }
 /**
+ * The kept debriefings, the newest first.
+ */
+export interface ResultsListResult {
+  results: ResultSummary[];
+}
+/**
+ * One kept debriefing in a line: when, which mission, how it ended.
+ */
+export interface ResultSummary {
+  result_id: number;
+  ended_at: string;
+  title: string;
+  outcome: "none" | "completed" | "not_completed";
+  score: number;
+}
+/**
+ * The kept debriefing asked for; null when it is not kept.
+ */
+export interface ResultsGetResult {
+  debrief: Debrief | null;
+}
+/**
+ * One flown battle's debriefing: what was flown, and every number with its name.
+ */
+export interface Debrief {
+  result_id: number;
+  ended_at: string;
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  side: "rebel" | "imperial" | "none";
+  mission: string;
+  title: string;
+  pilot: string;
+  outcome: "none" | "completed" | "not_completed";
+  score: number;
+  kills: number;
+  losses: number;
+  goals_met_seconds: number;
+  local_entry: number;
+  players: DebriefPlayer[];
+  teams: DebriefTeam[];
+  detail: DebriefDetail | null;
+}
+/**
+ * One player as the battle's end counted it, with its rank and flight group named.
+ */
+export interface DebriefPlayer {
+  entry: number;
+  name: string;
+  rating: number;
+  rank: string;
+  team: number;
+  flight_group: number;
+  flight_group_name: string;
+  score: number;
+  kills: number;
+  shared: number;
+  assists: number;
+  losses: number;
+  shots: number;
+  hits: number;
+  warheads: number;
+  warhead_hits: number;
+  has_left: boolean;
+}
+/**
+ * One team of the battle, with its name from the mission.
+ */
+export interface DebriefTeam {
+  team: number;
+  name: string;
+  completed: boolean;
+  score: number;
+  kills: number;
+  shared: number;
+  losses: number;
+  seconds: number;
+}
+/**
+ * The local pilot's own tables; the rows hold a number other than 0.
+ */
+export interface DebriefDetail {
+  shots: number;
+  hits: number;
+  warheads: number;
+  warhead_hits: number;
+  losses: number;
+  losses_to_collisions: number;
+  losses_to_starships: number;
+  losses_to_mines: number;
+  friendlies_killed: number;
+  special_inspected: number;
+  by_craft: CraftKills[];
+  on_pilot_ranks: RankKills[];
+  on_ai_ranks: RankKills[];
+  killed_by_pilot_ranks: RankTimes[];
+  killed_by_ai_ranks: RankTimes[];
+  on_players: PlayerKills[];
+  from_players: PlayerKills[];
+  on_flight_groups: GroupKills[];
+  from_flight_groups: GroupKills[];
+}
+/**
+ * The pilot's kills of one craft type, named as the statistics page names it.
+ */
+export interface CraftKills {
+  craft_type: number;
+  name: string;
+  kills: number;
+  shared: number;
+  assists: number;
+}
+/**
+ * The pilot's kills of pilots of one rank.
+ */
+export interface RankKills {
+  rank: number;
+  kills: number;
+  shared: number;
+  assists: number;
+}
+/**
+ * How often a killer of one rank destroyed the pilot.
+ */
+export interface RankTimes {
+  rank: number;
+  times: number;
+}
+/**
+ * Kills between the pilot and one player.
+ */
+export interface PlayerKills {
+  entry: number;
+  name: string;
+  kills: number;
+  shared: number;
+}
+/**
+ * Kills between the pilot and one flight group.
+ */
+export interface GroupKills {
+  flight_group: number;
+  name: string;
+  kills: number;
+  shared: number;
+}
+/**
  * The command did not run; the reason.
  */
 export interface ErrorReply {
@@ -557,12 +729,13 @@ export interface LaunchEndedPush {
   data: LaunchEndedData;
 }
 /**
- * How the battle ended: its status and the one line that says so.
+ * How the battle ended: its status, the one line that says so, and a flown battle's debriefing.
  */
 export interface LaunchEndedData {
   launch_id: number;
   status: "flown" | "refused" | "not_reached" | "failed" | "cancelled" | "error";
   line: string;
+  debrief: Debrief | null;
 }
 /**
  * Sent to every open page after a player's game options changed.

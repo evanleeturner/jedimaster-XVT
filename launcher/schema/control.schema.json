@@ -43,6 +43,12 @@
       "$ref": "#/$defs/OptionsSetRequest"
     },
     {
+      "$ref": "#/$defs/ResultsListRequest"
+    },
+    {
+      "$ref": "#/$defs/ResultsGetRequest"
+    },
+    {
       "$ref": "#/$defs/OkReply"
     },
     {
@@ -337,6 +343,405 @@
       ],
       "additionalProperties": false
     },
+    "CraftKills": {
+      "type": "object",
+      "description": "The pilot's kills of one craft type, named as the statistics page names it.",
+      "properties": {
+        "craft_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99
+        },
+        "name": {
+          "type": "string"
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assists": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "craft_type",
+        "name",
+        "kills",
+        "shared",
+        "assists"
+      ],
+      "additionalProperties": false
+    },
+    "Debrief": {
+      "type": "object",
+      "description": "One flown battle's debriefing: what was flown, and every number with its name.",
+      "properties": {
+        "result_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "ended_at": {
+          "type": "string"
+        },
+        "mission_type": {
+          "enum": [
+            "training",
+            "melee",
+            "tournament",
+            "combat",
+            "battle",
+            "campaign"
+          ]
+        },
+        "side": {
+          "enum": [
+            "rebel",
+            "imperial",
+            "none"
+          ]
+        },
+        "mission": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "pilot": {
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "none",
+            "completed",
+            "not_completed"
+          ]
+        },
+        "score": {
+          "type": "integer"
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "losses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "goals_met_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "local_entry": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 7
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DebriefPlayer"
+          }
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DebriefTeam"
+          }
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DebriefDetail"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "result_id",
+        "ended_at",
+        "mission_type",
+        "side",
+        "mission",
+        "title",
+        "pilot",
+        "outcome",
+        "score",
+        "kills",
+        "losses",
+        "goals_met_seconds",
+        "local_entry",
+        "players",
+        "teams",
+        "detail"
+      ],
+      "additionalProperties": false
+    },
+    "DebriefDetail": {
+      "type": "object",
+      "description": "The local pilot's own tables; the rows hold a number other than 0.",
+      "properties": {
+        "shots": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warheads": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warhead_hits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "losses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "losses_to_collisions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "losses_to_starships": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "losses_to_mines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "friendlies_killed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "special_inspected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_craft": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CraftKills"
+          }
+        },
+        "on_pilot_ranks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RankKills"
+          }
+        },
+        "on_ai_ranks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RankKills"
+          }
+        },
+        "killed_by_pilot_ranks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RankTimes"
+          }
+        },
+        "killed_by_ai_ranks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RankTimes"
+          }
+        },
+        "on_players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlayerKills"
+          }
+        },
+        "from_players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlayerKills"
+          }
+        },
+        "on_flight_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GroupKills"
+          }
+        },
+        "from_flight_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GroupKills"
+          }
+        }
+      },
+      "required": [
+        "shots",
+        "hits",
+        "warheads",
+        "warhead_hits",
+        "losses",
+        "losses_to_collisions",
+        "losses_to_starships",
+        "losses_to_mines",
+        "friendlies_killed",
+        "special_inspected",
+        "by_craft",
+        "on_pilot_ranks",
+        "on_ai_ranks",
+        "killed_by_pilot_ranks",
+        "killed_by_ai_ranks",
+        "on_players",
+        "from_players",
+        "on_flight_groups",
+        "from_flight_groups"
+      ],
+      "additionalProperties": false
+    },
+    "DebriefPlayer": {
+      "type": "object",
+      "description": "One player as the battle's end counted it, with its rank and flight group named.",
+      "properties": {
+        "entry": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 12
+        },
+        "rating": {
+          "type": "integer"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "team": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "flight_group": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flight_group_name": {
+          "type": "string"
+        },
+        "score": {
+          "type": "integer"
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assists": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "losses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shots": {
+          "type": "integer"
+        },
+        "hits": {
+          "type": "integer"
+        },
+        "warheads": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warhead_hits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "has_left": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "entry",
+        "name",
+        "rating",
+        "rank",
+        "team",
+        "flight_group",
+        "flight_group_name",
+        "score",
+        "kills",
+        "shared",
+        "assists",
+        "losses",
+        "shots",
+        "hits",
+        "warheads",
+        "warhead_hits",
+        "has_left"
+      ],
+      "additionalProperties": false
+    },
+    "DebriefTeam": {
+      "type": "object",
+      "description": "One team of the battle, with its name from the mission.",
+      "properties": {
+        "team": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "name": {
+          "type": "string"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "losses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "team",
+        "name",
+        "completed",
+        "score",
+        "kills",
+        "shared",
+        "losses",
+        "seconds"
+      ],
+      "additionalProperties": false
+    },
     "ErrorBody": {
       "type": "object",
       "description": "Why the command did not run.",
@@ -582,6 +987,35 @@
       ],
       "additionalProperties": false
     },
+    "GroupKills": {
+      "type": "object",
+      "description": "Kills between the pilot and one flight group.",
+      "properties": {
+        "flight_group": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 47
+        },
+        "name": {
+          "type": "string"
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "flight_group",
+        "name",
+        "kills",
+        "shared"
+      ],
+      "additionalProperties": false
+    },
     "HelloArgs": {
       "type": "object",
       "description": "The page announces its own version.",
@@ -628,7 +1062,7 @@
           "type": "string"
         },
         "schema_revision": {
-          "const": 8
+          "const": 9
         }
       },
       "required": [
@@ -762,7 +1196,7 @@
     },
     "LaunchEndedData": {
       "type": "object",
-      "description": "How the battle ended: its status and the one line that says so.",
+      "description": "How the battle ended: its status, the one line that says so, and a flown battle's debriefing.",
       "properties": {
         "launch_id": {
           "type": "integer",
@@ -781,12 +1215,23 @@
         },
         "line": {
           "type": "string"
+        },
+        "debrief": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Debrief"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
         "launch_id",
         "status",
-        "line"
+        "line",
+        "debrief"
       ],
       "additionalProperties": false
     },
@@ -1133,6 +1578,12 @@
             },
             {
               "$ref": "#/$defs/OptionsResult"
+            },
+            {
+              "$ref": "#/$defs/ResultsListResult"
+            },
+            {
+              "$ref": "#/$defs/ResultsGetResult"
             }
           ]
         }
@@ -1367,6 +1818,35 @@
       ],
       "additionalProperties": false
     },
+    "PlayerKills": {
+      "type": "object",
+      "description": "Kills between the pilot and one player.",
+      "properties": {
+        "entry": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "name": {
+          "type": "string"
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "entry",
+        "name",
+        "kills",
+        "shared"
+      ],
+      "additionalProperties": false
+    },
     "PointData": {
       "type": "object",
       "description": "One briefing point of a flight group: map x and y, and whether it is on.",
@@ -1385,6 +1865,188 @@
         "x",
         "y",
         "enabled"
+      ],
+      "additionalProperties": false
+    },
+    "RankKills": {
+      "type": "object",
+      "description": "The pilot's kills of pilots of one rank.",
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 24
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assists": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "rank",
+        "kills",
+        "shared",
+        "assists"
+      ],
+      "additionalProperties": false
+    },
+    "RankTimes": {
+      "type": "object",
+      "description": "How often a killer of one rank destroyed the pilot.",
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 24
+        },
+        "times": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "rank",
+        "times"
+      ],
+      "additionalProperties": false
+    },
+    "ResultSummary": {
+      "type": "object",
+      "description": "One kept debriefing in a line: when, which mission, how it ended.",
+      "properties": {
+        "result_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "ended_at": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "none",
+            "completed",
+            "not_completed"
+          ]
+        },
+        "score": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "result_id",
+        "ended_at",
+        "title",
+        "outcome",
+        "score"
+      ],
+      "additionalProperties": false
+    },
+    "ResultsGetArgs": {
+      "type": "object",
+      "description": "The kept debriefing to read.",
+      "properties": {
+        "result_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "result_id"
+      ],
+      "additionalProperties": false
+    },
+    "ResultsGetRequest": {
+      "type": "object",
+      "description": "Ask for one kept debriefing.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "results.get"
+        },
+        "args": {
+          "$ref": "#/$defs/ResultsGetArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "ResultsGetResult": {
+      "type": "object",
+      "description": "The kept debriefing asked for; null when it is not kept.",
+      "properties": {
+        "debrief": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Debrief"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "debrief"
+      ],
+      "additionalProperties": false
+    },
+    "ResultsListRequest": {
+      "type": "object",
+      "description": "Ask for the kept debriefings, one line each.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "results.list"
+        },
+        "args": {
+          "$ref": "#/$defs/NoArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "ResultsListResult": {
+      "type": "object",
+      "description": "The kept debriefings, the newest first.",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResultSummary"
+          }
+        }
+      },
+      "required": [
+        "results"
       ],
       "additionalProperties": false
     },

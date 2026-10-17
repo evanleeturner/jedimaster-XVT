@@ -187,10 +187,10 @@ OPTIONS_PLANTS: list[Plant] = [
     plant(
         "revision-left-at-7",
         PRO,
+        "SCHEMA_REVISION = 9",
         "SCHEMA_REVISION = 8",
-        "SCHEMA_REVISION = 7",
         "tests/test_page_control.py::test_hello",
-        "tests/test_page_control.py::test_the_list_has_thirteen_commands_and_revision_8",
+        "tests/test_page_control.py::test_the_list_has_fifteen_commands_and_revision_9",
     ),
     plant(
         "fence-engine-battle-length-off",
