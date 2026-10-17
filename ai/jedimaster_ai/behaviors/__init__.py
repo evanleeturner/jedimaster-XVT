@@ -45,6 +45,7 @@ class BehaviorCode(enum.IntEnum):
     BOARD = 11
     SELF_DESTRUCT = 12
     DROP_OFF = 13
+    RENDEZVOUS = 14
 
 
 @dataclasses.dataclass(frozen=True)

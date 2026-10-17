@@ -303,6 +303,21 @@
       "fields": ["object", "named", "hit", "attackers"],
       "text": "Craft {object} on a Protect order has {named} craft its order names, {hit} of them hit by a craft of some team, and {attackers} enemies attacking those: each that targets one, or whose shot hit one last"
     },
+    "rendezvous.fly": {
+      "level": "D",
+      "fields": ["object", "left", "throttle"],
+      "text": "Craft {object} on Rendezvous flies to its rendezvous point: {left} units left, throttle {throttle}"
+    },
+    "rendezvous.no_point": {
+      "level": "W",
+      "fields": ["object", "books"],
+      "text": "Craft {object} on Rendezvous has no rendezvous point named (books {books}) and holds still"
+    },
+    "rendezvous.waiting": {
+      "level": "I",
+      "fields": ["object", "left", "boarded", "needed"],
+      "text": "Craft {object} on Rendezvous stops {left} units from its rendezvous point to wait for boarding craft: {boarded} boardings counted of {needed}"
+    },
     "seek.no_point": {
       "level": "D",
       "fields": ["object"],
