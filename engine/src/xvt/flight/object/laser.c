@@ -1731,11 +1731,13 @@ void laser_firelasersystem(int object_index, int laser_system_index)
 /* Fires launcher launcher_index of the craft in object_index through
  * laser_firemissile: both of its slots when the low 7 bits of
  * warhead_launcher_flags are 3, else the slot flag bit 0x80 picks (the
- * second when set). Adds 472 ticks to the launcher's cooldown whether or
- * not anything fired. For the local player's craft, unless a slot that
- * failed still holds rounds, it shows the message for no shot, one or two,
- * by the warhead kind of the player's selected launcher. Writes
- * g_cur_craft. */
+ * second when set). Adds 472 ticks to the launcher's cooldown unless no
+ * warhead was made while a slot it tried still holds rounds (no free object
+ * slot for the shot, or no weapon in the slot): then the wait is left alone,
+ * so the craft may try again. An empty launcher still gets its 472. For the
+ * local player's craft, unless a slot that failed still holds rounds, it
+ * shows the message for no shot, one or two, by the warhead kind of the
+ * player's selected launcher. Writes g_cur_craft. */
 // FUNCTION: XVT 0x406030
 void laser_firewarheadsystem(int object_index, unsigned int launcher_index)
 {
@@ -1801,7 +1803,10 @@ void laser_firewarheadsystem(int object_index, unsigned int launcher_index)
 			}
 		}
 	}
-	g_cur_craft->warhead_launcher_cooldown_ticks[launcher_index] += 472;
+	if (shots_fired != 0 || incomplete == 0) {
+		g_cur_craft->warhead_launcher_cooldown_ticks[launcher_index] +=
+			472;
+	}
 	XVT_LOG_DEBUG(
 		"combat.launcher_fired object=%d launcher=%u shots=%d incomplete=%d cooldown=%d predicted=%d",
 		object_index, (unsigned)launcher_index, (int)shots_fired,

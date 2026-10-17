@@ -869,8 +869,8 @@ static void check_player_missile(void)
 }
 
 /* A launcher whose flags' low 7 bits are 3 fires both its slots; otherwise
- * bit 0x80 picks the second slot. Each call adds 472 ticks to the launcher's
- * cooldown, whether or not anything fired. */
+ * bit 0x80 picks the second slot. Each call that made a warhead, and each
+ * call at an empty launcher, adds 472 ticks to the launcher's cooldown. */
 static void check_warhead_system(void)
 {
 	struct craft_data *craft = launcher_world(3, 3);
@@ -892,6 +892,70 @@ static void check_warhead_system(void)
 	laser_firewarheadsystem(OWNER, 0);
 	XVT_ASSERT_INT_EQ(shots_in_other_range(), 0);
 	XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0], 477);
+}
+
+static void fill_other_range(void)
+{
+	for (int i = OTHER_SHOT_START; i < SHOT_END; ++i) {
+		place_shot(i, CONCUSSION_MISSILE, 1, 0, UINT16_MAX);
+	}
+}
+
+/* A computer craft with rounds and the whole other-shot range taken makes no
+ * warhead, keeps its rounds and keeps its wait (5 stays 5), for the first
+ * slot, the second (flag bit 0x80) and a pair. With one slot free a pair
+ * makes one warhead and gets its 472; an empty launcher keeps its 472 (the
+ * wait is 5, then 477). */
+static void check_warhead_system_full_pool(void)
+{
+	static const int8_t flags[3] = {0, (int8_t)0x80, 3};
+	for (int i = 0; i < 3; ++i) {
+		struct craft_data *craft = launcher_world(3, 3);
+		craft->warhead_launcher_flags[0] = flags[i];
+		craft->warhead_launcher_cooldown_ticks[0] = 5;
+		fill_other_range();
+		laser_firewarheadsystem(OWNER, 0);
+		XVT_ASSERT_INT_EQ(shots_in_other_range(),
+				  SHOT_END - OTHER_SHOT_START);
+		XVT_ASSERT_INT_EQ(craft->weapon_slots[4].ammo_count, 3);
+		XVT_ASSERT_INT_EQ(craft->weapon_slots[5].ammo_count, 3);
+		XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0], 5);
+	}
+
+	struct craft_data *craft = launcher_world(3, 3);
+	craft->warhead_launcher_flags[0] = 3;
+	craft->warhead_launcher_cooldown_ticks[0] = 5;
+	fill_other_range();
+	g_test_objects[SHOT_END - 1].object_type = 0;
+	laser_firewarheadsystem(OWNER, 0);
+	XVT_ASSERT_INT_EQ(g_test_objects[SHOT_END - 1].object_type, PROTON);
+	XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0], 477);
+
+	craft = launcher_world(0, 0);
+	craft->warhead_launcher_cooldown_ticks[0] = 5;
+	fill_other_range();
+	laser_firewarheadsystem(OWNER, 0);
+	XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0], 477);
+}
+
+/* A player's craft with its 4 warhead slots and the 32 shared slots taken
+ * keeps its wait as well. */
+static void check_warhead_system_full_pool_player(void)
+{
+	struct craft_data *craft = launcher_world(3, 3);
+	g_test_objects[OWNER].player_owner_idx = 2;
+	g_players[2].object_index = OWNER;
+	craft->warhead_launcher_flags[0] = 0;
+	craft->warhead_launcher_cooldown_ticks[0] = 5;
+	for (int i = 56; i < 68; ++i) {
+		g_test_objects[i].object_type = CONCUSSION_MISSILE;
+	}
+	for (int i = 128; i < OTHER_SHOT_START; ++i) {
+		g_test_objects[i].object_type = CONCUSSION_MISSILE;
+	}
+	laser_firewarheadsystem(OWNER, 0);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[4].ammo_count, 3);
+	XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0], 5);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -1378,6 +1442,8 @@ int main(int argc, char **argv)
 	check_missile_without_rounds();
 	check_player_missile();
 	check_warhead_system();
+	check_warhead_system_full_pool();
+	check_warhead_system_full_pool_player();
 	check_warn_player();
 	check_trigger_cannon_cooldown();
 	check_trigger_jammed();

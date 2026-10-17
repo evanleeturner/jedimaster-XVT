@@ -807,9 +807,10 @@ static int launcher_flags_after(int paired, int inhibit, int first_ammo,
 			  empty ? 1 : UINT16_MAX);
 	XVT_ASSERT_INT_EQ(craft->ai_controller.target_signature, 0);
 	XVT_ASSERT_INT_EQ(craft->ai_controller.has_live_target, empty);
-	/* laser_firewarheadsystem adds 472 ticks whether or not it fired. */
-	XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0],
-			  inhibit == 0 && !empty ? 472 : 0);
+	/* Nothing launches from these slots while they hold rounds, so
+	 * laser_firewarheadsystem leaves the wait alone (#310); the flags show
+	 * that it ran. */
+	XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0], 0);
 	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
 	return (uint8_t)craft->warhead_launcher_flags[0];
 }
