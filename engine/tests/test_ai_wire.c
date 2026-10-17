@@ -175,7 +175,7 @@ static void tracers_with_distinct_bytes(struct ai_wire_tracer *tracers)
 static void check_question_bytes(void)
 {
 	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 419] = {
-		0xFB, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x15, 0x00,
+		0xFB, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x16, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x0E, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
@@ -532,10 +532,11 @@ static void check_good_answer(void)
 	good_answer(&bytes);
 	/* Craft 7's answer is the longest but for 14 turrets of 4 bytes. */
 	/* A dock is 1 byte; the board action, which cannot share an answer
-	 * with it, is 3, so the answer's most is 2 bytes more. */
+	 * with it, is 3, so the answer's most is 2 bytes more; the weaving
+	 * flag, which this answer lacks, is 1 more. */
 	XVT_ASSERT_INT_EQ(bytes.length,
 			  AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_ANSWER_BYTES_MAX -
-				  2 - 14 * 4 + 3 + AI_NOTEBOOK_BYTES);
+				  2 - 1 - 14 * 4 + 3 + AI_NOTEBOOK_BYTES);
 	XVT_ASSERT_INT_EQ(read_two(&bytes, answers), AI_WIRE_OK);
 	XVT_ASSERT_INT_EQ(answers[0].object_index, 7);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[0], 0x5A);
@@ -762,7 +763,7 @@ static void check_shown_faults(void)
 static void check_action_faults(void)
 {
 	static const uint8_t kind_zero[] = {0};
-	static const uint8_t kind_end[] = {19};
+	static const uint8_t kind_end[] = {20};
 	static const uint8_t twice[] = {AI_WIRE_ACTION_THROTTLE, 1, 0,
 					AI_WIRE_ACTION_THROTTLE, 2, 0};
 	/* 16 activities: 0 to 15 are named, the three looking ones are 13 to
@@ -929,6 +930,40 @@ static void check_evaded_faults(void)
 	XVT_ASSERT_INT_EQ(read_actions(1, evaded, sizeof evaded),
 			  AI_WIRE_BAD_ACTION);
 	view->commands = AI_WIRE_COMMAND_EVADE;
+}
+
+/* The weaving flag carries no fields, goes through whatever the view shows,
+ * is named at most once, and the version before it is refused. */
+static void check_weaving_faults(void)
+{
+	static const uint8_t weaving[] = {AI_WIRE_ACTION_WEAVING};
+	static const uint8_t twice[] = {AI_WIRE_ACTION_WEAVING,
+					AI_WIRE_ACTION_WEAVING};
+	static const uint8_t with_throttle[] = {AI_WIRE_ACTION_WEAVING,
+						AI_WIRE_ACTION_THROTTLE, 1, 0};
+	struct test_bytes bytes;
+	struct ai_wire_craft_answer answer;
+	XVT_ASSERT_INT_EQ(read_actions(1, weaving, sizeof weaving), AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions(2, twice, sizeof twice),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(2, with_throttle, sizeof with_throttle),
+			  AI_WIRE_OK);
+	start_answer(&bytes, 1);
+	add_craft(&bytes, 7, 0);
+	add_u8(&bytes, 1);
+	add_u8(&bytes, AI_WIRE_ACTION_WEAVING);
+	finish_answer(&bytes);
+	struct ai_wire_question question = g_question;
+	question.craft_count = 1;
+	XVT_ASSERT_INT_EQ(ai_wire_read_answer(bytes.data, bytes.length,
+					      &question, &answer),
+			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(answer.actions, 1u << AI_WIRE_ACTION_WEAVING);
+	/* The version before the weaving flag. */
+	bytes.data[8] = 21;
+	XVT_ASSERT_INT_EQ(ai_wire_read_answer(bytes.data, bytes.length,
+					      &question, &answer),
+			  AI_WIRE_BAD_HEADER);
 }
 
 /* A turret's ion switch is 0 or 1 and nothing else, and sets the answer's
@@ -1297,6 +1332,7 @@ int main(void)
 	check_books_faults();
 	check_countermeasure_faults();
 	check_evaded_faults();
+	check_weaving_faults();
 	check_ion_faults();
 	check_maneuver_timer_faults();
 	check_self_destruct_faults();

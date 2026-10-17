@@ -111,6 +111,7 @@ def test_wire_constants_match() -> None:
         evaded=True,
         maneuver_timer=world.MANEUVER_TIMER_MAX,
         self_destruct=world.SELF_DESTRUCT_UNITS_MAX,
+        weaving=True,
     )
     answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
     assert constants == {

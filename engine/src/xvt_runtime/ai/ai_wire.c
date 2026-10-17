@@ -589,6 +589,8 @@ static int take_action(struct wire_reader *reader,
 		return countermeasure_ready(view);
 	case AI_WIRE_ACTION_EVADED:
 		return (view->commands & AI_WIRE_COMMAND_EVADE) != 0;
+	case AI_WIRE_ACTION_WEAVING:
+		return 1;
 	case AI_WIRE_ACTION_MANEUVER_TIMER:
 		answer->maneuver_timer = take_u32(reader);
 		return reader->short_read ||

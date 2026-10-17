@@ -489,3 +489,16 @@ def test_debug_records_the_drop_off_action(caplog) -> None:
     think_module._log_answer(answer)
     # Bit n of the actions is action kind n: drop off 18.
     assert "think.answer object=4 actions=262144 " in caplog.text
+
+
+def test_debug_records_the_weaving_action(caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    think_module._log_answer(
+        CraftAnswer(4, bytes(NOTEBOOK_BYTES), Actions(weaving=True))
+    )
+    # Bit n of the actions is action kind n: weaving 19.
+    assert "think.answer object=4 actions=524288 " in caplog.text
+    caplog.clear()
+    both = Actions(weaving=True, drop_off=1)
+    think_module._log_answer(CraftAnswer(4, bytes(NOTEBOOK_BYTES), both))
+    assert "think.answer object=4 actions=786432 " in caplog.text

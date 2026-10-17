@@ -27,7 +27,8 @@ Invariants:
       evade command shown, a turret ion past 1, a maneuver timer past
       0x7FFFFFFF or sent while the view shows a dock or a drop, a target sent
       while it does, a board or drop off the view does not allow, and a self
-      destruct of 0 units or more than 55.
+      destruct of 0 units or more than 55. Kind 19, the weaving flag, comes with
+      version 22.
 """
 
 from __future__ import annotations
@@ -62,7 +63,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 21
+VERSION = 22
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -250,6 +251,7 @@ class ActionKind(enum.IntEnum):
     SELF_DESTRUCT = 16
     BOARD = 17
     DROP_OFF = 18
+    WEAVING = 19
 
 
 class WireError(ValueError):
@@ -499,6 +501,9 @@ def _actions_bytes(actions: Actions) -> bytes:
     if actions.drop_off is not None:
         written += U8.pack(ActionKind.DROP_OFF) + U8.pack(actions.drop_off)
         count += 1
+    if actions.weaving:
+        written += U8.pack(ActionKind.WEAVING)
+        count += 1
     return U8.pack(count) + bytes(written)
 
 
@@ -574,6 +579,7 @@ def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
         ActionKind.DOCK,
         ActionKind.COUNTERMEASURE,
         ActionKind.EVADED,
+        ActionKind.WEAVING,
     ):
         return True
     if kind == ActionKind.MANEUVER_TIMER:
@@ -591,7 +597,7 @@ def _read_actions(reader: _Reader) -> Actions:
         try:
             kind = ActionKind(code)
         except ValueError:
-            raise WireError(f"action kind {code} is not one of the eighteen") from None
+            raise WireError(f"action kind {code} is not one of the nineteen") from None
         name = kind.name.lower()
         if name in found:
             raise WireError(f"action kind {code} is sent twice")

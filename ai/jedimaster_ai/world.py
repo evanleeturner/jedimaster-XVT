@@ -790,6 +790,11 @@ class Actions:
     dock runs, or 0 to stop a running drop, keeping the places delivered.
     Never with ``depart``, ``dock`` or ``board``. It comes with wire version
     18.
+    ``weaving`` says the craft flies a weave, the program's one evade
+    maneuver: a level, so every answer while the weave flies carries it and
+    the first answer without it ends it. The engine then moves a shield-
+    carrying fighter's shield power to its engines by its skill, as 1997's
+    avoid-an-attacker maneuver did. It comes with wire version 22.
     ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
@@ -812,6 +817,7 @@ class Actions:
     self_destruct: int | None = None
     board: int | None = None
     drop_off: int | None = None
+    weaving: bool = False
 
     def __post_init__(self) -> None:
         if self.depart and self.dock:

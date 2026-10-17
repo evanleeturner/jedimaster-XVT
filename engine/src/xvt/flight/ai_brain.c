@@ -888,11 +888,38 @@ ai_brain_apply_self_destruct(uint16_t object_index,
 		g_flight_sim_side_effects_suppressed);
 }
 
+/* The weave is a level: while the answer carries the weaving flag the craft
+ * is avoiding an attacker, the maneuver mode laser.c reads to move a
+ * fighter's shield power to its engines, and the first answer without it
+ * ends the mode. Only a mode of none is taken: a boarding or a drop off
+ * keeps its own. */
+static void ai_brain_sync_weaving(const struct ai_wire_craft_answer *answer,
+				  struct ai_controller *controller)
+{
+	const int weaving =
+		(answer->actions & (1u << AI_WIRE_ACTION_WEAVING)) != 0;
+	int changed = 0;
+	if (weaving && controller->maneuver_mode == AI_MANEUVER_MODE_NULL) {
+		controller->maneuver_mode = AI_MANEUVER_MODE_AVOID_ATTACKER;
+		changed = 1;
+	} else if (!weaving && controller->maneuver_mode ==
+				       AI_MANEUVER_MODE_AVOID_ATTACKER) {
+		controller->maneuver_mode = AI_MANEUVER_MODE_NULL;
+		changed = 1;
+	}
+	if (changed) {
+		XVT_LOG_DEBUG("ai.craft_weaving object=%d on=%d predicted=%d",
+			      (int)answer->object_index, weaving,
+			      g_flight_sim_side_effects_suppressed);
+	}
+}
+
 /* Applies one craft answer the reader accepted: the notebook always, then
  * each action the pilot program sent, a steer only to a craft not entering
  * hyperspace, an activity after the formation books take its change
  * (ai_formation_activity_changed); the order, depart and dock actions
- * last, through ai_books. */
+ * last, through ai_books; the weave's mode after the boarding and drop off
+ * modes, so theirs win. */
 static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 {
 	struct craft_data *craft =
@@ -983,6 +1010,7 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	}
 	ai_boarding_sync_mode(object_index);
 	ai_dropoff_sync_mode(object_index);
+	ai_brain_sync_weaving(answer, controller);
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d timer=%d predicted=%d",
 		(int)answer->object_index, answer->actions,

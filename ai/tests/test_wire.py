@@ -309,8 +309,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
 @pytest.mark.parametrize(
     ("actions", "match"),
     [
-        (b"\x01\x00", "not one of the eighteen"),
-        (b"\x01\x13", "not one of the eighteen"),
+        (b"\x01\x00", "not one of the nineteen"),
+        (b"\x01\x14", "not one of the nineteen"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
         (b"\x01\x03\x15", "out of range"),
         (b"\x01\x03\x05", "set by the engine alone"),
@@ -351,7 +351,7 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
         (b"\x01\x10", "ends inside a value"),
     ],
     ids=[
-        "kind 0", "kind 19", "twice", "activity 21", "activity 5", "activity 7", "interval 0", "short", "long",
+        "kind 0", "kind 20", "twice", "activity 21", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "target past the statics", "turret aimed at a static",
         "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
@@ -1002,3 +1002,26 @@ def test_a_question_carries_the_turn_of_a_contact_and_none_for_a_static(
     assert (read.contacts[0].yaw_turned, read.contacts[0].pitch_turned) == (-1234, 567)
     assert (read.contacts[0].speed_changed, read.contacts[0].turn_ticks) == (-89, 4)
     assert read.statics[0].turn_ticks == 0
+
+
+def test_weaving_is_a_flag_written_and_read_as_kind_19() -> None:
+    answer = Answer(
+        TEST_TICK, (CraftAnswer(7, bytes(NOTEBOOK_BYTES), Actions(weaving=True)),)
+    )
+    message = wire.answer_bytes(answer)
+    assert message.endswith(b"\x01\x13")
+    assert wire.read_answer(message[4:], QUESTION_7) == answer
+    assert _actions_of(answer_with_actions(b"\x01\x13"), CRAFT_7).weaving
+    assert not _actions_of(answer_with_actions(b"\x00"), CRAFT_7).weaving
+
+
+def test_weaving_twice_is_refused() -> None:
+    with pytest.raises(wire.WireError, match="sent twice"):
+        wire.read_answer(answer_with_actions(b"\x02\x13\x13"), QUESTION_7)
+
+
+def test_kind_19_is_refused_under_the_version_before_it() -> None:
+    old = wire.HEADER.pack(wire.MAGIC, 21, wire.KIND_ANSWER, TEST_TICK, 1, 0)
+    body = old + struct.pack("<H", 7) + bytes(NOTEBOOK_BYTES) + b"\x01\x13"
+    with pytest.raises(wire.WireError):
+        wire.read_answer(body, QUESTION_7)

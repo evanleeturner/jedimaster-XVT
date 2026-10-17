@@ -327,6 +327,7 @@ def _log_answer(answer: CraftAnswer) -> None:
         | (actions.self_destruct is not None) << 16
         | (actions.board is not None) << 17
         | (actions.drop_off is not None) << 18
+        | actions.weaving << 19
     )
     first, second = actions.lasers or (HOLD_FIRE, HOLD_FIRE)
     warhead = actions.warhead

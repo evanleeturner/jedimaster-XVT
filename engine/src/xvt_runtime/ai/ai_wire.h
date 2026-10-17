@@ -218,6 +218,12 @@
  *     (and with it the whole answer, notebook included: a program that sends
  *     one mid-drop loses that think), and steer and throttle are read and not
  *     applied.
+ *  19 weaving: no fields. The craft flies a weave, its evade maneuver. A
+ *     level: every answer while the weave flies carries it, and the first
+ *     answer without it ends it. The engine marks the craft as avoiding an
+ *     attacker for as long (maneuver mode 32, unless the craft boards or
+ *     drops off), which moves a fighter's shield power to its engines by
+ *     its skill.
  * A craft answer names each action kind at most once, and names only what
  * the question showed. While a craft enters hyperspace the engine does not
  * turn it, whatever the steer action says. */
@@ -233,7 +239,7 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 21,
+	AI_WIRE_VERSION = 22,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
@@ -272,8 +278,8 @@ enum ai_wire_constant {
 	/* A craft answer with every action kind once, but depart, dock, board
 	 * or drop off, never two of them, all 16 turrets with their ion bytes,
 	 * the maneuver timer and the self destruct; the board's bytes are the
-	 * most of the four. */
-	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 114 + AI_NOTEBOOK_BYTES,
+	 * most of the four; the weaving flag is 1 byte more. */
+	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 115 + AI_NOTEBOOK_BYTES,
 	/* The fastest speed an arrival may set: the 1997 AI's speed out of
 	 * hyperspace. */
 	AI_WIRE_ARRIVAL_SPEED_MAX = 3600,
@@ -298,7 +304,8 @@ enum ai_wire_action_kind {
 	AI_WIRE_ACTION_SELF_DESTRUCT = 16,
 	AI_WIRE_ACTION_BOARD = 17,
 	AI_WIRE_ACTION_DROP_OFF = 18,
-	AI_WIRE_ACTION_KIND_END = 19,
+	AI_WIRE_ACTION_WEAVING = 19,
+	AI_WIRE_ACTION_KIND_END = 20,
 };
 
 /* The bits of a craft view's commands: a player's wingman commands that

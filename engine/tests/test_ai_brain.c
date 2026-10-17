@@ -4,9 +4,11 @@
  * pilot program is a fake exchange here: it keeps each question and hands
  * back an answer this file builds byte by byte from the layout in
  * ai_wire.h. */
+#include <SDL3/SDL_log.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "test_assert.h"
@@ -22,6 +24,7 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/ai/ai_wire.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/sith.h"
 
 enum {
@@ -101,6 +104,57 @@ static struct {
 	uint8_t answer[ANSWER_CAPACITY];
 	size_t answer_length;
 } g_fake;
+
+/* The engine's log lines, kept without Aeron's "xvt: " prefix; lines past the
+ * capacity are dropped. */
+enum {
+	LOG_LINE_CAPACITY = 200,
+	LOG_LINE_SIZE = 320,
+};
+
+static char g_log_lines[LOG_LINE_CAPACITY][LOG_LINE_SIZE];
+static int g_log_line_count;
+
+static void catch_line(void *userdata, int category, SDL_LogPriority priority,
+		       const char *message)
+{
+	static const char prefix[] = "xvt: ";
+	(void)userdata;
+	(void)category;
+	(void)priority;
+	if (g_log_line_count >= LOG_LINE_CAPACITY) {
+		return;
+	}
+	if (strncmp(message, prefix, sizeof prefix - 1) == 0) {
+		message += sizeof prefix - 1;
+	}
+	snprintf(g_log_lines[g_log_line_count++], LOG_LINE_SIZE, "%s", message);
+}
+
+/* The number of kept lines that start with start. */
+static int count_lines(const char *start)
+{
+	size_t length = strlen(start);
+	int count = 0;
+	for (int i = 0; i < g_log_line_count; ++i) {
+		if (strncmp(g_log_lines[i], start, length) == 0) {
+			++count;
+		}
+	}
+	return count;
+}
+
+/* The last kept line that starts with start, or an empty string. */
+static const char *last_line(const char *start)
+{
+	size_t length = strlen(start);
+	for (int i = g_log_line_count - 1; i >= 0; --i) {
+		if (strncmp(g_log_lines[i], start, length) == 0) {
+			return g_log_lines[i];
+		}
+	}
+	return "";
+}
 
 static unsigned int get_u16(const uint8_t *at)
 {
@@ -2305,6 +2359,144 @@ static void check_drop_off_action(void)
 			  AI_ACTIVITY_DEPLOYING_CRAFT);
 }
 
+/* The weaving flag is a level: an answer with it puts a craft with no maneuver
+ * mode into avoiding an attacker, every answer while it weaves keeps it
+ * there, and the first answer without it clears the mode. A boarder's or a
+ * dropper's own mode is never overwritten, and an answer without the flag
+ * never clears it. */
+static void check_weaving_mode(void)
+{
+	static const uint8_t weaving[] = {AI_WIRE_ACTION_WEAVING};
+	static const uint8_t nothing[] = {AI_WIRE_ACTION_THINK_INTERVAL, 9, 0};
+	fresh_world();
+	g_log_line_count = 0;
+	struct craft_data *craft = due_craft(1);
+	answer_slot_one(weaving, sizeof weaving, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_AVOID_ATTACKER);
+	/* The log says it once, when the mode changes. */
+	XVT_ASSERT_INT_EQ(count_lines("ai.craft_weaving"), 1);
+	XVT_ASSERT_TRUE(
+		strstr(last_line("ai.craft_weaving"), "object=1 on=1") != NULL);
+	answer_slot_one(weaving, sizeof weaving, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_AVOID_ATTACKER);
+	XVT_ASSERT_INT_EQ(count_lines("ai.craft_weaving"), 1);
+	answer_slot_one(nothing, sizeof nothing, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_NULL);
+	XVT_ASSERT_INT_EQ(count_lines("ai.craft_weaving"), 2);
+	XVT_ASSERT_TRUE(
+		strstr(last_line("ai.craft_weaving"), "object=1 on=0") != NULL);
+	answer_slot_one(nothing, sizeof nothing, 1);
+	XVT_ASSERT_INT_EQ(count_lines("ai.craft_weaving"), 2);
+	/* An answer without the flag leaves another mode alone. */
+	craft->ai_controller.maneuver_mode = AI_MANEUVER_MODE_ATTACK;
+	answer_slot_one(nothing, sizeof nothing, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_ATTACK);
+	/* The flag does not take over another mode. */
+	answer_slot_one(weaving, sizeof weaving, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_ATTACK);
+}
+
+/* A craft that docks (BOARD) or drops (DROPOFF) keeps that mode through a
+ * weaving answer, and keeps its place in the dock or the drop. */
+static void check_weaving_never_overwrites_board_or_dropoff(void)
+{
+	static const uint8_t weaving[] = {AI_WIRE_ACTION_WEAVING};
+	struct craft_data *craft = give_world();
+	craft->throttle_speed = 0x8000;
+	static const uint8_t board[] = {AI_WIRE_ACTION_BOARD, 2, 0};
+	answer_slot_one(board, sizeof board, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_BOARD);
+	answer_slot_one(weaving, sizeof weaving, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_BOARD);
+
+	craft = drop_world();
+	static const uint8_t start[] = {AI_WIRE_ACTION_DROP_OFF, 1};
+	answer_slot_one(start, sizeof start, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_DROPOFF);
+	answer_slot_one(weaving, sizeof weaving, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.maneuver_mode,
+			  AI_MANEUVER_MODE_DROPOFF);
+}
+
+/* Slot 1 as a starfighter with working shields, full, in a flight group of
+ * AI level level, answered with the weaving flag when weaving is set, then
+ * one power step of the weapon update. */
+static struct craft_data *weave_power_step(int level, int weaving)
+{
+	static const uint8_t flag[] = {AI_WIRE_ACTION_WEAVING};
+	static const uint8_t nothing[] = {AI_WIRE_ACTION_THINK_INTERVAL, 9, 0};
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	g_test_objects[1].genus_id = CRAFT_GENUS_STARFIGHTER;
+	g_mission_flight_groups[TEST_GROUP].fg.group_ai = (uint8_t)level;
+	g_model_defs[0].shield_strength = 500;
+	craft->system_flags = CRAFT_SUBSYSTEM_FLAG_SHIELDS;
+	craft->working_subsystems = CRAFT_SUBSYSTEM_FLAG_SHIELDS;
+	craft->shield_energy[0] = (int16_t)craft_get_object_max_shield(1);
+	craft->laser_slot_count = 2;
+	craft->weapon_fire_inhibit_timer = 1;
+	g_mission_elapsed_clock.seconds = 1;
+	g_flight_global_countdown_timers.weapon_power_update_timer = 0;
+	if (weaving) {
+		answer_slot_one(flag, sizeof flag, 1);
+	} else {
+		answer_slot_one(nothing, sizeof nothing, 1);
+	}
+	laser_weaponsfire();
+	return craft;
+}
+
+/* End to end: a weaving fighter's power step moves its shield power by its
+ * skill (0/3 at level 5, 1/3 at 4, 2/3 at 1), a fighter that does not weave
+ * stays at maintenance (2/2), and a fighter whose weave ended is back to it.
+ * The levels are the unchanged laser.c's own. */
+static void check_weaving_moves_shield_power(void)
+{
+	static const struct {
+		int level;
+		int shield;
+	} by_level[] = {
+		{5, POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES},
+		{4, POWER_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES},
+		{1, POWER_RECHARGE_MAINTENANCE},
+	};
+	for (size_t at = 0; at < sizeof by_level / sizeof by_level[0]; ++at) {
+		struct craft_data *craft =
+			weave_power_step(by_level[at].level, 1);
+		XVT_ASSERT_INT_EQ(craft->shield_recharge_level,
+				  by_level[at].shield);
+		XVT_ASSERT_INT_EQ(craft->laser_recharge_level,
+				  POWER_RECHARGE_INCREASED);
+		craft = weave_power_step(by_level[at].level, 0);
+		XVT_ASSERT_INT_EQ(craft->shield_recharge_level,
+				  POWER_RECHARGE_MAINTENANCE);
+		XVT_ASSERT_INT_EQ(craft->laser_recharge_level,
+				  POWER_RECHARGE_MAINTENANCE);
+	}
+	/* The weave ends: the next answer has no flag, and the next step is
+	 * back at maintenance. */
+	static const uint8_t nothing[] = {AI_WIRE_ACTION_THINK_INTERVAL, 9, 0};
+	struct craft_data *craft = weave_power_step(5, 1);
+	answer_slot_one(nothing, sizeof nothing, 1);
+	/* The first step drained the shield; a full one keeps the laser level
+	 * at maintenance too. */
+	craft->shield_energy[0] = (int16_t)craft_get_object_max_shield(1);
+	g_flight_global_countdown_timers.weapon_power_update_timer = 0;
+	laser_weaponsfire();
+	XVT_ASSERT_INT_EQ(craft->shield_recharge_level,
+			  POWER_RECHARGE_MAINTENANCE);
+	XVT_ASSERT_INT_EQ(craft->laser_recharge_level,
+			  POWER_RECHARGE_MAINTENANCE);
+}
+
 /* Where a contact's four turn numbers start. */
 enum { CONTACT_TURN = AI_WIRE_CONTACT_BYTES - 8 };
 
@@ -2543,6 +2735,9 @@ static void check_tracers_are_capped_at_sixteen(void)
 
 int main(void)
 {
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+	SDL_SetLogOutputFunction(catch_line, NULL);
 	check_stat_level();
 	check_no_exchange_changes_nothing();
 	check_who_is_asked();
@@ -2581,6 +2776,9 @@ int main(void)
 	check_order_targets_match_object();
 	check_board_action();
 	check_drop_off_action();
+	check_weaving_mode();
+	check_weaving_never_overwrites_board_or_dropoff();
+	check_weaving_moves_shield_power();
 	check_pair_joins();
 	check_second_target_type();
 	check_no_board_without_the_action();

@@ -158,6 +158,11 @@
       "fields": ["object", "launcher", "paired", "fired", "predicted"],
       "text": "Craft {object} was told to fire warhead launcher {launcher} (paired {paired}); fired is {fired}, 0 when the craft was not active or its weapons were held ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.craft_weaving": {
+      "level": "D",
+      "fields": ["object", "on", "predicted"],
+      "text": "Craft {object} weaving is {on}: its maneuver mode is now avoiding an attacker (1) or none (0), logged when the mode changes, so a fighter's shield power moves to its engines by its skill while it weaves ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.departure_counted": {
       "level": "D",
       "fields": ["object", "fg", "departed", "incomplete", "home", "aborted", "departing", "skipped", "captured", "team_departed", "predicted"],

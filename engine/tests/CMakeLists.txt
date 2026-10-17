@@ -351,8 +351,10 @@ xvt_add_known_failure(test_targeting aim_ahead_past_eight_million)
 xvt_add_engine_test(test_flight_geometry test_flight_geometry.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight_geometry.c")
 add_test(NAME flight_geometry COMMAND test_flight_geometry)
 
-# The think loop that asks the pilot program about craft due to think: src/xvt/flight/ai_brain.c.
-xvt_add_engine_test(test_ai_brain test_ai_brain.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_brain.c")
+# The think loop that asks the pilot program about craft due to think: src/xvt/flight/ai_brain.c, with
+# src/xvt/flight/object/laser.c for the weave's power step.
+xvt_add_engine_test(test_ai_brain test_ai_brain.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_brain.c"
+    "${PROJECT_SOURCE_DIR}/src/xvt/flight/object/laser.c")
 add_test(NAME ai_brain COMMAND test_ai_brain)
 # The mission's books for computer craft: departures, aborts, order slots, jumping out and docking:
 # src/xvt/flight/ai_books.c.
