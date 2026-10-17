@@ -44,6 +44,13 @@ Purpose:
     asks the engine to dock with the target, every think until the dock
     begins.
 
+    While a homing shot closes on it on the approach
+    (``countermeasures.incoming``), it weaves about its way to the point
+    (``weave``) at full throttle, each answer flagged ``weaving``, keeping
+    its target, and flies the approach on once the weave ends; never at the
+    point or while the engine docks it. 1997's approach plan, board3pln,
+    answered hits too (AVOIDHITORDR).
+
     While the engine docks it (``CraftView.board_phase`` 1 to 3: align,
     transfer, separate) it sends no target, steer or throttle: the dock
     reads the craft's target every step, so a new one would be docked with.
@@ -68,13 +75,15 @@ Purpose:
 Phases, the notebook's phase byte, 0 before the behavior first writes it:
 
     LOOKING   no target: stopped, the looking line
-    APPROACH  steer at the board point, the throttle by the distance left
+    APPROACH  steer at the board point, the throttle by the distance left;
+              weave from a homing shot closing
     AT_POINT  at the board point, stopped, asking the engine to dock
     DOCKING   the engine docks the craft: nothing sent but the status line
 
 The scratch bytes, little-endian: u8 the order slot the memory is for, u8 1
 while a target is held, else 0, u16 the target's index and u16 its
-signature; the rest zero. A dock keeps them as they were.
+signature, then the approach's weave (``weave.STATE_BYTES``); the rest
+zero. A dock keeps them as they were.
 
 Invariants:
     - Its cannons never fire.
@@ -94,6 +103,7 @@ import struct
 from .. import geometry
 from .. import notebook
 from .. import tactics
+from .. import weave
 from ..world import Actions
 from ..world import Activity
 from ..world import Books
@@ -105,6 +115,7 @@ from ..world import NO_OBJECT
 from ..world import Question
 from ..world import Steer
 from . import BehaviorCode
+from . import countermeasures
 from . import Decision
 
 logger = logging.getLogger(__name__)
@@ -168,15 +179,19 @@ class Memory:
     held: int = 0
     target: int = NO_OBJECT
     signature: int = 0
+    weave: weave.Weave = weave.Weave()
 
     @classmethod
     def read(cls, scratch: bytes) -> Memory:
         """Return the memory scratch bytes hold."""
-        return cls(*_MEMORY.unpack_from(scratch))
+        return cls(
+            *_MEMORY.unpack_from(scratch), weave.Weave.read(scratch[_MEMORY.size :])
+        )
 
     def write(self) -> bytes:
         """Return the memory as scratch bytes."""
         packed = _MEMORY.pack(self.slot, self.held, self.target, self.signature)
+        packed += self.weave.write()
         return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
 
@@ -392,7 +407,8 @@ def _approach(
     fresh: bool,
 ) -> Decision:
     """Return the approach to the target's board point, stopped there and
-    asking the engine to dock."""
+    asking the engine to dock; on the way, a weave about the heading to the
+    point while a homing shot closes on the craft."""
     pointed = not fresh and bool(view.books & Books.BOARD_POINT)
     if pointed:
         px, py, pz = view.board_point
@@ -402,6 +418,32 @@ def _approach(
         dx, dy, dz = tactics.offset(view, target)
         left = max(0, geometry.distance(dx, dy, dz) - tactics.clearance(target))
     there = pointed and bool(view.books & Books.AT_BOARD_POINT)
+    tick = question.tick
+    flown, move, state = memory.weave, None, book.dice
+    shot = None if there else countermeasures.incoming(view, question)
+    if flown.flying:
+        flown, move, state = weave.fly(view, flown, shot is not None, state, tick)
+    elif shot is not None and weave.may_start(flown, tick):
+        course = geometry.bearing(dx, dy, dz)[0]
+        flown, move, state = weave.start(
+            view, shot.object_index, flown, state, tick, course
+        )
+    memory = dataclasses.replace(memory, weave=flown)
+    book = dataclasses.replace(book, dice=state)
+    if move is not None:
+        if book.phase != APPROACH:
+            book = book.in_phase(APPROACH, tick)
+        actions = Actions(
+            steer=move.steer,
+            throttle=tactics.FULL_THROTTLE,
+            activity=_changed(view, Activity.BOARDING),
+            target=target.object_index,
+            lasers=_HOLD,
+            countermeasure=move.flare,
+            weaving=True,
+        )
+        scratch = memory.write()
+        return Decision(dataclasses.replace(book, scratch=scratch).encode(), actions)
     throttle = 0 if there else throttle_for(left)
     phase = AT_POINT if there else APPROACH
     if book.phase != phase:

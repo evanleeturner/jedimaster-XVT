@@ -16,10 +16,13 @@ the second.
 from __future__ import annotations
 
 import pytest
+from shot_setup import aimed
+from shot_setup import SHOT
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
 from jedimaster_ai import progress
+from jedimaster_ai import weave
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import avoidance
 from jedimaster_ai.behaviors import board
@@ -661,3 +664,80 @@ def test_with_no_first_pair_craft_boardable_the_nearest_of_the_rest_is_picked(
     farther = craft(object_index=NAMED, object_signature=14, y=0x4000)
     me = boarder(order_target_mask=0b1110, order_first_pair_mask=0b10)
     assert ask(me, first, farther, second).actions.target == OTHER
+
+
+# A homing shot closing on the approach (``countermeasures.incoming``): a
+# tier-2 boarder swerves from 6,144 units; a torpedo 4,096 behind is inside.
+TIER_2 = {"skill": 0xFFFF}
+BEHIND = (0, -0x1000, 0)
+EAST = {"books": BOARD_POINT, "board_point": (0x10000, 0, 0)}
+
+
+def test_on_the_approach_a_homing_shot_makes_it_weave(
+    boarder, craft, ask, caplog
+) -> None:
+    """The weave is about the heading to the point, 0x4000, at full
+    throttle; the target is kept and the cannons stay cold."""
+    caplog.set_level("DEBUG")
+    me = aimed(boarder(notebook=holding(), **EAST, **TIER_2), BEHIND)
+    decision = ask(me, craft())
+    flown = memory_of(decision).weave
+    assert flown.flying and flown.course == 0x4000
+    actions = decision.actions
+    assert actions.weaving and actions.throttle == 0xFFFF
+    assert actions.steer.yaw in (0x1000, 0x7000)
+    assert actions.target == TARGET and actions.board is None
+    assert actions.lasers == (HOLD_FIRE, HOLD_FIRE)
+    assert phase_of(decision) == board.APPROACH
+    assert memory_of(decision).target == TARGET
+    assert f"weave.start object={ME} threat={SHOT} course=16384 " in caplog.text
+
+
+def test_the_weave_flies_on_then_the_approach_goes_on(
+    boarder, craft, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    first = ask(aimed(boarder(notebook=holding(), **EAST, **TIER_2), BEHIND), craft())
+    caplog.clear()
+    nearer = aimed(boarder(notebook=first.notebook, **EAST, **TIER_2), (0, -0xC00, 0))
+    held = ask(nearer, craft(), tick=1016)
+    assert held.actions.weaving and held.actions.steer == first.actions.steer
+    assert "weave.end" not in caplog.text and "weave.start" not in caplog.text
+    on = ask(boarder(notebook=held.notebook, **EAST, **TIER_2), craft(), tick=1032)
+    assert not on.actions.weaving and not memory_of(on).weave.flying
+    assert on.actions.steer == Steer(0x4000, LEVEL, 0)
+    assert on.actions.target == TARGET
+
+
+def test_at_the_board_point_a_shot_does_not_move_it(boarder, craft, ask) -> None:
+    at = {"books": AT_POINT, "board_point": (0, 0x3000, 0)}
+    me = aimed(boarder(notebook=holding(), **at, **TIER_2), BEHIND)
+    decision = ask(me, craft())
+    assert decision.actions.throttle == 0 and decision.actions.steer is None
+    assert decision.actions.board == TARGET and not decision.actions.weaving
+
+
+def test_while_the_engine_docks_it_a_shot_does_not_move_it(boarder, craft, ask) -> None:
+    me = boarder(
+        notebook=holding(phase=board.AT_POINT),
+        board_phase=1,
+        books=AT_POINT,
+        board_point=(0, 1, 0),
+        **TIER_2,
+    )
+    decision = ask(aimed(me, BEHIND), craft())
+    assert decision.actions.steer is None and decision.actions.throttle is None
+    assert not decision.actions.weaving
+
+
+def test_a_rookie_boarder_never_swerves(boarder, craft, ask) -> None:
+    me = aimed(boarder(notebook=holding(), **EAST, skill=0), (0, -0x400, 0))
+    decision = ask(me, craft())
+    assert decision.actions.steer == Steer(0x4000, LEVEL, 0)
+    assert not decision.actions.weaving
+
+
+def test_the_memory_keeps_the_weave() -> None:
+    flying = weave.Weave(course=0x4000, pitch=0x4100, side=1, swerves=2)
+    memory = board.Memory(0, 1, TARGET, SIGNATURE, flying)
+    assert board.Memory.read(memory.write()) == memory

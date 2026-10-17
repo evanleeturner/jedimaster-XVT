@@ -34,6 +34,7 @@ WEAVERS = {
     "behaviors/attack.py:fight",
     "behaviors/attack.py:_seek",
     "behaviors/attack.py:_evade_ordered",
+    "behaviors/board.py:_approach",
     "behaviors/home.py:_evade",
     "behaviors/patrol.py:evade",
     "behaviors/kamikaze.py:_flown",
