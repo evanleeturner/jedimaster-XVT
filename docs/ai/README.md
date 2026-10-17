@@ -85,9 +85,9 @@ by throttle: a third of the craft's rate at 0%, all of it at 33%, five
 sixths at 67% and two thirds at full throttle
 (`engine/src/xvt/flight/player/player.c`).
 
-A computer-flown craft turns at one rate at every throttle
-(`engine/src/xvt/flight/flight.c`), so slowing down only makes its circle
-smaller. Left and right it turns about as fast as a player at 33%, which
+Below the Sith ranks, a computer-flown craft turns at one rate at every
+throttle (`engine/src/xvt/flight/flight.c`), so slowing down only makes its
+circle smaller. Left and right it turns about as fast as a player at 33%, which
 at full throttle is half again faster than a player. Its loop is under
 half a player's best, so a player at one third throttle out-loops it by
 about 2.5 to 1. This is the 1997 game's own turning; the pilot program
@@ -119,11 +119,16 @@ sheet's for 7 of them.
 
 Sith Apprentices and Sith Lords use the trick: on a starfighter's tail
 within 16,384 units (0.4 km) they drop to one third throttle, and throttle
-up again once the target breaks away. They will also turn and loop by the
-player's rule, so the trick works for them as it works for you; until then
-a computer craft turns at one rate at every throttle, so at a third the
-circle is a third as wide. Every other computer pilot keeps the 1997
-turning.
+up again once the target breaks away. They also turn, loop and bank by the
+player's rule: at each throttle a Sith craft turns at the rate a player's
+craft of its type reaches with the stick pushed all the way over and the
+power balanced, and never slower than other computer pilots of its type
+(`engine/src/xvt_runtime/runtime/sith.c`). So the trick works for them as
+it works for you: a Sith X-wing loops at about 74 degrees a second at one
+third throttle, where other computer X-wings loop at about 30. Left and
+right a Sith craft turns as fast as other computer craft, or up to 2.4%
+faster near one third throttle, and it banks 6% faster there. Every other
+computer pilot keeps the 1997 turning.
 
 ## Defending yourself
 
@@ -370,10 +375,10 @@ promotes the enemy's best computer fighter flight in a single-player
 battle, and the message at the end of the battle says how its craft
 fared. The cockpit's two target readouts mark these craft: "Sith"
 after a Sith Apprentice's name, "Sith Lord" after a Sith Lord's.
-Six of the table's rows are built: aim and fire, the warhead that fits the
-target, the warhead with no lock at a big ship and, for a Sith Lord, at any
-craft, the third throttle (not yet the turn by the player's rule), and the
-Sith Lord's never leaving the fight. Until the rest are, Sith craft fly the
+Seven of the table's rows are built: aim and fire, the warhead that fits
+the target, the warhead with no lock at a big ship and, for a Sith Lord, at
+any craft, the third throttle and the turn by the player's rule, and the
+Sith Lord's change of speed at once and its never leaving the fight. Until the rest are, Sith craft fly the
 other behaviors with a Jedi's skill.
 
 A Sith Lord never retreats. It fights every enemy after it however damaged
@@ -381,7 +386,11 @@ it is, and its flight group's abort rules do not send it home. It still
 leaves when the mission's time to leave comes or its orders are done. It
 also fires warheads without a lock at any craft, a player's fighter too,
 when its shot lines up; a Jedi fires them only at big ships. It fires one
-such shot in each attack run at a fighter (`ai/jedimaster_ai/lord.py`). A mission gives each computer craft a skill level
+such shot in each attack run at a fighter (`ai/jedimaster_ai/lord.py`).
+A Sith Lord's speed changes at once: when it sets its throttle it is at
+that speed straight away, where other craft speed up and slow down over
+time. A Lord whose engines are out, or that a tractor beam holds, slows as
+any craft does (`engine/src/xvt/flight/flight.c`). A mission gives each computer craft a skill level
 from 0 to 5, and the launcher's mission reader names them Rookie,
 Officer, Veteran, Ace, Top Ace and Jedi, and now Sith Apprentice and
 Sith Lord (`launcher/jedimaster/mission/names.py`). Two levels will sit above Jedi:
@@ -408,7 +417,7 @@ well as network ones.
 | Shoot warheads down with lasers | no | only warheads chasing itself | any warhead, anywhere |
 | Use ion cannons to disable a craft whose shields are down | weaker at lower levels | full | full |
 | Hit a big ship's shield generators and guns before its hull | higher levels | full | full |
-| Drop to one third throttle on a target's tail, and turn and loop by a player's rule (see "Throttle and turning, measured") | no | yes (the turn by the player's rule: later) | yes (the turn by the player's rule: later) |
+| Drop to one third throttle on a target's tail, and turn and loop by a player's rule (see "Throttle and turning, measured") | no | yes | yes |
 | Change speed at once at any moment, as craft arriving from hyperspace do | no | no | yes |
 | Leave the fight when damaged: the mission's abort rules, weaving instead of fighting below 75% hull | yes | yes | never |
 | A live record of every craft and warhead | no | no | yes |
