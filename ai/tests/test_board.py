@@ -190,6 +190,7 @@ def test_with_nothing_to_board_it_stops_and_looks(boarder, craft, ask) -> None:
         (0, FREIGHTER, Activity.LOOKING_TO_BOARD, False, True),
         (0, FREIGHTER, Activity.LOOKING_TO_CAPTURE, False, True),
         (0, FREIGHTER, Activity.LOOKING_TO_PICK_UP, False, True),
+        (0, FREIGHTER, Activity.WAITING_FOR_BOARDING_CRAFT, False, True),
         (0, FREIGHTER, Activity.BOARDING, False, False),
         (0, FREIGHTER, 0, False, False),
         (ContactFlags.PARKED, FREIGHTER, 0, True, True),
@@ -197,13 +198,15 @@ def test_with_nothing_to_board_it_stops_and_looks(boarder, craft, ask) -> None:
         (0, PLATFORM, 0, True, True),
         (ContactFlags.AWAITING, FREIGHTER, 0, True, False),
         (0, FREIGHTER, Activity.LOOKING_TO_BOARD, True, False),
+        (0, FREIGHTER, Activity.WAITING_FOR_BOARDING_CRAFT, True, False),
         (ContactFlags.PLAYER | ContactFlags.DISABLED, FREIGHTER, 0, True, True),
     ],
     ids=[
         "parked", "disabled", "platform", "awaiting", "looking boarder",
-        "looking capturer", "looking picker", "docking boarder", "flying",
-        "strict parked", "strict disabled", "strict platform",
-        "strict awaiting", "strict looking boarder", "disabled player",
+        "looking capturer", "looking picker", "at a rendezvous",
+        "docking boarder", "flying", "strict parked", "strict disabled",
+        "strict platform", "strict awaiting", "strict looking boarder",
+        "strict at a rendezvous", "disabled player",
     ],
 )  # fmt: skip
 def test_what_may_be_boarded_now(

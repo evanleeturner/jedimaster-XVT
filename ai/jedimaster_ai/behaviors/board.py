@@ -21,9 +21,10 @@ Purpose:
     the earlier contact between two as near. A craft
     may be boarded now when its order holds it still (PARKED), it is a
     platform, or none of its subsystems work (DISABLED); for any order but
-    Capture and Destroy also when it waits to be boarded (AWAITING) or is a
-    boarder stopped to look (a looking activity), 1997's await-board and
-    stop maneuvers. Never a craft another boarder keeps (``Contact.boarder``:
+    Capture and Destroy also when it waits to be boarded (AWAITING, or a
+    Rendezvous craft's line "Waiting for boarding craft") or is a boarder
+    stopped to look (a looking activity), 1997's await-board and stop
+    maneuvers. Never a craft another boarder keeps (``Contact.boarder``:
     of two boarders that chose one craft, the lower object index keeps it,
     ruling C9), one the craft has boarded (``CraftView.boarded``), or one
     breaking up or exploding. Only craft, never a static object or a point
@@ -277,7 +278,8 @@ def look(view: CraftView, question: Question) -> Search:
 def may_board(contact: Contact, strict: bool) -> bool:
     """Return whether a contact may be boarded now, 1997's test: held still
     by its order, a platform, or disabled; unless strict (Capture and
-    Destroy), also waiting to be boarded or a boarder stopped to look."""
+    Destroy), also waiting to be boarded, on Disabled, Await Boarding or at
+    a rendezvous point, or a boarder stopped to look."""
     if (
         contact.flags & (ContactFlags.PARKED | ContactFlags.DISABLED)
         or contact.genus == tactics.GENUS_PLATFORM
@@ -285,8 +287,10 @@ def may_board(contact: Contact, strict: bool) -> bool:
         return True
     if strict:
         return False
-    return bool(contact.flags & ContactFlags.AWAITING) or (
-        contact.activity in _LOOKING_ACTIVITIES
+    return (
+        bool(contact.flags & ContactFlags.AWAITING)
+        or contact.activity == Activity.WAITING_FOR_BOARDING_CRAFT
+        or contact.activity in _LOOKING_ACTIVITIES
     )
 
 
