@@ -163,15 +163,14 @@ from a ball round the ship's centre. The code is in `ai/jedimaster_ai/behaviors/
 ## Orders, formations and wingman commands
 
 An order is the mission's instruction to a flight group. The pilot program
-flies 35 of the 40 order codes today: Attack, Disable, Protect, Escort, Kamikaze, Wait, Wait 2,
+flies 37 of the 40 order codes today: Attack, Disable, Protect, Escort, Kamikaze, Wait, Wait 2,
 Go Home, SS Go Home, the four patrol orders, SS Protect, SS Protect 2, SS
-Patrol and Disable, SS Await Return, SS Launch, Self Destruct, Drop Off, the
-eight boarding orders and the 7 Hold Steady codes. The code is in
+Patrol and Disable, SS Await Return, SS Launch, Self Destruct, Drop Off,
+Disabled, Await Boarding, the eight boarding orders and the 7 Hold Steady codes. The code is in
 `ai/jedimaster_ai/orders.py`. The rest keep their speed and heading
 until someone builds them, so a craft on an unbuilt order flies straight on.
-Disabled craft and craft on the null order start stopped. Rendezvous,
-Attack Escorts, Disabled and Await Boarding are the orders still
-unbuilt. The game engine names
+Disabled craft and craft on the null order start stopped. Rendezvous and
+Attack Escorts are the orders still unbuilt. The game engine names
 the craft to escort and its station by the 1997 rules; a wingman of an
 Escort leader keeps its place in formation.
 
@@ -182,8 +181,9 @@ Escort leader keeps its place in formation.
 | Disable: Attack's dogfight at the nearest target whose subsystems still work, with the ion cannons alone; every other cannon holds, so a craft with none never fires a cannon. Guided warheads fire by 1997's Disable limit: only while the target's front shield, with a tenth of its hull once more than a tenth is damaged, outlasts the warheads flying at it and one more from each launcher. A chaser is fought back with every cannon but the ion cannons; a disabled one never (`behaviors/disable.py`). | The same target rule and cannon rule; the same warhead limit. | Kept | |
 | Protect: Attack's dogfight at the nearest enemy attacking a craft the order names, once some team has hit that craft: an enemy aimed at it, or the one whose shot hit it last (`behaviors/protect.py`). | The same, where aimed at meant in an attack maneuver on it; hostility was checked only for a player's craft. | Kept, every target hostile | |
 | Escort: keeps station beside the craft the game names, flying to the station as a wingman flies to its place; farther than 32,768 units (0.8 km) from that craft (131,072 units, 3.2 km, from one of size 3,000 or more), or with it disabled, flies straight at it, circling a disabled one. Fights, with Attack's dogfight, the nearest enemy within 262,144 units (6.4 km) that targets a craft of the escorted craft's flight group (`behaviors/escort.py`). | The same reaches and threat search; it matched the escorted craft's heading, pitch, roll and speed and pushed the craft to its station each tick; any craft after the group counted, hostile or not. | Kept, steering only; every threat hostile | [#45](https://github.com/evanleeturner/jedimaster-XVT/issues/45), [#204](https://github.com/evanleeturner/jedimaster-XVT/issues/204) |
-| Kamikaze: dives at the nearest target its order names, at full throttle, and never turns away; it fires its cannons and guided warheads on the way in, as Attack does. With no target it flies its waypoints and weaves away from a chaser. Its damage comes from the engine's collisions: a computer-flown freighter, starship or platform that a craft hits is damaged, and so is the craft (`behaviors/kamikaze.py`). | The same dive at the target's position at full power, firing as a fighter fires, with no notice of a chaser; with no target, the waypoint cruise, dodging an attacker with a move chosen by the attacker's bearing. | Kept; the dodge with no target is a weave | |
+| Kamikaze: dives at the nearest target its order names, at full throttle, and never turns away; it fires its cannons and guided warheads on the way in, as Attack does. With no target it flies its waypoints and weaves away from a chaser. Its damage comes from the engine's collisions: a computer-flown freighter, starship or platform that a craft hits is damaged, and so is the craft. Its status reads "Kamikaze attack" (`behaviors/kamikaze.py`). | The same dive at the target's position at full power, firing as a fighter fires, with no notice of a chaser; with no target, the waypoint cruise, dodging an attacker with a move chosen by the attacker's bearing. | Kept; the dodge with no target is a weave | |
 | Wait and Wait 2: stop where it is and set the maneuver timer to the order's variable1 times 1,180 ticks, so the display shows the time left; done once the timer runs out. While it waits it defends itself as a craft told to wait with Shift+W does, and the timer runs on (`behaviors/waiting.py`). | Stopped with the same timer and never fought back. | Changed | |
+| Disabled and Await Boarding: the craft stops and waits to be boarded. The engine switches its systems off on each think, and its status reads "Awaiting boarding" (Disabled) or "Holding station" (Await Boarding). Each boarding done to it counts once; once it has been boarded as many times as its order asks, the engine gives its systems back, a Disabled craft is reported repaired, and the craft moves on to its next order, or home. A craft on Await Boarding gives up waiting and flies home when its mission aborts it or its time to leave comes, its systems back if they are undamaged; a Disabled craft never does. A captured craft keeps its systems and flies as a captured craft (`behaviors/boarded.py`, `engine/src/xvt/flight/ai_boarded.c`). | The same switch-off, count and repair; the count had no end, so a craft that could not move on to another order counted past its goal until the number wrapped. A captured craft flew home. | Changed: the count stops at the goal | |
 | The engine keeps the mission's records by the 1997 rules and the pilot program acts on them: go home when aborted, when the departure is due or when the orders are done. A met goal marks the order done, then the next order starts. Attack, Disable and Protect are done when no target is left now or in a group still to come (`ai/jedimaster_ai/progress.py`). | The 1997 pilot script tested these conditions at each decision. | Kept | |
 | The leader of a flight is the engine's pick: the live craft of the batch with the lowest number (Alpha 1). | The first craft of each batch. A follower took over a lost leader. | Kept | |
 | Shift+A (attack) and Shift+C (cover): an Attack-order wingman takes the named craft while it is an enemy. A wingman that is holding station, in formation, going home evading, jumping or entering a hangar ignores the order. Other orders keep flying (`ai/jedimaster_ai/tactics.py`). | Wingmen took the target unless holding, in formation or going home. In the 1997 code the command's target search was broken. | Kept, bug fixed | [#50](https://github.com/evanleeturner/jedimaster-XVT/issues/50), [#51](https://github.com/evanleeturner/jedimaster-XVT/issues/51), [#52](https://github.com/evanleeturner/jedimaster-XVT/issues/52) |
@@ -214,11 +214,11 @@ start. Going home means flying to the mothership's hangar or jumping out.
 | SS Protect and SS Protect 2: patrol the waypoints as a starship on patrol does. Each turret first answers a craft that threatens the starship; the turrets left over take the enemies attacking a craft the order names once some team has hit it, nearest first (`behaviors/starship.py`, `behaviors/turrets.py`). Done when no target is left. | Cruised the waypoints; the turrets took the starship's own attackers, then the idle ones the nearest attacker of an order target. | Kept | |
 | SS Await Return: throttle 0 until every flight group that goes home into its group has arrived, with no waves and no craft left, then the next order; its turrets defend it (`behaviors/starship.py`). | The stop maneuver, which also halted a turn at once; the same test. | Kept, a begun turn runs on | |
 | SS Launch: throttle 0 until every flight group that comes out of its group has arrived, with no waves left, then the next order; its turrets defend it (`behaviors/starship.py`). | The stop maneuver; the same test. | Kept, a begun turn runs on | |
-| Self Destruct: throttle 0, and the craft defends itself as a waiting craft does: it fights an enemy after it while its hull allows, else weaves from one on its tail, and stops again once clear. While no countdown runs, the craft asks the engine for a countdown of the order's variable1 units of 1,180 ticks, or 2 to 5 units at random for 0, and the engine destroys it when the countdown ends. A delay over 55 units is never asked for, so the craft only waits and defends (`behaviors/selfdestruct.py`). | The same delay and the same random 2 to 5; over 55 units the 16-bit timer wrapped to a short delay. The craft sat still under fire, turrets included, until the countdown ended. | Changed: the craft defends itself, and the wrap is refused | [#53](https://github.com/evanleeturner/jedimaster-XVT/issues/53) |
+| Self Destruct: throttle 0, and the craft defends itself as a waiting craft does: it fights an enemy after it while its hull allows, else weaves from one on its tail, and stops again once clear. While no countdown runs, the craft asks the engine for a countdown of the order's variable1 units of 1,180 ticks, or 2 to 5 units at random for 0, and the engine destroys it when the countdown ends. A delay over 55 units is never asked for, so the craft only waits and defends. Its status reads "Self-destructing" (`behaviors/selfdestruct.py`). | The same delay and the same random 2 to 5; over 55 units the 16-bit timer wrapped to a short delay. The craft sat still under fire, turrets included, until the countdown ended. | Changed: the craft defends itself, and the wrap is refused | [#53](https://github.com/evanleeturner/jedimaster-XVT/issues/53) |
 | Give, Take, Exchange, Capture, Destroy, Pick Up, SS Board and Board to Repair: stops to look for a craft to board, flies to the point beside its docking hatch and docks; after each dock it looks again from where it is. A boarder picks a player's command target first (Shift+B), else the nearest craft its order names that may be boarded now: one its order holds still, a platform, or a disabled craft; for all but Capture and Destroy also one waiting to be boarded or a boarder stopped to look. It searches the craft its order's first pair of targets names before the second pair's, and never boards one craft twice. Two boarders never share a craft: the lower object number keeps it. It closes at full throttle past 16,384 units, half past 8,192, a quarter past 2,048. The order is done when its boardings reach the number it asks, and moves on with no target left (`behaviors/board.py`). | The same search and the same point, then the dock; it meant the same throttle bands, but a missing line left it at half throttle from far out. | Changed: the throttle bands as meant | [#47](https://github.com/evanleeturner/jedimaster-XVT/issues/47) |
 | While the engine docks a craft, the pilot program sends it no target, steering or throttle, whatever its orders or a player's command say, since the dock follows the craft's target (`ai/jedimaster_ai/think.py`). | A command or a change of plan ended the dock. | Changed | |
 | A captured craft flies home for its captor, into the mothership the mission names for captured craft or by hyperspace, and evades or fights back on the way as any craft going home does. One that cannot move, or a craft picked up and carried, holds still with its cannons quiet. It no longer flies in formation with its old flight (`behaviors/captured.py`, `behaviors/formation.py`). | Went home evading, or held still when it had no speed; it stayed out of its old leader's jump. | Changed: fights back on the way home | |
-| Drop Off: the leader flies to the point the engine names, 932 units above the first place of the group the order delivers, at the order's throttle, at three quarters of full throttle nearer than 16,384 units (0.4 km) and at three eighths nearer than 4,096 (0.1 km). There it stops and asks the engine for the drop. The engine then steers the carrier to each place of the group in turn and brings the group in one craft (or one mine) at a time, waiting 1,180 ticks (4.7 seconds) after each, until every place is delivered; while it drops, the game's drop-off speed and collision rules apply to the carrier. The leader's status reads "Deploying craft" from the approach to the end. Its followers keep their places, and no craft of the group fires its cannons; turrets still defend. A Drop Off with nothing to deliver is done at once (`behaviors/dropoff.py`, `engine/src/xvt/flight/ai_dropoff.c`). | The same approach and drop; with nothing to deliver the carrier circled the point for good. | Changed: nothing to deliver ends the order | [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48), [#124](https://github.com/evanleeturner/jedimaster-XVT/issues/124), [#136](https://github.com/evanleeturner/jedimaster-XVT/issues/136), [#306](https://github.com/evanleeturner/jedimaster-XVT/issues/306) |
+| Drop Off: the leader flies to the point the engine names, 932 units above the first place of the group the order delivers, at the order's throttle, at three quarters of full throttle nearer than 16,384 units (0.4 km) and at three eighths nearer than 4,096 (0.1 km). There it stops and asks the engine for the drop. The engine then steers the carrier to each place of the group in turn and brings the group in one craft (or one mine) at a time, waiting 1,180 ticks (4.7 seconds) after each, until every place is delivered; while it drops, the game's drop-off speed and collision rules apply to the carrier. The leader's status reads "Deploying craft" from the approach to the end. When the drop point lies inside a big craft's safety zone, the carrier flies straight in while its line there stays clear of that craft's hull by the carrier's own size, or by the point's own distance from the hull where that is less; otherwise it steers round until the way is clear. Its followers keep their places, and no craft of the group fires its cannons; turrets still defend. A Drop Off with nothing to deliver is done at once (`behaviors/dropoff.py`, `engine/src/xvt/flight/ai_dropoff.c`). | The same approach and drop; with nothing to deliver the carrier circled the point for good. | Changed: nothing to deliver ends the order | [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48), [#124](https://github.com/evanleeturner/jedimaster-XVT/issues/124), [#136](https://github.com/evanleeturner/jedimaster-XVT/issues/136), [#306](https://github.com/evanleeturner/jedimaster-XVT/issues/306), [#311](https://github.com/evanleeturner/jedimaster-XVT/issues/311) |
 | A finished starship patrol goes to the next order, or jumps out. | The same. | Kept | |
 | Attack, Disable, Protect, and Escort before its charge arrives, with nothing to fight: cruise the waypoints as a patrol does, going on after a fight to the waypoint it was making for; a wingman keeps its place. With no waypoint: fly to the point the group arrived at and circle it; a starship or freighter stops there (`behaviors/seek.py`). | The same cruise; with no waypoint, to the point the group arrived at, then to waypoint 4's stored position, off or not, and back after each fight. | Changed: the trip to an off waypoint dropped | |
 | Go home at full throttle (`behaviors/home.py`). | Throttle was left as it was far out, and 113 order slots slowed to 5 times speed. | Changed | |
@@ -254,7 +254,7 @@ counts them by the 1997 rules, so goals are met as they were. The code is in
 | --- | --- | --- | --- |
 | Count departures by the 1997 rules. A follower of a leader that skipped counts as departed (`engine/src/xvt/flight/ai_books.c`). | The same rules. | Kept | [#211](https://github.com/evanleeturner/jedimaster-XVT/issues/211), [#212](https://github.com/evanleeturner/jedimaster-XVT/issues/212), [#213](https://github.com/evanleeturner/jedimaster-XVT/issues/213) |
 | A target hit by a decoy beam still counts toward its order. | A decoyed craft dropped out of the order's count beyond some range, so attackers went home while it lived. A few missions leaned on that. | Changed | |
-| A craft waiting to be boarded gets no system restore when its group withdraws or aborts. | It got a full restore. A few missions leaned on that. | Changed: waits for the boarding orders | |
+| A craft on Await Boarding gets its systems back, once, when its time to leave comes or its mission aborts it, if they are undamaged. | The same full restore. A few missions leaned on that. | Kept | |
 | A group's special cargo is marked lost uncaptured only when the special cargo craft itself ends uncaptured (`engine/src/xvt/flight/mission/mission.c`). | Any craft of the group ending uncaptured marked it, so a goal to capture the special craft failed once another craft of its group was destroyed. | Changed, bug fixed | [#123](https://github.com/evanleeturner/jedimaster-XVT/issues/123) |
 
 ## Anything else
@@ -265,7 +265,7 @@ counts them by the 1997 rules, so goals are met as they were. The code is in
 | Network play: every machine gets the same decisions. Random choices come from each craft's own dice, which are saved with the world, so the machines stay in step (`ai/jedimaster_ai/think.py`). | Every machine ran the battle. | Kept | [#298](https://github.com/evanleeturner/jedimaster-XVT/issues/298) |
 | For a game started from the game's own screens, `config.yaml` names the pilot program (`ai.python` and `ai.program`; `python -m jedimaster ai-setup` fills both). If it is unset, computer craft sit still and one warning per run says so. A program that fails mid-flight ends the flight. | Not applicable. | New | |
 | Mines hold fire. | Mines searched for targets and fired. | Changed: not built yet | [#300](https://github.com/evanleeturner/jedimaster-XVT/issues/300) |
-| A disabled craft's status line reads "Holding steady". | Unknown | Changed | |
+| A craft with no working systems shows the status "Awaiting boarding". | The same. | Kept | |
 
 ## What stayed exactly as in 1997
 
@@ -316,7 +316,7 @@ change how missions play and score.
 | When the group a Drop Off delivers had no leader yet, the drop-off point was placed around object 255, which is not a craft, so the point depended on an unrelated object. | The point is the group's own mission point. Fixed in commit `ce9f9ebd`. | [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48) |
 | A Drop Off order's group number was used unchecked as an index into the mission's 48 group records, so a custom mission with a bad number would read and write past them. | A group that is not one of the mission's has nothing to deliver. Fixed in commit `ce9f9ebd`. | [#124](https://github.com/evanleeturner/jedimaster-XVT/issues/124) |
 | Each craft a drop-off delivered set the delivered group's remaining rounds back to full. | The rounds are set once, at the group's first arrival. Fixed in commit `ce9f9ebd`. | [#136](https://github.com/evanleeturner/jedimaster-XVT/issues/136) |
-| A craft waiting to be boarded got a full system restore at withdrawal or abort. A few missions leaned on it. | Not done until the boarding orders are built. | |
+| A craft waiting to be boarded got a full system restore at withdrawal or abort. A few missions leaned on it. | Kept: an undamaged craft on Await Boarding gets its systems back once, as in 1997. | |
 
 Issues #47, #53, #54, #203, #205, #206, #211, #212, #213, #214 and #292 are
 closed as fixed. Issue #190, about a mine's decoy test, is also closed.
@@ -329,7 +329,6 @@ closed as fixed. Issue #190, about a mine's decoy test, is also closed.
 | A carrier on Drop Off can circle a starship parked over its drop point and never drop: steering clear of the starship turns it away each time it heads for the point. | [#311](https://github.com/evanleeturner/jedimaster-XVT/issues/311) |
 | Shift+B's dock and reload are built, but no test flight has shown them yet. | [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301) |
 | Craft on an order that is not built yet keep flying straight at their current speed. | |
-| A disabled craft's status line reads "Holding steady". | |
 | Below about 31 frames a second, arrivals, goal checks and messages come late. The cause is in the engine and is older than the new pilots. | [#297](https://github.com/evanleeturner/jedimaster-XVT/issues/297) |
 | A network host aborted once with a memory error. A replay of the game did not crash. | [#298](https://github.com/evanleeturner/jedimaster-XVT/issues/298) |
 | A round whose mothership is gone is still used up, and a seventh craft in a group takes the next formation's place. | [#137](https://github.com/evanleeturner/jedimaster-XVT/issues/137), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138) |
@@ -361,8 +360,8 @@ filed against it. All of them are closed except #209.
   Attack order a follower keeps its place while there is nothing to fight,
   and fights by itself; beside a player, each follower still flies by itself.
   Related issue: [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138).
-- The orders that still keep their speed and heading: Disabled, Await
-  Boarding, Rendezvous and Attack Escorts.
+- The orders that still keep their speed and heading: Rendezvous and
+  Attack Escorts.
 - The rest of the two skill levels above Jedi, Sith Apprentice and Sith Lord
   (below).
 - Possible later work that has not started: capital ships, advanced fighters and
@@ -416,17 +415,14 @@ every capital ship, at every level.
 ## Open AI issues
 
 <!-- ai-issues:start -->
-On 2026-10-16 (UTC) the label `ai` was on 23 open issues and 31 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
+On 2026-10-17 (UTC) the label `ai` was on 20 open issues and 34 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
 
 - [#2](https://github.com/evanleeturner/jedimaster-XVT/issues/2): Research: enemy pilots that fight as a pack
 - [#3](https://github.com/evanleeturner/jedimaster-XVT/issues/3): Research: "Jev", a language-model commander for the enemy side
-- [#48](https://github.com/evanleeturner/jedimaster-XVT/issues/48): Drop-off maneuver passes 255 as 'no basis craft' where the formation code expects 0xFFFF
 - [#94](https://github.com/evanleeturner/jedimaster-XVT/issues/94): Wingman voice line can be spoken by the very craft it is about
 - [#103](https://github.com/evanleeturner/jedimaster-XVT/issues/103): Super Star Destroyer turret aim picks the wrong hull vertex for ranks above 0
-- [#124](https://github.com/evanleeturner/jedimaster-XVT/issues/124): A drop-off order's flight group number is used unchecked as an index into the 48 group records
 - [#130](https://github.com/evanleeturner/jedimaster-XVT/issues/130): Melee AI boost falls back to a team number taken from a count of player slots
 - [#131](https://github.com/evanleeturner/jedimaster-XVT/issues/131): Melee tournament: the craft swap for an AI team tests the flight groups before that team's player group
-- [#136](https://github.com/evanleeturner/jedimaster-XVT/issues/136): Each craft a drop-off delivers resets the delivered group's remaining rounds
 - [#137](https://github.com/evanleeturner/jedimaster-XVT/issues/137): A round that cannot launch because its mothership is gone is still spent, once a second
 - [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138): Formation places are read unchecked: a seventh craft takes the next formation's place
 - [#187](https://github.com/evanleeturner/jedimaster-XVT/issues/187): A flight group's AI level and craft type, and an OPT hardpoint's type, index fixed tables unchecked
@@ -453,17 +449,17 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 80 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 95 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 8,690 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 13,680 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 825 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
-| Files that each hold one kind of behavior | 22 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
-| Mission order codes that have a written behavior | 35 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
-| Kinds of line the pilot program writes to its log | 75 | the entries in `ai/jedimaster_ai/events.json` |
-| Lines of C in the engine's computer-pilot code | 7,212 in 25 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
-| Test files and checks for that engine code | 13 files, 175 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
-| Checks of the wingman commands (Shift+A and the others) | 13 | the `check_order_...` functions in `engine/tests/test_flight.c` |
+| Commits that changed the pilot program | 86 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 102 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 8,990 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 14,109 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 852 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Files that each hold one kind of behavior | 23 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
+| Mission order codes that have a written behavior | 37 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
+| Kinds of line the pilot program writes to its log | 76 | the entries in `ai/jedimaster_ai/events.json` |
+| Lines of C in the engine's computer-pilot code | 7,390 in 27 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
+| Test files and checks for that engine code | 14 files, 184 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
+| Checks of the wingman commands (Shift+A and the others) | 14 | the `check_order_...` functions in `engine/tests/test_flight.c` |
 | Lines of the 1997 pilot code that were deleted | 14,608 in 9 files | `engine/src/xvt/flight/ai/` just before commit `7d2a109` |
 <!-- ai-numbers:end -->
 
