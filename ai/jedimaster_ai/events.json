@@ -253,6 +253,11 @@
       "fields": ["object", "target", "launcher"],
       "text": "Craft {object} on a Kamikaze order asked launcher {launcher} for a warhead at craft {target} and the engine made none (its launcher wait is not running, so the craft counts no shot and may ask again)"
     },
+    "lord.lead": {
+      "level": "D",
+      "fields": ["object", "target", "x", "y", "z", "ticks", "tracers", "miss_ahead", "miss_side", "miss_up", "fix_ahead", "fix_side", "fix_up", "fire"],
+      "text": "Craft {object}, a Sith Lord, aims at craft {target}'s meeting point ({x}, {y}, {z}), its shot there in {ticks} ticks (the target's own position and 0 out of reach); {tracers} of its tracers passed the target since its last look, missing it on average by {miss_ahead} ahead, {miss_side} to its right and {miss_up} above, in the target's axes; its correction is now {fix_ahead}, {fix_side}, {fix_up}; it fires: {fire}"
+    },
     "lord.stays": {
       "level": "D",
       "fields": ["object", "books"],

@@ -71,9 +71,11 @@ in this attack run, u8 1 while a shot at a starfighter or transport waits
 for the lock to lapse, else 0, u8 the last reason the craft held its
 warheads (``warheads.Held``), and u8 the launcher a look asked a warhead of
 plus 1 until the next look settles it (0 none); then the route ``seek`` flies
-(``patrol.ROUTE_BYTES``); the rest zero. In SEEK only the weave's and the
+(``patrol.ROUTE_BYTES``); then a Sith Lord's aim: i16 its correction
+ahead of, to the right of and above its target (``lord.Offset``) and u32 the
+tick of its last look; the rest zero. In SEEK only the weave's and the
 route's bytes are kept, so a weave's rest outlasts the search and the
-route outlasts every phase.
+route outlasts every phase; a new target starts the correction at 0.
 
 Invariants:
     - The decision follows from the view, the question and the notebook;
@@ -183,6 +185,7 @@ FIGHT_BACK_HULL = (3, 4)
 _SCRATCH = struct.Struct("<HHHHI")
 _ORDERED = struct.Struct("<B")
 _WARHEADS = struct.Struct("<BBBB")
+_LORD = struct.Struct("<hhhI")
 _U32_MAX = 0xFFFFFFFF
 
 
@@ -203,18 +206,26 @@ class Memory:
     pending: int = 0
     # patrol imports this module, so its Route is made at call time.
     route: patrol.Route = dataclasses.field(default_factory=lambda: patrol.Route())
+    fix: lord.Offset = lord.Offset()
+    looked: int = 0
 
     @classmethod
     def read(cls, scratch: bytes) -> Memory:
         """Return the memory scratch bytes hold."""
         ordered_at = _SCRATCH.size + weave.STATE_BYTES
         warheads_at = ordered_at + _ORDERED.size
+        route_at = warheads_at + _WARHEADS.size
+        ahead, side, up, looked = _LORD.unpack_from(
+            scratch, route_at + patrol.ROUTE_BYTES
+        )
         return cls(
             *_SCRATCH.unpack_from(scratch),
             weave.Weave.read(scratch[_SCRATCH.size :]),
             *_ORDERED.unpack_from(scratch, ordered_at),
             *_WARHEADS.unpack_from(scratch, warheads_at),
-            patrol.Route.read(scratch[warheads_at + _WARHEADS.size :]),
+            patrol.Route.read(scratch[route_at:]),
+            lord.Offset(ahead, side, up),
+            looked,
         )
 
     def write(self) -> bytes:
@@ -225,6 +236,7 @@ class Memory:
         packed += self.weave.write() + _ORDERED.pack(self.ordered)
         packed += _WARHEADS.pack(self.shots, self.fresh, self.held, self.pending)
         packed += self.route.write()
+        packed += _LORD.pack(self.fix.ahead, self.fix.side, self.fix.up, self.looked)
         return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
 
@@ -293,6 +305,8 @@ def fight(
         return _seek(view, question, book, memory, interval, cruising)
 
     aim = cannons.aim(view, target, tier, disabling)
+    if lord.is_lord(view):
+        aim, memory = _lord_aim(view, question, target, aim, memory, disabling)
     keep = hull.keep(target)
     if aim.reach < keep and (aim.off_nose < BREAK_CONE or tactics.is_bulky(target)):
         held_yaw, held_pitch, blocked, state = _break_course(
@@ -355,6 +369,22 @@ def fight(
         warhead=choice.warhead,
     )
     return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
+
+
+def _lord_aim(
+    view: CraftView,
+    question: Question,
+    target: Contact,
+    aim: cannons.Aim,
+    memory: Memory,
+    disabling: bool,
+) -> tuple[cannons.Aim, Memory]:
+    """Return a Sith Lord's aim at its target (``lord.aim``) and the memory
+    keeping its correction and this look's tick."""
+    aim, fix = lord.aim(
+        view, question, target, aim, memory.fix, memory.looked, disabling
+    )
+    return aim, dataclasses.replace(memory, fix=fix, looked=question.tick)
 
 
 def _warhead(
@@ -743,7 +773,9 @@ def _choose_target(
             nearest.object_index,
             reach,
         )
-        memory = dataclasses.replace(memory, shots=0, fresh=0, held=warheads.Held.NONE)
+        memory = dataclasses.replace(
+            memory, shots=0, fresh=0, held=warheads.Held.NONE, fix=lord.Offset()
+        )
     look_again = min(tick + LOOK_AGAIN_TICKS[tier], _U32_MAX)
     memory = dataclasses.replace(
         memory,
