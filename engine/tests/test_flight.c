@@ -64,6 +64,7 @@ enum {
 	MATE = 1,   /* A second player on the pilot's team. */
 	PILOT_CRAFT = 2,
 	MATE_CRAFT = 3,
+	PILOT_SIGNATURE = 41, /* The pilot's craft: not 0, not its slot. */
 };
 
 static struct object_record g_test_objects[SLOT_COUNT];
@@ -2835,6 +2836,7 @@ struct order_case {
 	int activity; /* What the commanded craft is doing: AI_ACTIVITY_. */
 	int flags;
 	int match;
+	int order; /* The supply craft's order code, 0 where no key reads it. */
 };
 
 static void computer_craft(int obj, int group, int team, int activity)
@@ -2874,6 +2876,9 @@ static void order_world(const struct order_case *c)
 	fly(PILOT, PILOT_CRAFT, 0);
 	fly(MATE, MATE_CRAFT, 0);
 	fly(2, OTHER_CRAFT, 1);
+	/* A signature that is neither 0 nor the slot, so a test of the one
+	 * cannot pass for the other. */
+	g_test_objects[PILOT_CRAFT].object_signature = PILOT_SIGNATURE;
 	g_active_flight_player_count = 3;
 	g_mission_flight_groups[0].fg.player_number = 1;
 	memset(&g_mission_fg_stats[0], 0, sizeof g_mission_fg_stats[0]);
@@ -2896,6 +2901,7 @@ static void order_world(const struct order_case *c)
 	computer_craft(ENEMY, 2, 2, AI_ACTIVITY_NONE);
 	computer_craft(SUPPLY, 3, 0, c->activity);
 	struct mission_order *order = &g_mission_flight_groups[3].fg.orders[0];
+	order->order = (uint8_t)c->order;
 	order->target1_type = 1;
 	order->target1 =
 		c->match == MATCH_NONE || c->match == MATCH_SECOND_PAIR ? 2 : 0;
@@ -3804,22 +3810,6 @@ static const char *const k_resupply_called_board[] = {
 	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,258,0\" waiting=1 tick=0",
 	NULL,
 };
-static const char *const k_resupply_called_capture[] = {
-	/* recorded resupply_looking_to_capture */
-	"flight.action_key slot=0 key=66 object=2 map=0 hyper=0 request=0 predicted=0",
-	"flight.resupply_called slot=0 target=7 activity=14 predicted=0",
-	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
-	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,258,0\" waiting=1 tick=0",
-	NULL,
-};
-static const char *const k_resupply_called_pick_up[] = {
-	/* recorded resupply_looking_to_pick_up */
-	"flight.action_key slot=0 key=66 object=2 map=0 hyper=0 request=0 predicted=0",
-	"flight.resupply_called slot=0 target=7 activity=15 predicted=0",
-	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
-	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,258,0\" waiting=1 tick=0",
-	NULL,
-};
 
 static const char *const k_resupply_looking_refused[] = {
 	/* recorded resupply_looking_not_named */
@@ -3831,55 +3821,79 @@ static const char *const k_resupply_looking_refused[] = {
 
 static const struct order_case g_resupply_cases[] = {
 	{"resupply_radio_out", k_resupply_radio_out, FLIGHT_KEY_SHIFT_B, PILOT,
-	 SUPPLY, AI_ACTIVITY_BOARDING, F_COMMS_OUT, MATCH_FIRST},
+	 SUPPLY, AI_ACTIVITY_BOARDING, F_COMMS_OUT, MATCH_FIRST,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_no_target", k_resupply_no_target, FLIGHT_KEY_SHIFT_B, PILOT,
-	 -1, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST},
+	 -1, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_far", k_resupply_far, FLIGHT_KEY_SHIFT_B, PILOT, FAR,
-	 AI_ACTIVITY_BOARDING, 0, MATCH_FIRST},
+	 AI_ACTIVITY_BOARDING, 0, MATCH_FIRST,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_boardtogive", k_resupply_boardtogive, FLIGHT_KEY_SHIFT_B,
-	 PILOT, SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST},
+	 PILOT, SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_board3", k_resupply_board3, FLIGHT_KEY_SHIFT_B, PILOT,
-	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST},
+	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_FIRST,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_other_activity", k_resupply_other_activity,
-	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_NONE, 0, MATCH_FIRST},
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_NONE, 0, MATCH_FIRST,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_not_named", k_resupply_not_named, FLIGHT_KEY_SHIFT_B, PILOT,
-	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_NONE},
+	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_NONE,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_and_one", k_resupply_and_one, FLIGHT_KEY_SHIFT_B, PILOT,
-	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_AND_ONE},
+	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_AND_ONE,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_and_both", k_resupply_and_both, FLIGHT_KEY_SHIFT_B, PILOT,
-	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_AND_BOTH},
+	 SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_AND_BOTH,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_second_pair", k_resupply_second_pair, FLIGHT_KEY_SHIFT_B,
-	 PILOT, SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_SECOND_PAIR},
+	 PILOT, SUPPLY, AI_ACTIVITY_BOARDING, 0, MATCH_SECOND_PAIR,
+	 MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_looking_to_board", k_resupply_called_board,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
-	 MATCH_FIRST},
-	{"resupply_looking_to_capture", k_resupply_called_capture,
+	 MATCH_FIRST, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
+	{"resupply_looking_to_capture", k_resupply_looking_refused,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_CAPTURE, 0,
-	 MATCH_FIRST},
-	{"resupply_looking_to_pick_up", k_resupply_called_pick_up,
+	 MATCH_FIRST, MISSION_ORDER_BOARD_AND_CAPTURE_CARGO},
+	{"resupply_looking_to_pick_up", k_resupply_looking_refused,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_PICK_UP, 0,
-	 MATCH_FIRST},
+	 MATCH_FIRST, MISSION_ORDER_PICK_UP},
 	{"resupply_looking_not_named", k_resupply_looking_refused,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
-	 MATCH_NONE},
+	 MATCH_NONE, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_looking_and_one", k_resupply_looking_refused,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
-	 MATCH_AND_ONE},
+	 MATCH_AND_ONE, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_looking_and_both", k_resupply_called_board,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
-	 MATCH_AND_BOTH},
+	 MATCH_AND_BOTH, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 	{"resupply_looking_second_pair", k_resupply_called_board,
 	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
-	 MATCH_SECOND_PAIR},
+	 MATCH_SECOND_PAIR, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
+	{"resupply_looking_take", k_resupply_looking_refused,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_FIRST, MISSION_ORDER_BOARD_AND_TAKE_CARGO},
+	{"resupply_looking_destroy", k_resupply_looking_refused,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_FIRST, MISSION_ORDER_BOARD_AND_DESTROY_CARGO},
+	{"resupply_looking_ss_board", k_resupply_looking_refused,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0,
+	 MATCH_FIRST, MISSION_ORDER_SS_BOARD},
+	{"resupply_looking_repair", k_resupply_called_board, FLIGHT_KEY_SHIFT_B,
+	 PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0, MATCH_FIRST,
+	 MISSION_ORDER_BOARD_TO_REPAIR},
 };
 
 /* Shift+B calls the targeted supply craft when it is looking for a craft to
- * board, capture or pick up (not while it docks) and its order names the
- * pilot's craft, by the rule of the pilot's order target mask (either pair
- * of the targets, a pair's two joined by "or" or "and"): the radio and the
- * tactical officer answer, and the pilot's craft is the supply craft's
- * command target. Any other call gets the not-responding message. With the
- * radio out it says so; with no target, or one past the craft slots, nothing
+ * board on a Give or Board to Repair order that names the pilot's craft, by
+ * the rule of the pilot's order target mask (either pair of the targets, a
+ * pair's two joined by "or" or "and"): the radio and the tactical officer
+ * answer, and the pilot's craft is the supply craft's command target. Any
+ * other call gets the not-responding message: a craft on a take, exchange,
+ * capture, destroy, pick-up or starship-board order, one that is not looking
+ * to board, or one whose order does not name the pilot. With the radio out
+ * it says so; with no target, or one past the craft slots, nothing
  * happens. */
 static void check_order_resupply(void)
 {

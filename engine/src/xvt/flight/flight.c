@@ -1468,6 +1468,28 @@ unsigned int flight_checksum_buffer_rotate_xor(const void *data,
 	return checksum;
 }
 
+/* 1 when the craft in object slot target_index answers a Shift+B resupply
+ * call from the craft in slot caller: it is looking for a craft to board,
+ * and its current order is Board and Give Cargo or Board to Repair, with the
+ * caller among the craft that order names. A craft on any other boarding
+ * order (take, exchange, capture, destroy, pick up, starship board) does not
+ * answer, since the caller has nothing to give it. The order-target match
+ * reads g_cur_craft, so the key sets it to the target's craft first. */
+static int flight_resupply_answers(int target_index, uint16_t caller)
+{
+	if (g_object_table[target_index]
+		    .mobj->p_craft->ai_controller.activity !=
+	    AI_ACTIVITY_LOOKING_TO_BOARD) {
+		return 0;
+	}
+	int order = mission_current_order_code((uint16_t)target_index);
+	if (order != MISSION_ORDER_BOARD_AND_GIVE_CARGO &&
+	    order != MISSION_ORDER_BOARD_TO_REPAIR) {
+		return 0;
+	}
+	return ai_brain_order_targets_match_object(caller) != 0;
+}
+
 /* Acts on the action key a player pressed this step (g_current_action_key). In
  * hyperspace it lets H abort the jump while hyperspace_phase is 1, else advances
  * the jump (flight_object_update_player_hyperspace_transition), and returns. In the
@@ -2256,16 +2278,11 @@ void flight_process_player_actions(int player_idx)
 							.mobj->p_craft;
 					struct ai_controller *controller =
 						&g_cur_craft->ai_controller;
-					if ((controller->activity ==
-						     AI_ACTIVITY_LOOKING_TO_BOARD ||
-					     controller->activity ==
-						     AI_ACTIVITY_LOOKING_TO_CAPTURE ||
-					     controller->activity ==
-						     AI_ACTIVITY_LOOKING_TO_PICK_UP) &&
-					    ai_brain_order_targets_match_object(
+					if (flight_resupply_answers(
+						    target_index,
 						    (uint16_t)g_players[player_idx]
 							    .object_index) !=
-						    0) {
+					    0) {
 						controller
 							->candidate_target_idx =
 							(uint16_t)g_players
