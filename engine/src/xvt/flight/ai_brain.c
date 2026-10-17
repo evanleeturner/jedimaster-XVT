@@ -257,9 +257,11 @@ static void ai_brain_view_box(uint8_t object_type,
  * craft in the active region: its target is its player's target when a
  * player flies it, else its AI target; its size is its object type's, and
  * so is its box (ai_brain_view_box); its roll is the object's; the homing
- * warheads in flight at it come from ai_warheads_view_contact. Its flags say
- * whether its current order holds it still or waits for boarding, and its
- * boarder is the craft carrying it or the lowest-numbered craft on a
+ * warheads in flight at it, and the pulses among them, come from
+ * ai_warheads_view_contact. Its weapon inhibit timer is the craft record's,
+ * the field's 16 bits read unsigned as the flight code counts it down. Its
+ * flags say whether its current order holds it still or waits for boarding,
+ * and its boarder is the craft carrying it or the lowest-numbered craft on a
  * boarding order aimed at it. */
 static void ai_brain_view_contact(uint16_t object_index,
 				  struct ai_wire_contact *contact)
@@ -296,6 +298,8 @@ static void ai_brain_view_contact(uint16_t object_index,
 		contact->flags |= AI_WIRE_CONTACT_AWAITING;
 	}
 	contact->boarder = ai_brain_boarder(object_index, craft);
+	contact->weapon_inhibit_timer =
+		(uint16_t)craft->weapon_fire_inhibit_timer;
 	contact->hit_by = ai_brain_hit_by(craft);
 	contact->x = object->world_x;
 	contact->y = object->world_y;
@@ -891,7 +895,8 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
 					       batch->contact_count,
 					       batch->contacts,
 					       batch->static_count,
-					       batch->statics};
+					       batch->statics,
+					       g_mission_file_version};
 	size_t question_length =
 		ai_wire_write_question(question, sizeof question, &asked);
 	size_t answer_length = g_ai_brain_exchange(question, question_length,

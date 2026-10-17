@@ -190,6 +190,8 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	at = put_point(at, contact->box_max);
 	at = put_u16(at, contact->roll);
 	at = put_u16(at, contact->boarder);
+	at = put_u16(at, contact->weapon_inhibit_timer);
+	*at++ = contact->pulses_coming;
 	return at;
 }
 
@@ -228,7 +230,7 @@ size_t ai_wire_write_question(uint8_t *out, size_t capacity,
 	at = put_u16(at, AI_WIRE_KIND_QUESTION);
 	at = put_u32(at, question->tick);
 	at = put_u16(at, (unsigned int)count);
-	at = put_u16(at, 0);
+	at = put_u16(at, question->mission_version);
 	for (int index = 0; index < count; ++index) {
 		at = put_craft_view(at, &question->craft[index]);
 	}

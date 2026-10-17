@@ -385,6 +385,49 @@ static void check_view_contact_warheads_coming(void)
 	XVT_ASSERT_INT_EQ(contact.warheads_coming_damage, 0);
 }
 
+/* The pulses among the warheads coming: a magnetic and an ion pulse are
+ * counted as both a warhead and a pulse, a missile only as a warhead, and a
+ * flare and a pulse that does not home in neither. */
+static void check_view_contact_pulses_coming(void)
+{
+	fresh_world();
+	place_shot(SHOT_START, WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE, 2, TARGET,
+		   10);
+	place_shot(SHOT_START + 1, WARHEAD_OBJECT_TYPE_ION_PULSE, 1, TARGET,
+		   10);
+	place_shot(SHOT_START + 2, MISSILE, 3, TARGET, 10);
+	place_shot(SHOT_START + 3, COUNTERMEASURE_PROJECTILE_OBJECT_TYPE, 6,
+		   TARGET, 10);
+	place_shot(SHOT_START + 4, WARHEAD_OBJECT_TYPE_ION_PULSE, 0, TARGET,
+		   10);
+	place_shot(SHOT_START + 5, WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE, 2, OTHER,
+		   10);
+	struct ai_wire_contact contact;
+	memset(&contact, 0xFF, sizeof contact);
+	ai_warheads_view_contact(TARGET, &contact);
+	XVT_ASSERT_INT_EQ(contact.warheads_coming, 3);
+	XVT_ASSERT_INT_EQ(contact.pulses_coming, 2);
+	memset(&contact, 0xFF, sizeof contact);
+	ai_warheads_view_contact(LOCKER, &contact);
+	XVT_ASSERT_INT_EQ(contact.pulses_coming, 0);
+}
+
+/* The pulse count stops at 255 as the warhead count does. */
+static void check_view_contact_pulses_cap(void)
+{
+	fresh_world();
+	for (int slot = SHOT_START; slot < SHOT_END; ++slot) {
+		place_shot(slot,
+			   slot % 2 ? WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE
+				    : WARHEAD_OBJECT_TYPE_ION_PULSE,
+			   1, TARGET, 1);
+	}
+	struct ai_wire_contact contact;
+	ai_warheads_view_contact(TARGET, &contact);
+	XVT_ASSERT_INT_EQ(contact.warheads_coming, UINT8_MAX);
+	XVT_ASSERT_INT_EQ(contact.pulses_coming, UINT8_MAX);
+}
+
 /* A warhead that has blown up (family 5) keeps its homing data for a
  * moment; a contact does not count it or its damage, and a live warhead
  * (family 1) still counts. */
@@ -440,6 +483,8 @@ int main(void)
 	check_view_contact_warheads_coming();
 	check_view_contact_skips_blown_up_warheads();
 	check_view_contact_count_cap();
+	check_view_contact_pulses_coming();
+	check_view_contact_pulses_cap();
 	check_past_craft_slots();
 	return 0;
 }

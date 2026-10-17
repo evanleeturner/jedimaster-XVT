@@ -257,6 +257,7 @@ void ai_warheads_view_contact(uint16_t object_index,
 {
 	contact->warheads_coming = 0;
 	contact->warheads_coming_damage = 0;
+	contact->pulses_coming = 0;
 	for (int slot = g_projectile_object_slot_start;
 	     slot < g_projectile_object_slot_end; ++slot) {
 		const struct object_record *shot = &g_object_table[slot];
@@ -274,6 +275,11 @@ void ai_warheads_view_contact(uint16_t object_index,
 		}
 		if (contact->warheads_coming < UINT8_MAX) {
 			++contact->warheads_coming;
+		}
+		if ((shot->object_type == WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE ||
+		     shot->object_type == WARHEAD_OBJECT_TYPE_ION_PULSE) &&
+		    contact->pulses_coming < UINT8_MAX) {
+			++contact->pulses_coming;
 		}
 		contact->warheads_coming_damage += shot->mobj->damage_amount;
 	}

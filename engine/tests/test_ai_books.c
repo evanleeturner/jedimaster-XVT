@@ -6,6 +6,7 @@
  * the think loop with a fake pilot program and replays its last step from a
  * saved world. */
 #include <SDL3/SDL_log.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -130,6 +131,8 @@ static struct craft_data *make_craft(int slot, int group)
 	craft->carrier_obj_idx = UINT16_MAX;
 	craft->craft_ordinal = (uint8_t)(slot + 1);
 	craft->ai_controller.think_interval = TEST_INTERVAL;
+	/* Out of reach, so no test craft reads hurt unless it sets this. */
+	craft->system_damage_hull_threshold = UINT_MAX;
 	return craft;
 }
 
@@ -1639,6 +1642,29 @@ static void check_captured(void)
 	}
 }
 
+/* The hurt bit is set exactly when the hull damage is at or above the
+ * craft record's system damage hull threshold, as the 1997 AI compared them:
+ * one below, equal and above, and a threshold of 0, which reads hurt even
+ * with no damage. */
+static void check_hurt(void)
+{
+	static const struct {
+		unsigned int damage;
+		unsigned int threshold;
+		int hurt;
+	} rows[] = {{999, 1000, 0}, {1000, 1000, 1}, {1001, 1000, 1},
+		    {0, 0, 1},	    {0, 1, 0},	     {UINT_MAX, UINT_MAX, 1}};
+	XVT_ASSERT_INT_EQ(AI_WIRE_BOOKS_HURT, 0x200000);
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		fresh_world();
+		struct craft_data *craft = make_craft(1, TEST_GROUP);
+		craft->hull_damage = rows[row].damage;
+		craft->system_damage_hull_threshold = rows[row].threshold;
+		XVT_ASSERT_INT_EQ(has_bit(1, AI_WIRE_BOOKS_HURT),
+				  rows[row].hurt);
+	}
+}
+
 int main(void)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -1668,6 +1694,7 @@ int main(void)
 	check_at_board_point();
 	check_order_progress_and_boarded();
 	check_captured();
+	check_hurt();
 	check_board_bits_write_three_axes();
 	return 0;
 }

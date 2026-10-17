@@ -305,13 +305,13 @@
     },
     "think.contact": {
       "level": "D",
-      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity", "size", "hit_by", "min_x", "min_y", "min_z", "max_x", "max_y", "max_z", "roll", "boarder"],
-      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}; size {size}, last shot by {hit_by} (65535 for none); model box from ({min_x}, {min_y}, {min_z}) to ({max_x}, {max_y}, {max_z}) in the model's own axes (all 0 for none), roll {roll}, boarded by {boarder} (65535 for none)"
+      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity", "size", "hit_by", "min_x", "min_y", "min_z", "max_x", "max_y", "max_z", "roll", "boarder", "weapon_inhibit_timer", "pulses_coming"],
+      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}; size {size}, last shot by {hit_by} (65535 for none); model box from ({min_x}, {min_y}, {min_z}) to ({max_x}, {max_y}, {max_z}) in the model's own axes (all 0 for none), roll {roll}, boarded by {boarder} (65535 for none), weapon fire inhibited for {weapon_inhibit_timer} more ticks, {pulses_coming} homing pulses coming at it"
     },
     "think.question": {
       "level": "D",
-      "fields": ["tick", "craft", "contacts", "statics"],
-      "text": "The question for tick {tick} asks about {craft} craft and shows {contacts} contacts and {statics} statics"
+      "fields": ["tick", "craft", "contacts", "statics", "mission_version"],
+      "text": "The question for tick {tick} asks about {craft} craft and shows {contacts} contacts and {statics} statics, flying mission file version {mission_version}"
     },
     "think.threat": {
       "level": "D",

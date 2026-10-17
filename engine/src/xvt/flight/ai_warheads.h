@@ -39,8 +39,9 @@ void ai_warheads_view_craft(uint16_t object_index,
 			    struct ai_wire_craft_view *view);
 
 /* Writes into contact the homing warheads in flight at the craft in
- * object_index: their count, at most 255, and their damage summed. A
- * countermeasure and a shot that does not home are not counted. */
+ * object_index: their count, at most 255, their damage summed, and how many
+ * of them are magnetic or ion pulses, at most 255. A countermeasure and a
+ * shot that does not home are not counted. */
 void ai_warheads_view_contact(uint16_t object_index,
 			      struct ai_wire_contact *contact);
 

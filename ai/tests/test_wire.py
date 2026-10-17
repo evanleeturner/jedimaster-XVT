@@ -74,11 +74,17 @@ DISTINCT_CONTACT = Contact(
     -4, 0x5453, 0x5655, 0x5857, 0x5A59, 0x5C5B, -5, 0x605F5E5D, 0x64636261,
     0x68676665, 0x69, 0x6D6C6B6A, 0x6E, 0x7271706F, 0x7473,
     box_min=(-6, 0x78777675, 0x7C7B7A79), box_max=(-7, 0x7F7E7D7C, 0x7B7A7978),
-    roll=0x8180, boarder=0x8382,
+    roll=0x8180, boarder=0x8382, weapon_inhibit_timer=0x8584, pulses_coming=0x86,
 )  # fmt: skip
 # static_with_distinct_bytes in the C test: the contact's bytes, a static's
 # object index and flag.
-DISTINCT_STATIC = dataclasses.replace(DISTINCT_CONTACT, object_index=0x7271, flags=0x08)
+DISTINCT_STATIC = dataclasses.replace(
+    DISTINCT_CONTACT,
+    object_index=0x7271,
+    flags=0x08,
+    weapon_inhibit_timer=0,
+    pulses_coming=0,
+)
 
 
 def _c_bytes(text: str, name: str) -> bytes:
@@ -99,7 +105,7 @@ def engine_question_bytes() -> bytes:
 
 
 DISTINCT_QUESTION = Question(
-    TEST_TICK, (DISTINCT,), (DISTINCT_CONTACT,), (DISTINCT_STATIC,)
+    TEST_TICK, (DISTINCT,), (DISTINCT_CONTACT,), (DISTINCT_STATIC,), 14
 )
 
 
@@ -224,12 +230,25 @@ def changed_header(message: bytes, offset: int, value: int) -> bytes:
 
 @pytest.mark.parametrize(
     ("offset", "value"),
-    [(0, 0x4B), (4, 1), (6, 2), (14, 1)],
-    ids=["magic", "version", "kind", "zero"],
+    [(0, 0x4B), (4, 1), (6, 2)],
+    ids=["magic", "version", "kind"],
 )
 def test_question_with_a_bad_header_is_refused(offset: int, value: int) -> None:
     with pytest.raises(wire.WireError, match="header"):
         wire.read_question(changed_header(engine_question_bytes(), offset, value))
+
+
+def test_question_header_ends_in_the_mission_version() -> None:
+    body = changed_header(engine_question_bytes(), 14, 12)
+    assert wire.read_question(body).mission_version == 12
+
+
+@pytest.mark.parametrize("offset", [14, 15], ids=["low", "high"])
+def test_answer_with_a_nonzero_header_u16_is_refused(offset: int) -> None:
+    body = bytearray(answer_with_actions(b"\0"))
+    body[offset] = 1
+    with pytest.raises(wire.WireError, match="is not a version"):
+        wire.read_answer(bytes(body), QUESTION_7)
 
 
 def test_question_shorter_than_its_header_is_refused() -> None:
@@ -554,12 +573,31 @@ def test_a_question_carries_the_model_box_and_the_roll(contact) -> None:
     )
     question = Question(1, (), (boxed,), (dataclasses.replace(boxed, roll=0x2000),))
     message = wire.question_bytes(question)
-    assert len(message) == 4 + wire.HEADER.size + 2 * (4 + 88)
+    assert len(message) == 4 + wire.HEADER.size + 2 * (4 + 91)
     read = wire.read_question(message[wire.LENGTH.size :])
     assert read == question
     assert read.contacts[0].box_min == (-3000, -162468, -7)
     assert read.contacts[0].box_max == (9000, 165215, 12)
     assert (read.contacts[0].roll, read.statics[0].roll) == (0xC000, 0x2000)
+
+
+@pytest.mark.parametrize(
+    ("timer", "pulses", "coming"), [(65535, 2, 3), (300, 255, 255), (0, 0, 0)]
+)
+def test_a_question_carries_the_timer_the_pulses_and_the_version(
+    contact, timer: int, pulses: int, coming: int
+) -> None:
+    hit = contact(
+        weapon_inhibit_timer=timer, pulses_coming=pulses, warheads_coming=coming
+    )
+    question = Question(1, (), (hit,), (), 14)
+    message = wire.question_bytes(question)
+    assert len(message) == 4 + wire.HEADER.size + 2 * 4 + 91
+    read = wire.read_question(message[wire.LENGTH.size :])
+    assert read == question
+    assert read.contacts[0].weapon_inhibit_timer == timer
+    assert read.contacts[0].pulses_coming == pulses
+    assert read.mission_version == 14
 
 
 def test_a_question_reads_what_wire_14_adds_as_absent(view, contact) -> None:

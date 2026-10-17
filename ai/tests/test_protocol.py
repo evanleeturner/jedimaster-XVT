@@ -35,6 +35,10 @@ AI_WIRE_H = ENGINE / "src" / "xvt_runtime" / "ai" / "ai_wire.h"
 AI_STATE_H = ENGINE / "src" / "xvt" / "flight" / "ai_state.h"
 MISSION_H = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.h"
 MISSION_C = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.c"
+# What the program names before the engine sends it, until the header adds it:
+# empty at wire version 19, kept for the next round.
+AWAITED_BOOKS: dict[str, int] = {}
+AWAITED_CONTACT_FIELDS: list[str] = []
 C_TYPES = {
     "uint8_t": "B",
     "uint16_t": "H",
@@ -135,7 +139,8 @@ def test_wire_constants_match() -> None:
 
 def test_books_bits_match() -> None:
     books = c_enum(AI_WIRE_H, "ai_wire_books", "AI_WIRE_BOOKS_")
-    assert books == {bit.name: bit.value for bit in world.Books}
+    assert books | AWAITED_BOOKS == {bit.name: bit.value for bit in world.Books}
+    assert not books.keys() & AWAITED_BOOKS.keys()
 
 
 def test_commands_bits_match() -> None:
@@ -191,7 +196,7 @@ def test_craft_view_fields_match() -> None:
 def test_contact_fields_match() -> None:
     members = c_struct("ai_wire_contact")
     assert members == list(wire.CONTACT_LAYOUT)
-    assert [name for name, _, _ in wire.CONTACT_LAYOUT] == [
+    assert [name for name, _, _ in wire.CONTACT_LAYOUT] + AWAITED_CONTACT_FIELDS == [
         field.name for field in dataclasses.fields(Contact)
     ]
 

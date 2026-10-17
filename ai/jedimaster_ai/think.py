@@ -72,11 +72,12 @@ def think(
     debug = logger.isEnabledFor(logging.DEBUG)
     if debug:
         logger.debug(
-            "think.question tick=%d craft=%d contacts=%d statics=%d",
+            "think.question tick=%d craft=%d contacts=%d statics=%d mission_version=%d",
             question.tick,
             len(question.craft),
             len(question.contacts),
             len(question.statics),
+            question.mission_version,
         )
         for contact in question.contacts + question.statics:
             _log_contact(contact)
@@ -124,7 +125,8 @@ def _log_contact(contact: Contact) -> None:
         "think.contact object=%d signature=%d type=%d genus=%d team=%d group=%d "
         "kind=%d flags=%d x=%d y=%d z=%d yaw=%d pitch=%d speed=%d target=%d "
         "attacker=%d front=%d rear=%d hull_damage=%d hull=%d activity=%d size=%d hit_by=%d "
-        "min_x=%d min_y=%d min_z=%d max_x=%d max_y=%d max_z=%d roll=%d boarder=%d",
+        "min_x=%d min_y=%d min_z=%d max_x=%d max_y=%d max_z=%d roll=%d boarder=%d "
+        "weapon_inhibit_timer=%d pulses_coming=%d",
         contact.object_index,
         contact.object_signature,
         contact.object_type,
@@ -156,6 +158,8 @@ def _log_contact(contact: Contact) -> None:
         contact.box_max[2],
         contact.roll,
         contact.boarder,
+        contact.weapon_inhibit_timer,
+        contact.pulses_coming,
     )
 
 

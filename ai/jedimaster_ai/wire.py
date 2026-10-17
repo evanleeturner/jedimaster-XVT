@@ -60,11 +60,12 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 18
+VERSION = 19
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
-# After the length field: magic, version, kind, tick, craft count, zero.
+# After the length field: magic, version, kind, tick, craft count, and a last
+# u16: a question's mission version, an answer's zero.
 HEADER = struct.Struct("<IHHIHH")
 HEAD_BYTES = LENGTH.size + HEADER.size
 # A craft view's fields in the engine's order, each with its struct code and
@@ -187,6 +188,8 @@ CONTACT_LAYOUT = (
     ("box_max", "i", 3),
     ("roll", "H", 1),
     ("boarder", "H", 1),
+    ("weapon_inhibit_timer", "H", 1),
+    ("pulses_coming", "B", 1),
 )
 CONTACT_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in CONTACT_LAYOUT)
@@ -248,17 +251,21 @@ def read_message(stream: t.BinaryIO) -> bytes | None:
     return body
 
 
-def _read_header(body: bytes, kind: int) -> tuple[int, int]:
-    """Return the tick and craft count of a message of this kind."""
+def _read_header(body: bytes, kind: int) -> tuple[int, int, int]:
+    """Return the tick, craft count and last u16 of a message of this kind.
+
+    The last u16 is a question's mission version; an answer's must be 0."""
     if len(body) < HEADER.size:
         raise WireError(f"a message of {len(body)} bytes is shorter than its header")
-    magic, version, found, tick, count, zero = HEADER.unpack_from(body)
-    if (magic, version, found, zero) != (MAGIC, VERSION, kind, 0):
+    magic, version, found, tick, count, last = HEADER.unpack_from(body)
+    if (magic, version, found) != (MAGIC, VERSION, kind) or (
+        kind == KIND_ANSWER and last != 0
+    ):
         raise WireError(
             f"the header magic={magic:#x} version={version} kind={found} "
-            f"zero={zero} is not a version {VERSION} kind {kind} message's"
+            f"zero={last} is not a version {VERSION} kind {kind} message's"
         )
-    return tick, count
+    return tick, count, last
 
 
 def _fields_from(
@@ -315,7 +322,7 @@ def _contact_from(values: tuple[int, ...]) -> Contact:
 
 def read_question(body: bytes) -> Question:
     """Return the question these bytes, after the length field, hold."""
-    tick, count = _read_header(body, KIND_QUESTION)
+    tick, count, mission_version = _read_header(body, KIND_QUESTION)
     views_end = HEADER.size + count * CRAFT_VIEW_BYTES
     if len(body) < views_end + CONTACT_HEAD.size:
         raise WireError(
@@ -354,14 +361,19 @@ def read_question(body: bytes) -> Question:
         _contact_from(CONTACT_FIELDS.unpack_from(body, offset))
         for offset in range(statics_at, expected, CONTACT_FIELDS.size)
     )
-    return Question(tick, tuple(craft), contacts, statics)
+    return Question(tick, tuple(craft), contacts, statics, mission_version)
 
 
 def question_bytes(question: Question) -> bytes:
     """Return a question's bytes, its length field first, as the engine writes."""
     body = bytearray(
         HEADER.pack(
-            MAGIC, VERSION, KIND_QUESTION, question.tick, len(question.craft), 0
+            MAGIC,
+            VERSION,
+            KIND_QUESTION,
+            question.tick,
+            len(question.craft),
+            question.mission_version,
         )
     )
     for view in question.craft:
@@ -661,7 +673,7 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
 
 def read_answer(body: bytes, question: Question) -> Answer:
     """Return the answer these bytes hold, by the engine's rules for one."""
-    tick, count = _read_header(body, KIND_ANSWER)
+    tick, count, _ = _read_header(body, KIND_ANSWER)
     if tick != question.tick:
         raise WireError(
             f"the answer's tick {tick} is not the question's {question.tick}"

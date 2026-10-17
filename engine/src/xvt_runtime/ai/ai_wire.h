@@ -10,7 +10,9 @@
  *
  * Every message starts with a u32, the count of bytes after it, then the
  * header: u32 AI_WIRE_MAGIC, u16 AI_WIRE_VERSION, u16 kind, u32 tick,
- * u16 craft count, u16 zero.
+ * u16 craft count, u16 mission version (a question's: the version of the
+ * mission file that is flown, 12 for the retail X-wing vs. TIE Fighter
+ * missions and 14 for most of Balance of Power's; an answer's is 0).
  *
  * A question (kind 1) holds one craft view per craft due, each
  * AI_WIRE_CRAFT_VIEW_BYTES long: u16 object index, u16 object signature,
@@ -108,7 +110,10 @@
  * are not known or its model is empty; and u16 roll, the object's roll angle,
  * 65,536 to a full turn; then u16 boarder (the object index of the craft that
  * carries it, else of the lowest-numbered other craft on a boarding order
- * whose target it is, else 0xFFFF; 0xFFFF for a static).
+ * whose target it is, else 0xFFFF; 0xFFFF for a static), u16 weapon inhibit
+ * timer (the ticks left on the craft's weapon fire inhibit timer, 0 when none
+ * runs) and u8 pulses coming (the magnetic and ion pulses among the homing
+ * warheads coming, at most 255, never more than warheads coming).
  *
  * After the last contact: u16 static count, u16 zero, and one static per
  * static object that counts as a target, at most AI_WIRE_STATICS_MAX, in
@@ -116,10 +121,10 @@
  * AI_WIRE_CONTACT_STATIC in its flags. A static is a buoy, mine or other
  * fixed object with no craft record: its team is its flight group's, its
  * disabled flag is set once an ion hit took its working systems, and its
- * speed, shields, hull, activity and warhead fields are 0, its target, last attacker and hit by
- * 0xFFFF, its object kind 0; its box and roll are given as a craft's are. Its
- * object index is its slot in the object
- * table, which no contact has.
+ * speed, shields, hull, activity and warhead fields are 0, its target, last
+ * attacker and hit by 0xFFFF, its object kind 0, its weapon inhibit timer and
+ * pulses coming 0; its box and roll are given as a craft's are. Its object
+ * index is its slot in the object table, which no contact has.
  *
  * An answer (kind 2) holds one craft answer per craft, in the question's
  * order: u16 object index, the new notebook, u8 action count, then each
@@ -203,7 +208,7 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 18,
+	AI_WIRE_VERSION = 19,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
@@ -215,7 +220,7 @@ enum ai_wire_constant {
 	AI_WIRE_POINT_AXES = 3,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
-	AI_WIRE_CONTACT_BYTES = 88,
+	AI_WIRE_CONTACT_BYTES = 91,
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
@@ -342,6 +347,10 @@ enum ai_wire_books {
 	 * of the mission, the group has already arrived, or its total is past
 	 * 255. */
 	AI_WIRE_BOOKS_ALL_DROPPED = 0x100000,
+	/* The craft's hull damage has reached its craft record's system damage
+	 * hull threshold (at or above it; a model whose threshold is 0 reads
+	 * hurt from the start). */
+	AI_WIRE_BOOKS_HURT = 0x200000,
 };
 
 /* A craft view's countermeasure, the engine's countermeasure type; the
@@ -496,6 +505,8 @@ struct ai_wire_contact {
 	int32_t box_max[AI_WIRE_POINT_AXES];
 	uint16_t roll;
 	uint16_t boarder;
+	uint16_t weapon_inhibit_timer;
+	uint8_t pulses_coming;
 };
 
 /* One question: the craft due to think and every contact, at one tick. */
@@ -507,6 +518,7 @@ struct ai_wire_question {
 	const struct ai_wire_contact *contacts;
 	int static_count;
 	const struct ai_wire_contact *statics;
+	uint16_t mission_version;
 };
 
 /* One craft's answer as read. Bit (1 << kind) of actions is set for each

@@ -181,11 +181,13 @@ class Books(enum.IntFlag):
       has reached the group's total, or, with no drop running, variable2 names
       no group of the mission, the group has already arrived, or its total is
       past 255
+    - HURT: the craft's hull damage has reached its craft record's
+      system damage hull threshold, a number its model sets
 
     ALL_RETURNED comes with wire version 13, STATION and START_POINT with
     14, BOARD_POINT, AT_BOARD_POINT and ALL_LAUNCHED with 16, CAPTURED with
-    17, DROP_POINT, AT_DROP_POINT and ALL_DROPPED with 18; the engine sends
-    none of them before.
+    17, DROP_POINT, AT_DROP_POINT and ALL_DROPPED with 18, HURT with 19; the
+    engine sends none of them before.
     """
 
     ORDERS_DONE = 0x001
@@ -209,6 +211,7 @@ class Books(enum.IntFlag):
     DROP_POINT = 0x40000
     AT_DROP_POINT = 0x80000
     ALL_DROPPED = 0x100000
+    HURT = 0x200000
 
 
 class ContactFlags(enum.IntFlag):
@@ -491,6 +494,12 @@ class Contact:
     axes (x to the side, y backward, z up), and ``roll`` its roll angle,
     65,536 to a full turn: the engine sends them from wire version 15, and
     they read (0, 0, 0) and 0 before it.
+
+    ``weapon_inhibit_timer`` is the ticks left on the craft record's weapon
+    fire inhibit timer, 0 when none runs and for a static.
+    ``pulses_coming`` counts the homing magnetic and ion pulses among
+    ``warheads_coming``, at most 255. Both come with wire version 19
+    and read 0 before it.
     """
 
     object_index: int
@@ -522,6 +531,8 @@ class Contact:
     box_max: tuple[int, int, int] = (0, 0, 0)
     roll: int = 0
     boarder: int = NO_OBJECT
+    weapon_inhibit_timer: int = 0
+    pulses_coming: int = 0
 
     @property
     def player_flown(self) -> bool:
@@ -543,12 +554,18 @@ class Contact:
 class Question:
     """The craft due to think at one reference step, in the engine's order,
     every contact the step shows, and the static objects that count as
-    targets, at most STATICS_MAX, in slot order."""
+    targets, at most STATICS_MAX, in slot order.
+
+    ``mission_version`` is the version of the mission file that is flown:
+    12 for the retail X-wing vs. TIE Fighter missions, 14 for most of
+    Balance of Power's. It comes with wire version 19 and reads 0
+    before it."""
 
     tick: int
     craft: tuple[CraftView, ...]
     contacts: tuple[Contact, ...] = ()
     statics: tuple[Contact, ...] = ()
+    mission_version: int = 0
 
 
 def engine_flies(view: CraftView) -> bool:

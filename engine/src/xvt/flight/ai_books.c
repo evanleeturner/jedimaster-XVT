@@ -1043,7 +1043,9 @@ static void books_world_point(uint16_t mothership, int side, int up,
  * order code and completion state; the current slot's throttle as the craft
  * throttle it gives (0 for an index past the table), variables and speed;
  * and the orders-done, aborted, departure-due, skip-due, skipped,
- * targets-left and all-returned bits. */
+ * targets-left, all-returned and hurt bits (hurt: the hull damage has
+ * reached the system damage hull threshold, as the 1997 AI compared them,
+ * with no special case for a threshold of 0). */
 static void books_view_orders(uint16_t object_index,
 			      struct ai_wire_craft_view *view)
 {
@@ -1084,6 +1086,9 @@ static void books_view_orders(uint16_t object_index,
 	}
 	if (books_all_launched(object_index)) {
 		books |= AI_WIRE_BOOKS_ALL_LAUNCHED;
+	}
+	if (craft->hull_damage >= craft->system_damage_hull_threshold) {
+		books |= AI_WIRE_BOOKS_HURT;
 	}
 	view->books = books;
 	view->targets_now = 0;

@@ -439,7 +439,7 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ(get_u32(contact + 54), 0);
 	/* Never hit by any team, so no shooter. */
 	XVT_ASSERT_INT_EQ(get_u16(contact + 58), UINT16_MAX);
-	XVT_ASSERT_INT_EQ(AI_WIRE_CONTACT_BYTES, 88);
+	XVT_ASSERT_INT_EQ(AI_WIRE_CONTACT_BYTES, 91);
 	g_object_type_table[0x21].max_bounds_extent = saved_size;
 	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
 }
@@ -1387,6 +1387,9 @@ static void check_statics(void)
 	XVT_ASSERT_INT_EQ(get_u16(first + 58), 0xFFFF);
 	/* No boarder, and neither parked nor waiting for boarding. */
 	XVT_ASSERT_INT_EQ(get_u16(first + 86), 0xFFFF);
+	/* A static has no weapon inhibit timer and no pulses coming. */
+	XVT_ASSERT_INT_EQ(get_u16(first + 88), 0);
+	XVT_ASSERT_INT_EQ(first[90], 0);
 	/* The second listed static is slot 33, of another group, disabled; the
 	 * third is slot 34. */
 	const uint8_t *second = first + AI_WIRE_CONTACT_BYTES;
@@ -1438,9 +1441,9 @@ static void check_contact_box_and_roll(void)
 		MEETING_TYPE = 0x38,
 		PAST_TABLE_TYPE = 201,
 		TYPE_COUNT = 8,
-		/* The box starts 28 bytes before the contact's end: 24 of box,
-		 * the roll and the boarder. */
-		BOX = AI_WIRE_CONTACT_BYTES - 28,
+		/* The box starts 31 bytes before the contact's end: 24 of box,
+		 * the roll, the boarder, the weapon inhibit timer and the pulses. */
+		BOX = AI_WIRE_CONTACT_BYTES - 31,
 		FIRST_STATIC = 30,
 	};
 	static const int types[TYPE_COUNT] = {
@@ -1642,6 +1645,40 @@ static void check_contact_parked_and_awaiting(void)
 				  (parked ? 0x10u : 0) |
 					  (awaiting ? 0x20u : 0));
 	}
+}
+
+/* A contact's weapon inhibit timer: the craft record's 16 bits read unsigned,
+ * so a saturated -1 is 65,535; and the question's mission version, the
+ * mission file version flown, in the header's last u16. */
+static void check_contact_inhibit_timer_and_mission_version(void)
+{
+	fresh_world();
+	for (int slot = 1; slot <= 3; ++slot) {
+		due_craft(slot)->ai_controller.think_timer = 5;
+	}
+	g_active_region_craft_object_slot_end = 4;
+	g_test_craft[1].ai_controller.think_timer = 0;
+	g_test_craft[1].weapon_fire_inhibit_timer = -1;
+	g_test_craft[2].weapon_fire_inhibit_timer = 300;
+	g_test_craft[3].weapon_fire_inhibit_timer = 0;
+	g_mission_file_version = 14;
+	g_fake.echo = 1;
+	ai_brain_think_due_craft();
+	const uint8_t *question = g_fake.question[0];
+	XVT_ASSERT_INT_EQ(get_u16(question + 18), 14);
+	const uint8_t *first = question + AI_WIRE_HEAD_BYTES +
+			       AI_WIRE_CRAFT_VIEW_BYTES +
+			       AI_WIRE_CONTACT_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(first + 88), 65535);
+	XVT_ASSERT_INT_EQ(get_u16(first + AI_WIRE_CONTACT_BYTES + 88), 300);
+	XVT_ASSERT_INT_EQ(get_u16(first + 2 * AI_WIRE_CONTACT_BYTES + 88), 0);
+	/* No warhead in flight: no pulses. */
+	XVT_ASSERT_INT_EQ(first[90], 0);
+	g_mission_file_version = 12;
+	g_test_craft[1].ai_controller.think_timer = 0;
+	ai_brain_think_due_craft();
+	XVT_ASSERT_INT_EQ(get_u16(g_fake.question[g_fake.calls - 1] + 18), 12);
+	g_mission_file_version = 0;
 }
 
 /* The boarder of a contact: the craft that carries it first; else the
@@ -2201,6 +2238,7 @@ int main(void)
 	check_view_escort_start_and_targets_now();
 	check_contact_parked_and_awaiting();
 	check_contact_boarder();
+	check_contact_inhibit_timer_and_mission_version();
 	check_activity_status_lines();
 	check_self_destruct_action();
 	check_order_first_pair_mask();
