@@ -4841,6 +4841,7 @@ struct steer_case {
 	uint16_t t_roll, t_z, t_xy;
 	int aim_z, world_z, rate, bank;
 	int speed, throttle, commanded, max_speed, levels, overdrive_off;
+	int rank;
 	int elapsed, game_time, stamp, carried, carried_none, move_z;
 	int timer, timer2;
 	unsigned rules;
@@ -4894,6 +4895,7 @@ static void steer_craft(int obj, const struct steer_case *c)
 	craft->beam_effect_accum[1] = (uint8_t)c->held;
 	craft->object_kind = (craft_object_kind)c->kind;
 	craft->pitch = c->pitch;
+	craft->ai_rank = (uint8_t)c->rank;
 	craft->throttle_speed = (uint16_t)(c->throttle ? c->throttle : 0xFFFF);
 	craft->commanded_speed = (int16_t)c->commanded;
 	craft->engine_overdrive_off = (uint16_t)c->overdrive_off;
@@ -9292,6 +9294,69 @@ static void check_steer_unlocked(void)
 /* Over many steps an AI craft's roll sums to the exact share of the rate: the
  * remainder of each step is carried to the next while the direction holds. A
  * craft a player flies does not roll by the AI's steering at all. */
+/* A Sith Lord's speed goes to its throttle's at once (at most 3,600); every
+ * other craft slews as before. Each case flies one second from the start
+ * speed. The slewed values are what the unchanged code gives. */
+static int count_lines_starting(const char *start)
+{
+	size_t length = strlen(start);
+	int count = 0;
+	for (int i = 0; i < g_log_line_count; ++i) {
+		count += strncmp(g_log_lines[i], start, length) == 0;
+	}
+	return count;
+}
+
+static void check_sith_lord_speed(void)
+{
+	static const struct {
+		struct steer_case c;
+		int want;
+		int jump;
+	} cases[] = {
+		{{.rank = 7, .speed = 0}, 2000, 1},
+		{{.rank = 7, .speed = 3000}, 2000, 1},
+		{{.rank = 7, .speed = 2000}, 2000, 0},
+		{{.rank = 7, .speed = 0, .commanded = 5000}, 3600, 1},
+		{{.rank = 7, .speed = 0, .commanded = 3601}, 3600, 1},
+		{{.rank = 6, .speed = 0}, 300, 0},
+		{{.rank = 6, .speed = 3000}, 2667, 0},
+		{{.rank = 6, .speed = 0, .commanded = 5000}, 300, 0},
+		{{.rank = 7, .player = 1, .speed = 0}, 300, 0},
+		{{.rank = 7, .player = 1, .speed = 3000}, 2667, 0},
+		{{.rank = 7, .no_engines = 1, .speed = 0}, 300, 0},
+		{{.rank = 7, .no_engines = 1, .speed = 3000}, 2667, 0},
+		{{.rank = 7, .held = 1, .speed = 0}, 300, 0},
+		{{.rank = 7, .no_systems = 1, .speed = 0}, 0, 0},
+		{{.rank = 5, .speed = 0}, 300, 0},
+	};
+	for (size_t k = 0; k < sizeof cases / sizeof cases[0]; ++k) {
+		const struct steer_case *c = &cases[k].c;
+		steer_world(c);
+		if (cases[k].jump) {
+			/* A carried fraction must clear with the jump. */
+			g_test_mobiles[CRAFT_A].speed_remainder = 0x1234;
+		}
+		flight_update_craft_steering_and_speed();
+		XVT_ASSERT_INT_EQ(g_test_mobiles[CRAFT_A].speed, cases[k].want);
+		XVT_ASSERT_INT_EQ(count_lines_starting("sith.speed_jump"),
+				  cases[k].jump);
+		if (cases[k].jump) {
+			char fields[64];
+			snprintf(fields, sizeof fields, "from=%d to=%d",
+				 c->speed, cases[k].want);
+			XVT_ASSERT_TRUE(line_holds("sith.speed_jump", fields));
+			XVT_ASSERT_INT_EQ(
+				g_test_mobiles[CRAFT_A].speed_remainder, 0);
+			/* A repeat at the same speed writes nothing more. */
+			g_log_line_count = 0;
+			flight_update_craft_steering_and_speed();
+			XVT_ASSERT_INT_EQ(
+				count_lines_starting("sith.speed_jump"), 0);
+		}
+	}
+}
+
 static void check_steer_unlocked_sum(void)
 {
 	static const int ticks[] = {100, 50, 7};
@@ -9463,6 +9528,7 @@ int main(int argc, char **argv)
 	check_steer_pitch();
 	check_steer_turn();
 	check_steer_dive();
+	check_sith_lord_speed();
 	check_steer_speed();
 	check_steer_kinds();
 	check_steer_carry();

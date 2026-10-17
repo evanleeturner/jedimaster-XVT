@@ -63,6 +63,7 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_sim.h"
 #include "xvt_runtime/runtime/port.h"
+#include "xvt_runtime/runtime/sith.h"
 #include "xvt_runtime/snapshot/world_state.h"
 #include "xvt_runtime/timing/flight_integration.h"
 #include "xvt_runtime/timing/flight_timing.h"
@@ -6524,7 +6525,8 @@ int32_t flight_pump_window_messages(void) { return 0; }
  * carried object takes the craft's orientation. Sets g_cur_craft and
  * g_cur_craft_model_index, and puts g_elapsed_ticks and g_sim_steps_per_second
  * back at the end. It steers with its own integration when the timing is
- * unlocked. */
+ * unlocked. A Sith Lord's (level 7) active speed, with working engines and
+ * no beam holding it, goes to its throttle's at once (at most 3,600). */
 // FUNCTION: XVT 0x4ACE80
 void flight_update_craft_steering_and_speed(void)
 {
@@ -7048,6 +7050,32 @@ void flight_update_craft_steering_and_speed(void)
 				if (g_cur_craft->engine_overdrive_off == 0) {
 					commanded_speed += commanded_speed;
 				}
+			}
+			if (player_owner == -1 &&
+			    (g_cur_craft->working_subsystems &
+			     CRAFT_SUBSYSTEM_FLAG_ENGINES) != 0 &&
+			    g_cur_craft->beam_effect_accum[1] == 0 &&
+			    g_cur_craft->ai_rank == XVT_SITH_LORD_LEVEL) {
+				/* A Sith Lord's speed goes to its throttle's at
+				 * once, capped as flight_accelerate_object_speed
+				 * caps it. The carried fraction is cleared with
+				 * the jump. */
+				uint16_t jump_speed = commanded_speed > 3600u
+							      ? 3600u
+							      : commanded_speed;
+				uint16_t speed_was =
+					g_object_table[object_idx].mobj->speed;
+				if (speed_was != jump_speed) {
+					g_object_table[object_idx].mobj->speed =
+						jump_speed;
+					g_object_table[object_idx]
+						.mobj->speed_remainder = 0;
+					XVT_LOG_DEBUG(
+						"sith.speed_jump slot=%d from=%u to=%u",
+						object_idx, (unsigned)speed_was,
+						(unsigned)jump_speed);
+				}
+				break;
 			}
 			if (commanded_speed <
 			    g_object_table[object_idx].mobj->speed) {
