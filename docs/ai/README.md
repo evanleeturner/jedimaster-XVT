@@ -59,7 +59,7 @@ is in `ai/jedimaster_ai/behaviors/attack.py`, `ai/jedimaster_ai/cannons.py` and 
 | Fire when the target is inside a cone of 11, 8, 6, 4 or 3 degrees in tier 0 to 4 (`cannons.py`). | A cone of 11 degrees at every tier. | Changed | |
 | Fire from 24,576, 32,768 or 40,960 units (0.6, 0.8 or 1.0 km) in tier 0, 1 or 2, and 40,960 in tiers 3 and 4, but at every tier no farther than the craft's own cannons' shots fly: an Imperial laser about 33,700 units (0.82 km) from a craft at rest and 38,200 (0.93 km) from a TIE Interceptor at full speed, a rebel laser 37,300 (0.91 km) at rest. The range shrinks by 16,384 units (0.4 km) for a fast target flying the same way and by 8,192 (0.2 km) for one crossing (`cannons.py`). Against a starship or platform the range runs to the nearest point of its hull, the box around its model; 1997 measured to its centre and added 24,576 (0.6 km). | The same ranges and changes, measured to the centre. At tier 2 a craft fired past its shots' reach. | Changed | [#308](https://github.com/evanleeturner/jedimaster-XVT/issues/308) |
 | Fire all cannons together inside 8,192 units (0.2 km), in pairs inside 16,384 (0.4 km), and one at a time farther out. Bursts are 3, 4 or 5 shots long by tier, 5 in tiers 3 and 4. Ion cannons hold: only a Disable order fires them, at its target, where every other cannon holds; ion turbolasers fire as other cannons. | The burst lengths are 1997's. How cannons were linked is unknown. The ion cannon fired only on the disable plan with a live target. | Kept | |
-| Aim the cannons ahead of the target: where a shot fired now would meet it if it flew straight on at its speed. How far ahead depends on skill: a Rookie aims at the target itself, each level leads a fifth more (Officer a fifth, Veteran two, Ace three, Top Ace four), and a Jedi or a Sith Apprentice the whole lead. The aim cone is measured to that point; the firing range and the bursts are as before. Against a fighter crossing at 16,384 units (0.4 km), a Rookie's perfectly aimed shot misses by 2,000 units and a Jedi's by 17 (`ai/jedimaster_ai/cannons.py`). | The pilots worked out a lead scaled by skill, but rounded the shot's flight time down to whole seconds first, and a laser lives one second, so inside a laser's reach they almost never led: in effect they aimed at the target itself. Ship turrets and mines did lead, and still do. | Changed | [#312](https://github.com/evanleeturner/jedimaster-XVT/issues/312) |
+| Aim the cannons ahead of the target: where a shot fired now would meet it if it flew straight on at its speed. How far ahead depends on skill: a Rookie aims at the target itself, each level leads a fifth more (Officer a fifth, Veteran two, Ace three, Top Ace four), and a Jedi or a Sith Apprentice the whole lead. The aim cone is measured to that point; the firing range and the bursts are as before. Against a fighter crossing at 16,384 units (0.4 km), a Rookie's perfectly aimed shot misses by 2,000 units and a Jedi's by 17. Measured offline against an X-wing flying straight, turning, jinking and looping, from 8,192 to 40,960 units, each skill level hits with this share of its cannon shots: Rookie 14%, Officer 18%, Veteran 28%, Ace 36%, Top Ace 44%, Jedi 67%, Sith Apprentice 60%, Sith Lord 81% (`ai/jedimaster_ai/cannons.py`). | The pilots worked out a lead scaled by skill, but rounded the shot's flight time down to whole seconds first, and a laser lives one second, so inside a laser's reach they almost never led: in effect they aimed at the target itself. Ship turrets and mines did lead, and still do. | Changed | [#312](https://github.com/evanleeturner/jedimaster-XVT/issues/312) |
 | Decide every 16 ticks (64 milliseconds), a Sith Lord every 8 (32 milliseconds). Below a Sith Lord, skill changes the aim, not the reaction time. | Every 29 to 708 ticks (0.1 to 2.8 seconds), slower at lower levels. | Changed | |
 | Fly at full throttle in a fight, drop to two thirds once the target is caught (inside 8,192 units and dead ahead), and tier 0 flies at no more than seven tenths of full throttle. A Sith craft on a starfighter's tail, within 16,384 units (0.4 km), drops to one third throttle (below). | Unknown | New | |
 | Break off when too close: inside the target's clearance, or within 4,096 units (0.1 km) of a starship's or platform's hull, with the target within 45 degrees of the nose, or anywhere near a freighter, starship or platform. The craft turns a quarter turn away from the side of the target's nearest point and holds that heading until it is outside the clearance, for at most 1,000 ticks (4 seconds). The time limit stops a target that paces the craft from keeping it from firing. | Unknown | New | |
@@ -402,8 +402,10 @@ passed the target since the Lord's last look shows how far behind, beside
 or below the target it went, and half of their average miss moves its aim,
 at most 600 units each way, kept in the target's own directions so it
 turns with it; a new target starts again at none. At a freighter, starship
-or platform it leads as a Jedi does. These numbers are starting values: a
-tuning run and a flight will set them. Against a fighter turning at its
+or platform it leads as a Jedi does. Its numbers were swept offline and
+kept: no other value gained 5% of the hits. Its tracers matter most when the
+program sees its target late: without them it hit 11% less. A flight will
+check them. Against a fighter turning at its
 full rate at 32,768 units (0.8 km), a Jedi's perfectly aimed shot misses by
 850 units and a Sith Lord's by 13 (`ai/jedimaster_ai/lord.py`). A mission gives each computer craft a skill level
 from 0 to 5, and the launcher's mission reader names them Rookie,
@@ -443,7 +445,7 @@ every capital ship, at every level.
 ## Open AI issues
 
 <!-- ai-issues:start -->
-On 2026-10-17 (UTC) the label `ai` was on 18 open issues and 38 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
+On 2026-10-17 (UTC) the label `ai` was on 18 open issues and 39 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
 
 - [#2](https://github.com/evanleeturner/jedimaster-XVT/issues/2): Research: enemy pilots that fight as a pack
 - [#3](https://github.com/evanleeturner/jedimaster-XVT/issues/3): Research: "Jev", a language-model commander for the enemy side
@@ -461,8 +463,8 @@ On 2026-10-17 (UTC) the label `ai` was on 18 open issues and 38 closed ones. Thi
 - [#298](https://github.com/evanleeturner/jedimaster-XVT/issues/298): Host aborted once with heap corruption in a network game (free(): corrupted unsorted chunks); a replay did not crash
 - [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301): Shift+B resupply is always refused
 - [#306](https://github.com/evanleeturner/jedimaster-XVT/issues/306): Three more engine rules read the removed 1997 pilot's maneuver, so they never act for computer-flown craft
-- [#312](https://github.com/evanleeturner/jedimaster-XVT/issues/312): Computer pilots aim at where a target is, not where it will be: lead cannon shots by skill
 - [#313](https://github.com/evanleeturner/jedimaster-XVT/issues/313): A computer craft does not swerve away from a homing warhead coming at it
+- [#314](https://github.com/evanleeturner/jedimaster-XVT/issues/314): A computer craft with every system dead keeps trying to jump to hyperspace
 <!-- ai-issues:end -->
 
 ## The work behind it
@@ -475,9 +477,9 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 101 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 119 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 10,136 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Commits that changed the pilot program | 102 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 120 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 10,142 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
 | Lines of Python in its tests | 16,283 | the `.py` files in `ai/tests/`, counted with `wc -l` |
 | Test functions in those tests | 1,002 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 24 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
