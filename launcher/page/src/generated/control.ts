@@ -89,12 +89,12 @@ export interface ArtScalingChange {
   value: "whole_pixels" | "engine_fit" | "sharp_bilinear";
 }
 /**
- * Tell every open page to show one mission of the network menus.
+ * Tell every open page to show one mission of the network menus or a solo list.
  */
 export interface ShowMissionRequest {
   id: number;
   command: "page.show_mission";
-  args: ShowMissionArgs;
+  args: ShowMissionArgs | ShowSoloMissionArgs;
 }
 /**
  * The mission to show: its type and its id in the network menu of that type.
@@ -104,12 +104,20 @@ export interface ShowMissionArgs {
   id: number;
 }
 /**
- * Ask for the briefing bundle of one mission of the network menus.
+ * The mission to show: an entry of a sided kind's solo list, by side and file.
+ */
+export interface ShowSoloMissionArgs {
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  side: "rebel" | "imperial";
+  file: string;
+}
+/**
+ * Ask for the briefing bundle of one mission of the network menus or a solo list.
  */
 export interface BriefingGetRequest {
   id: number;
   command: "briefing.get";
-  args: BriefingGetArgs;
+  args: BriefingGetArgs | BriefingGetSoloArgs;
 }
 /**
  * The mission to brief: its type and its id in the network menu of that type.
@@ -117,6 +125,14 @@ export interface BriefingGetRequest {
 export interface BriefingGetArgs {
   mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
   id: number;
+}
+/**
+ * The mission to brief: an entry of a sided kind's solo list, by side and file.
+ */
+export interface BriefingGetSoloArgs {
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  side: "rebel" | "imperial";
+  file: string;
 }
 /**
  * Ask for the solo list of a kind of battle and side.
@@ -259,7 +275,7 @@ export interface OkReply {
  */
 export interface HelloResult {
   launcher_version: string;
-  schema_revision: 9;
+  schema_revision: 10;
 }
 /**
  * The install found (home shown as ~) and whether Balance of Power is in it.
@@ -693,7 +709,7 @@ export interface SettingsChangedPush {
  */
 export interface ShowMissionPush {
   event: "page.show_mission";
-  data: ShownMission;
+  data: ShownMission | ShownSoloMission;
 }
 /**
  * The mission a page is told to show.
@@ -701,6 +717,15 @@ export interface ShowMissionPush {
 export interface ShownMission {
   mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
   id: number;
+  title: string;
+}
+/**
+ * The solo mission a page is told to show: its side and file, as the solo list gives them.
+ */
+export interface ShownSoloMission {
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  side: "rebel" | "imperial";
+  file: string;
   title: string;
 }
 /**

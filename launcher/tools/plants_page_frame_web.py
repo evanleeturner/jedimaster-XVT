@@ -40,7 +40,7 @@ HTM = "page/public/index.html"
 CSS = "page/public/frame.css"
 N = "node: "
 B = "browser: "
-REQUESTS = B + "the frame's request follows the shown mission and team"
+REQUESTS = B + "the frame's request follows the selected type and the chosen side"
 PLACES = B + "framed at 2x: the frame and the map sit at the scaled places"
 OPTIONS_COPY = B + "framed: the options copy is out of the accessibility tree"
 
@@ -115,13 +115,6 @@ BACKGROUND_PLANTS: list[Plant] = [
         "const row = mission === null ? undefined : SIDED[mission];",
         'const row = SIDED[mission ?? "training"];',
         N + "background of null",
-    ),
-    plant(
-        "bg-side-always-rebel",
-        BGD,
-        'if (found?.[1] === "rebel" || found?.[1] === "imperial") return found[1];',
-        'if (found !== null) return "rebel";',
-        N + "the side comes from the under-map art name",
     ),
     plant(
         "bg-art-name-extension",
@@ -211,22 +204,15 @@ SKIN_PLANTS: list[Plant] = [
     plant(
         "main-frame-mission-unused",
         MAI,
-        "  frameSkin.setMission(view.shownType);\n",
+        "  frameSkin.setMission(view.sideKind);\n",
         "",
         REQUESTS,
     ),
     plant(
-        "main-frame-team-unused",
+        "main-frame-side-unused",
         MAI,
-        "  frameSkin.setTeam(background);\n",
+        "  frameSkin.setSide(view.sideFaction);\n",
         "",
-        REQUESTS,
-    ),
-    plant(
-        "panel-team-other-side",
-        PAN,
-        "this.onTeam(bundle.teams.find((t) => t.team === team)?.background ?? null);",
-        "this.onTeam(bundle.teams.find((t) => t.team !== team)?.background ?? null);",
         REQUESTS,
     ),
     plant(

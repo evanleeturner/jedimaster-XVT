@@ -417,7 +417,7 @@ test("framed: every control is at least 24 x 24 CSS px at 1x", async ({
   expect(small).toEqual([]);
 });
 
-test("the frame's request follows the shown mission and team", async ({
+test("the frame's request follows the selected type and the chosen side", async ({
   page,
   launcher,
 }) => {
@@ -431,17 +431,19 @@ test("the frame's request follows the shown mission and team", async ({
   await showMission(page, "Skirmish", "Combat");
   await expect(page.locator("#shown-title")).toHaveText("Skirmish");
   await expect(page.locator("#briefing-team")).toHaveValue("0");
-  await expect.poll(() => seen).toContain("frame-gameci.png");
-  await page.locator("#briefing-team").selectOption("1");
   await expect.poll(() => seen).toContain("frame-gamecr.png");
+  // The briefing's team picker no longer moves the background.
+  await page.locator("#briefing-team").selectOption("1");
   await page.locator("#briefing-team").selectOption("0");
   await expect(page.locator("#briefing-team")).toHaveValue("0");
+  await showMission(page, "Sweep", "Combat");
+  await expect(page.locator("#shown-title")).toHaveText("Sweep");
+  await expect.poll(() => seen).toContain("frame-gameci.png");
   expect(seen).toEqual([
     "frame-gametrn.png",
     "frame-gametr.png",
-    "frame-gamecn.png",
-    "frame-gameci.png",
     "frame-gamecr.png",
+    "frame-gameci.png",
   ]);
 });
 

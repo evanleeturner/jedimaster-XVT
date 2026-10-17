@@ -78,9 +78,6 @@ export class BriefingPanel {
   #opening = 0;
   #spoken = { caption: "", labels: "", highlight: "" };
 
-  /** Called with the shown team's under-map art name (null: none shown). */
-  onTeam: (background: string | null) => void = () => undefined;
-
   constructor() {
     for (const [button, element] of this.#buttons) {
       element.addEventListener("click", () => {
@@ -116,7 +113,6 @@ export class BriefingPanel {
     this.#note.hidden = false;
     this.#empty.hidden = false;
     setText(this.#note, note);
-    this.onTeam(null);
   }
 
   /** Set the art scaling and re-place the map. */
@@ -177,7 +173,6 @@ export class BriefingPanel {
     const player = loadBriefing(bundle, team);
     press(player, "stop");
     this.#player = player;
-    this.onTeam(bundle.teams.find((t) => t.team === team)?.background ?? null);
     this.#spoken = { caption: "", labels: "", highlight: "" };
     this.#place();
     this.#runFrame();

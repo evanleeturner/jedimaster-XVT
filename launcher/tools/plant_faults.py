@@ -23,7 +23,7 @@ Flow:
     ``plants_models_read``, ``plants_models_draw``,
     ``plants_models_output``, ``plants_movies_read``,
     ``plants_movies_subtitles``, ``plants_movies_output``, ``plants_page``, ``plants_bot``,
-    ``plants_launch``, ``plants_page_open``, ``plants_builds``,
+    ``plants_launch``, ``plants_page_open``, ``plants_page_show_solo``, ``plants_builds``,
     ``plants_matchmaker`` and ``plants_debrief``;
     ``PLANTS`` joins them in that order.
 
@@ -50,6 +50,7 @@ from pathlib import Path
 from plants_bot import BOT_PLANTS
 from plants_briefing import BRIEFING_PLANTS
 from plants_briefing_frame import BRIEFING_FRAME_PLANTS
+from plants_briefing_side import BRIEFING_SIDE_PLANTS
 from plants_briefing_under import BRIEFING_UNDER_PLANTS
 from plants_builds import BUILDS_PLANTS
 from plants_common import Plant
@@ -71,6 +72,7 @@ from plants_options import OPTIONS_PLANTS
 from plants_own_pilot import OWN_PILOT_PLANTS
 from plants_page import PAGE_PLANTS
 from plants_page_open import PAGE_OPEN_PLANTS
+from plants_page_show_solo import PAGE_SOLO_SHOW_PLANTS
 from plants_pictures import PICTURES_PLANTS
 from plants_pilot import PILOT_PLANTS
 from plants_setup import SETUP_PLANTS
@@ -134,8 +136,10 @@ PLANTS: list[Plant] = [
     *BRIEFING_PLANTS,
     *BRIEFING_UNDER_PLANTS,
     *BRIEFING_FRAME_PLANTS,
+    *BRIEFING_SIDE_PLANTS,
     *LAUNCH_PLANTS,
     *PAGE_OPEN_PLANTS,
+    *PAGE_SOLO_SHOW_PLANTS,
     *BUILDS_PLANTS,
     *MATCHMAKER_PLANTS,
     *DEBRIEF_PLANTS,

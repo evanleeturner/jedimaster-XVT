@@ -46,7 +46,7 @@ test("every request is read back as written", () => {
 
 test("every kind of ok reply is read back as written", () => {
   const results: unknown[] = [
-    { launcher_version: "0.1.0", schema_revision: 9 },
+    { launcher_version: "0.1.0", schema_revision: 10 },
     { found: true, path: "~/Games/XvT", balance_of_power: false },
     { found: false, path: null, balance_of_power: false },
     {
@@ -173,8 +173,8 @@ test("a reply refuses a result that matches no command", () => {
   refused(reply({ launcher_version: "0.1.0", schema_revision: 1 }));
   refused(reply({ shown: "yes" }));
   refused(reply({ shown: true, more: 1 }));
-  refused(reply({ launcher_version: 1, schema_revision: 9 }));
-  refused(reply({ launcher_version: "0.1.0", schema_revision: 8 }));
+  refused(reply({ launcher_version: 1, schema_revision: 10 }));
+  refused(reply({ launcher_version: "0.1.0", schema_revision: 9 }));
   refused(reply({ found: "yes", path: null, balance_of_power: false }));
   refused(reply({ found: true, path: 3, balance_of_power: false }));
   refused(reply({ settings: { art_scaling: "stretched" } }));
@@ -297,6 +297,89 @@ test("a show-mission request refuses a wrong type, id or shape", () => {
   refused(ask({ ...args, id: 0.5 }));
   refused(ask({ ...args, id: "2" }));
   refused(ask({ ...args, more: 1 }));
+});
+
+test("a push to show a solo mission is read back as written", () => {
+  for (const [mission_type, side] of [
+    ["training", "rebel"],
+    ["combat", "imperial"],
+    ["campaign", "rebel"],
+  ]) {
+    const push = {
+      event: "page.show_mission",
+      data: { mission_type, side, file: "train01.tie", title: "First" },
+    };
+    assert.deepEqual(accepted(push), push);
+  }
+});
+
+test("a solo show-mission push refuses a wrong payload, each with its reason", () => {
+  const data = {
+    mission_type: "training",
+    side: "rebel",
+    file: "a.tie",
+    title: "t",
+  };
+  const push = (changed: unknown): string =>
+    refused({ event: "page.show_mission", data: changed });
+  const solo = "page.show_mission data by side and file has wrong values";
+  assert.equal(push({ ...data, side: "none" }), solo);
+  assert.equal(push({ ...data, side: "sith" }), solo);
+  assert.equal(push({ ...data, mission_type: "melee" }), solo);
+  assert.equal(push({ ...data, mission_type: "skirmish" }), solo);
+  assert.equal(push({ ...data, file: 4 }), solo);
+  assert.equal(push({ ...data, title: 4 }), solo);
+  const wrong = "page.show_mission data has wrong fields";
+  assert.equal(push({ ...data, more: 1 }), wrong);
+  assert.equal(push({ ...data, id: 2 }), wrong);
+  assert.equal(
+    push({ mission_type: "training", side: "rebel", file: "a" }),
+    wrong,
+  );
+  assert.equal(
+    push({ mission_type: "training", id: 2, file: "a", title: "t" }),
+    wrong,
+  );
+  assert.equal(
+    push({ mission_type: "training", side: "rebel", title: "t" }),
+    wrong,
+  );
+});
+
+test("show-mission and briefing.get requests by side and file are read back as written", () => {
+  for (const command of ["page.show_mission", "briefing.get"]) {
+    const request = {
+      id: 3,
+      command,
+      args: { mission_type: "combat", side: "imperial", file: "comb03.tie" },
+    };
+    assert.deepEqual(accepted(request), request);
+  }
+});
+
+test("a request by side and file refuses a wrong shape, with its own reason", () => {
+  for (const command of ["page.show_mission", "briefing.get"]) {
+    const args = { mission_type: "training", side: "rebel", file: "a.tie" };
+    const ask = (changed: unknown): string =>
+      refused({ id: 1, command, args: changed });
+    const solo = `${command} by side and file takes a sided kind, its side and a file`;
+    assert.equal(ask({ ...args, side: "none" }), solo);
+    assert.equal(ask({ ...args, side: "sith" }), solo);
+    assert.equal(ask({ ...args, mission_type: "melee" }), solo);
+    assert.equal(ask({ ...args, mission_type: "melee", side: "none" }), solo);
+    assert.equal(ask({ ...args, file: "" }), solo);
+    assert.equal(ask({ ...args, file: "a".repeat(65) }), solo);
+    assert.equal(ask({ ...args, file: 3 }), solo);
+    const other = `${command} takes a mission type and an id, or a kind, side and file`;
+    assert.equal(ask({ ...args, more: 1 }), other);
+    assert.equal(ask({ ...args, id: 2 }), other);
+    assert.equal(ask({ mission_type: "training", side: "rebel" }), other);
+    assert.equal(
+      ask({ mission_type: "training", id: 2, file: "a.tie" }),
+      other,
+    );
+    assert.equal(ask({ side: "rebel", file: "a.tie" }), other);
+  }
 });
 
 test("anything that is not an object is refused", () => {

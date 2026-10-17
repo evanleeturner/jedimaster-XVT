@@ -721,3 +721,126 @@ html.framed .debrief-page {
   max-block-size: none;
   overflow: visible;
 }
+
+/*
+ * The eight side buttons of the 1997 Mission Selection, down the left edge.
+ *
+ * Each button sits on the game's own button (x 22 to 42, 24 or 25 rows
+ * tall); its box is widened to 24 by 25 so a pointer or finger has room. The
+ * pictures (the pressed look and the lights) are separate image layers
+ * drawn at the screen's top left, and the buttons carry no picture of
+ * their own. Outside the frame none of this shows and none of it is in the
+ * tab order.
+ */
+.side-col,
+.side-sprites,
+.side-note {
+  display: none;
+}
+
+html.framed .side-col {
+  display: block;
+}
+
+html.framed .side-sprites {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  inline-size: 640px;
+  block-size: 480px;
+  pointer-events: none;
+}
+
+html.framed .side-sprites img {
+  position: absolute;
+  inset: 0 auto auto 0;
+  max-inline-size: none;
+  image-rendering: pixelated;
+}
+
+html.framed .side-btn {
+  position: absolute;
+  inset-inline-start: 20px;
+  z-index: 3;
+  inline-size: 24px;
+  block-size: 25px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+html.framed .side-btn[data-side="training"] {
+  inset-block-start: 114px;
+}
+
+html.framed .side-btn[data-side="melee"] {
+  inset-block-start: 142px;
+}
+
+html.framed .side-btn[data-side="tournament"] {
+  inset-block-start: 170px;
+}
+
+html.framed .side-btn[data-side="combat"] {
+  inset-block-start: 198px;
+}
+
+html.framed .side-btn[data-side="battle"] {
+  inset-block-start: 226px;
+}
+
+html.framed .side-btn[data-side="campaign"] {
+  inset-block-start: 254px;
+}
+
+html.framed .side-btn[data-side="rebel"] {
+  inset-block-start: 306px;
+}
+
+html.framed .side-btn[data-side="imperial"] {
+  inset-block-start: 334px;
+}
+
+/* The tooltip: a plate that keeps its contrast over any art (white on
+   rgb(10 6 44) at 98% is above 17:1 even over white). */
+html.framed .side-tip {
+  position: absolute;
+  inset: 3px auto auto 28px;
+  z-index: 60;
+  display: none;
+  padding: 2px 6px;
+  background: var(--drop);
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+html.framed .side-btn:hover .side-tip,
+html.framed .side-btn:focus-visible .side-tip {
+  display: block;
+}
+
+html.framed .side-note {
+  position: absolute;
+  inset: 438px auto auto 84px;
+  z-index: 2;
+  display: block;
+  inline-size: 360px;
+  margin: 0;
+  background: var(--plate);
+  padding: 1px 4px;
+  color: #ffffff;
+  font-size: 11px;
+}
+
+html.framed .side-note:empty {
+  padding: 0;
+  background: none;
+}

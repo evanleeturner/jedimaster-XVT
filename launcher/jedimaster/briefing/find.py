@@ -57,18 +57,32 @@ def mission_file(install: Path, mission_type: str, ident: int) -> Path | None:
         if not entry.file:
             logger.debug("entry %d of %s names no file", ident, mission_type)
             return None
-        try:
-            game_path = sequence_game_path(mission_type, entry.file)
-            found = resolve_game_path(install, game_path)
-        except ValueError as exc:
-            logger.warning("entry %d: %s", ident, exc)
-            return None
-        if found is None or not found.is_file():
-            logger.debug("entry %d: file %s is missing", ident, entry.file)
-            return None
-        return found
+        return _existing_file(install, mission_type, entry.file)
     logger.debug("no entry %d in the %s menu", ident, mission_type)
     return None
+
+
+def solo_mission_file(install: Path, mission_type: str, file: str) -> Path | None:
+    """Return the mission file a solo list entry names, as the solo launch finds it.
+
+    ``file`` must be a file name a solo list offered (the caller matched it
+    with ``solo.find``); this never builds a path from text that was not
+    matched. Returns None when the file is missing. Raises nothing for a
+    known mission type.
+    """
+    return _existing_file(install, mission_type, file)
+
+
+def _existing_file(install: Path, mission_type: str, file: str) -> Path | None:
+    try:
+        found = resolve_game_path(install, sequence_game_path(mission_type, file))
+    except ValueError as exc:
+        logger.warning("mission file %s: %s", file, exc)
+        return None
+    if found is None or not found.is_file():
+        logger.debug("mission file %s of %s is missing", file, mission_type)
+        return None
+    return found
 
 
 def directory_of(path: Path) -> str | None:

@@ -11,8 +11,10 @@ Flow:
     a team and the flight groups; ``screen_picture`` lays the first three
     layers over the whole 640 by 480 screen; ``saved_picture`` crops the
     panel from that screen and lays the last two over it, in 5-6-5 pixels;
-    ``widened_png`` turns pixels into an 8-bit PNG, each channel widened by repeating its top bits so that
-    packing the PNG's colors gives the 5-6-5 pixels back.
+    ``widened_png`` turns pixels into an 8-bit PNG, each channel widened by
+    repeating its top bits so that packing the PNG's colors gives the 5-6-5
+    pixels back; ``sprite_png`` does so for one bitmap at its own size with
+    index 0 clear.
 
 Invariants:
     - The screen is 640 by 480; a layer sits at (0, 0) and only its part
@@ -207,19 +209,40 @@ def widen6(value: int) -> int:
 
 
 def widened_png(
-    panel: Sequence[int], width: int = PANEL_WIDTH, height: int = PANEL_HEIGHT
+    panel: Sequence[int],
+    width: int = PANEL_WIDTH,
+    height: int = PANEL_HEIGHT,
+    clear: Sequence[bool] | None = None,
 ) -> bytes:
-    """Return ``panel`` (360 by 240 unless sized) as an opaque 8-bit PNG.
+    """Return ``panel`` (360 by 240 unless sized) as an 8-bit PNG.
 
     Each 5-6-5 pixel's channels are widened (``widen5``, ``widen6``), so
-    packing the PNG's colors to 5-6-5 gives the pixel back. Raises
-    ``ValueError`` when ``panel`` is not ``width`` times ``height`` pixels.
+    packing the PNG's colors to 5-6-5 gives the pixel back. The picture is
+    opaque, except that a pixel whose entry in ``clear`` is True gets alpha
+    0. Raises ``ValueError`` when ``panel`` (or ``clear``) is not ``width``
+    times ``height`` pixels.
     """
     if len(panel) != width * height:
         raise ValueError(f"{len(panel)} pixels are not a {width}x{height} panel")
+    if clear is not None and len(clear) != len(panel):
+        raise ValueError(f"{len(clear)} clear marks for {len(panel)} pixels")
     rgba = bytearray()
-    for pixel in panel:
+    for at, pixel in enumerate(panel):
+        alpha = 0 if clear is not None and clear[at] else 255
         rgba += bytes(
-            (widen5(pixel >> 11), widen6((pixel >> 5) & 63), widen5(pixel & 31), 255)
+            (widen5(pixel >> 11), widen6((pixel >> 5) & 63), widen5(pixel & 31), alpha)
         )
     return rgba_png(width, height, bytes(rgba))
+
+
+def sprite_png(bitmap: BmpFile) -> bytes:
+    """Return ``bitmap`` as an 8-bit PNG at its own size, index 0 clear.
+
+    Every other pixel is its palette entry through the same 5-6-5 packing
+    and widening the frame uses; index 0 gets alpha 0. Raises ``ValueError``
+    for a bitmap with no pixels. Does not check the bitmap's size.
+    """
+    colors = [color_565(*entry) for entry in bitmap.palette]
+    pixels = [colors[index] for index in bitmap.pixels]
+    clear = [index == TRANSPARENT for index in bitmap.pixels]
+    return widened_png(pixels, bitmap.width, bitmap.height, clear)

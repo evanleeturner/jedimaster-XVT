@@ -3,8 +3,8 @@
 // Purpose: wear the 1997 setup screen's metal frame (read from the player's
 // own install) as a skin over the page's plain layout, whenever the window
 // has room for it.
-// Flow: the page tells the skin the shown mission's kind, the shown team's
-// background and the art scaling; the skin picks the frame picture (see
+// Flow: the page tells the skin the selected mission type, the pilot's
+// chosen side and the art scaling; the skin picks the frame picture (see
 // `background.ts`), loads it from `/art/frame/<name>`, and on every change
 // of picture, scaling, window size or forced colors decides whether the
 // page is framed. Framed sets the `framed` class on the root element, the
@@ -20,12 +20,7 @@
 import type { Scaling } from "../briefing/layout.ts";
 import { logger } from "../logger.ts";
 import type { Side } from "./background.ts";
-import {
-  FRAME_PATH,
-  frameArt,
-  frameBackground,
-  teamKind,
-} from "./background.ts";
+import { FRAME_PATH, frameArt, frameBackground } from "./background.ts";
 import type { FrameLayout } from "./layout.ts";
 import { FRAME_H, FRAME_W, frameLayout } from "./layout.ts";
 
@@ -39,7 +34,7 @@ export class FrameSkin {
   readonly #loaded = new Map<string, HTMLImageElement>();
   #scaling: Scaling = "whole_pixels";
   #mission: string | null = null;
-  #side: Side = "neutral";
+  #side: Side = "rebel";
   #wanted = "";
   #image: HTMLImageElement | null = null;
   #ticket = 0;
@@ -65,15 +60,15 @@ export class FrameSkin {
     this.#apply();
   }
 
-  /** Set the shown mission's kind (`training`...), or null for none. */
+  /** Set the selected mission type (`training`...), or null for none. */
   setMission(kind: string | null): void {
     this.#mission = kind;
     this.#choose();
   }
 
-  /** Set the shown team's under-map art name, or null for none. */
-  setTeam(art: string | null): void {
-    this.#side = teamKind(art);
+  /** Set the pilot's chosen side. */
+  setSide(side: Side): void {
+    this.#side = side;
     this.#choose();
   }
 

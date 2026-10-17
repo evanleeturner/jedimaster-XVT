@@ -152,8 +152,8 @@ KEPT_PLANTS: list[Plant] = [
     plant(
         "unlisted-clears-shown",
         CTL,
-        '        return {"shown": False}',
-        '        self._shown = None\n        return {"shown": False}',
+        'args["id"], kind)\n        return {"shown": False}',
+        'args["id"], kind)\n        self._shown = None\n        return {"shown": False}',
         TS + "test_a_page_that_connects_after_a_show_gets_the_mission_after_the_status",
     ),
 ]

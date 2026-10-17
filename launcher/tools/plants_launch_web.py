@@ -228,7 +228,7 @@ CODEC_PLANTS: list[Plant] = [
     plant(
         "revision",
         COD,
-        "schema_revision === 9",
+        "schema_revision === 10",
         "schema_revision === 8",
         ACC + "reply-ok-hello.json",
     ),

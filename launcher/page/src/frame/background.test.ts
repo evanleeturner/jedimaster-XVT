@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { frameArt, frameBackground, teamKind } from "./background.ts";
+import { frameArt, frameBackground } from "./background.ts";
 
 const TABLE: readonly (readonly [string | null, string, string, string])[] = [
   // kind, rebel, imperial, neutral
@@ -22,15 +22,6 @@ for (const [kind, rebel, imperial, neutral] of TABLE) {
     assert.equal(frameBackground(kind, "neutral"), neutral);
   });
 }
-
-test("the side comes from the under-map art name, else neutral", () => {
-  assert.equal(teamKind("under-rebel.png"), "rebel");
-  assert.equal(teamKind("under-imperial.png"), "imperial");
-  assert.equal(teamKind("under-neutral.png"), "neutral");
-  assert.equal(teamKind("under-green.png"), "neutral");
-  assert.equal(teamKind("nonsense"), "neutral");
-  assert.equal(teamKind(null), "neutral");
-});
 
 test("the frame art name", () => {
   assert.equal(frameArt("gametr"), "frame-gametr.png");

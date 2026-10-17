@@ -31,6 +31,7 @@ from .build import BriefingBuildError
 from .build import build_bundle
 from .find import directory_of
 from .find import mission_file
+from .find import solo_mission_file
 
 logger = logging.getLogger(__name__)
 
@@ -41,4 +42,5 @@ __all__ = [
     "build_bundle",
     "directory_of",
     "mission_file",
+    "solo_mission_file",
 ]

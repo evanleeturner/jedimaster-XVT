@@ -304,7 +304,7 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-cod-revision",
         "page/src/codec.ts",
-        "schema_revision === 9",
+        "schema_revision === 10",
         "schema_revision !== 0",
         ("node: a hello reply of another revision is refused",),
     ),
@@ -485,8 +485,8 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-main-wrong-mission-asked",
         "page/src/main.ts",
-        "id: message.data.id },",
-        "id: message.data.id + 1 },",
+        "args: missionArgs(message.data.mission_type, keyOfShown(message.data)),",
+        'args: missionArgs(message.data.mission_type, { by: "id", id: 0 }),',
         (
             "browser: Play, Stop, Rewind and Forward work from the keyboard",
             "browser: a control that is not offered stays reachable and does nothing",

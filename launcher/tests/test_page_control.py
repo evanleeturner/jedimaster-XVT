@@ -61,7 +61,7 @@ def test_hello(control):
     assert reply == {
         "id": 5,
         "ok": True,
-        "result": {"launcher_version": LAUNCHER_VERSION, "schema_revision": 9},
+        "result": {"launcher_version": LAUNCHER_VERSION, "schema_revision": 10},
     }
 
 
@@ -380,7 +380,7 @@ def shown(control: Control, mission_type: str, ident: int):
     return check_valid(outcome.reply), outcome.pushes
 
 
-def test_the_list_has_fifteen_commands_and_revision_9():
+def test_the_list_has_fifteen_commands_and_revision_10():
     assert len(COMMANDS) == 15 and COMMANDS[-1] == "results.get"
     assert COMMANDS[6] == "briefing.get"
     assert COMMANDS[-8:] == (
@@ -393,7 +393,7 @@ def test_the_list_has_fifteen_commands_and_revision_9():
         "results.list",
         "results.get",
     )
-    assert SCHEMA_REVISION == 9
+    assert SCHEMA_REVISION == 10
 
 
 def test_the_mission_types_of_the_list_are_the_games_six():

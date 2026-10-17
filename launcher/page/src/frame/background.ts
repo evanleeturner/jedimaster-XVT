@@ -1,15 +1,14 @@
 // Which of the game's twelve menu backgrounds the page sits on.
 //
 // Purpose: pick the frame picture the way the 1997 Mission Selection picks
-// its background, from the shown mission's kind and the side of the shown
-// team's briefing background.
-// Flow: `teamKind` reads the side from a bundle's under-map art name;
-// `frameBackground` applies the table; `frameArt` names the picture the
+// its background, from the selected mission type and the pilot's chosen side.
+// Flow: `frameBackground` applies the table; `frameArt` names the picture the
 // frame route serves.
-// Invariants: the mission's side stands in for the pilot's faction (the
-// page has no pilot yet); a side that is neither rebel nor imperial, or no
-// side at all, is neutral; melee is `gamemn` on every side; tournament,
-// any other kind and no mission shown are `gametrn`.
+// Invariants: the side is the pilot's chosen side (the Rebel or Imperial pilot
+// side button), not the side of the mission's team; `neutral` is the
+// network game's column, which no solo page asks for; a side that is neither
+// rebel nor imperial is neutral; melee is `gamemn` on every side;
+// tournament, any other kind and no type selected are `gametrn`.
 
 export type Side = "rebel" | "imperial" | "neutral";
 
@@ -24,16 +23,7 @@ const SIDED: Readonly<Record<string, readonly [string, string, string]>> = {
   melee: ["gamemn", "gamemn", "gamemn"],
 };
 
-const UNDER_NAME = /^under-(rebel|imperial|neutral)\.png$/;
-
-/** Return the side of an under-map art name (`under-rebel.png`), else neutral. */
-export function teamKind(art: string | null): Side {
-  const found = art === null ? null : UNDER_NAME.exec(art);
-  if (found?.[1] === "rebel" || found?.[1] === "imperial") return found[1];
-  return "neutral";
-}
-
-/** Return the background file's stem for a mission kind and a side. */
+/** Return the background file's stem for a selected kind and the chosen side. */
 export function frameBackground(mission: string | null, side: Side): string {
   const row = mission === null ? undefined : SIDED[mission];
   if (row === undefined) return "gametrn";

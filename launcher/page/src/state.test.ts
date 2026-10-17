@@ -103,7 +103,7 @@ test("a hello reply gives the launcher's version", () => {
       message({
         id: 1,
         ok: true,
-        result: { launcher_version: "2.0", schema_revision: 9 },
+        result: { launcher_version: "2.0", schema_revision: 10 },
       }),
     ),
   );
@@ -745,4 +745,164 @@ test("the shown heading names the kind, the group and the title; it is null befo
     group: "Basic",
     title: "First",
   });
+});
+
+const SOLO_TRAINING_REBEL: Message = {
+  id: 9,
+  ok: true,
+  result: {
+    mission_type: "training",
+    side: "rebel",
+    game_path: "train\\rebel.lst",
+    resolved: true,
+    entries: [{ section: "", file: "a.tie", title: "First" }],
+  },
+};
+const SOLO_TRAINING_IMPERIAL: Message = {
+  id: 10,
+  ok: true,
+  result: {
+    mission_type: "training",
+    side: "imperial",
+    game_path: "train\\imperial.lst",
+    resolved: true,
+    entries: [{ section: "", file: "B.TIE", title: "Second" }],
+  },
+};
+const BOTH_TRAINING: MenuData = {
+  ...TRAINING,
+  entries: [
+    { section: "", id: 1, available: true, file: "A.TIE", title: "First" },
+    { section: "", id: 2, available: true, file: "B.TIE", title: "Second" },
+  ],
+};
+const MENUS: Message = {
+  id: 8,
+  ok: true,
+  result: { menus: [BOTH_TRAINING] },
+};
+
+function shownPush(id: number): Message {
+  return {
+    event: "page.show_mission",
+    data: { mission_type: "training", id, title: "T" },
+  };
+}
+
+test("the side buttons start with nothing selected and the rebel pilot chosen", () => {
+  const view = describe(initialState());
+  assert.equal(view.sideKind, null);
+  assert.equal(view.sideFaction, "rebel");
+  assert.equal(view.sideNote, null);
+  assert.deepEqual(
+    view.side.buttons.filter((b) => b.selected).map((b) => b.id),
+    ["rebel"],
+  );
+});
+
+test("a solo list reply is kept by file, lowercased", () => {
+  const state = play(message(SOLO_TRAINING_IMPERIAL));
+  assert.deepEqual(state.soloLists, { "training:imperial": ["b.tie"] });
+});
+
+test("a shown mission selects its type and the side whose list holds it", () => {
+  const state = play(
+    message(MENUS),
+    message(SOLO_TRAINING_REBEL),
+    message(SOLO_TRAINING_IMPERIAL),
+    message(shownPush(2)),
+  );
+  const view = describe(state);
+  assert.equal(view.sideKind, "training");
+  assert.equal(view.sideFaction, "imperial");
+  assert.deepEqual(state.side.remembered, {
+    "training:imperial": { by: "file", side: "imperial", file: "b.tie" },
+  });
+  assert.equal(state.sideSettled, true);
+});
+
+test("a mission shown before the lists came is placed when they arrive", () => {
+  const early = play(message(shownPush(2)));
+  assert.equal(early.sideSettled, false);
+  assert.equal(describe(early).sideFaction, "rebel");
+  const state = [MENUS, SOLO_TRAINING_REBEL, SOLO_TRAINING_IMPERIAL].reduce(
+    (before, next) => reduce(before, message(next)),
+    early,
+  );
+  assert.equal(state.sideSettled, true);
+  assert.equal(describe(state).sideFaction, "imperial");
+  assert.deepEqual(state.side.remembered["training:imperial"], {
+    by: "file",
+    side: "imperial",
+    file: "b.tie",
+  });
+});
+
+function soloPush(side: "rebel" | "imperial", file: string): Message {
+  return {
+    event: "page.show_mission",
+    data: { mission_type: "training", side, file, title: "T" },
+  };
+}
+
+test("a solo mission shown sets its side at once and marks the Missions row by file", () => {
+  const state = play(message(MENUS), message(soloPush("imperial", "b.tie")));
+  assert.equal(state.sideSettled, true);
+  assert.equal(describe(state).sideFaction, "imperial");
+  assert.deepEqual(state.side.remembered, {
+    "training:imperial": { by: "file", side: "imperial", file: "b.tie" },
+  });
+  const view = describe(state);
+  assert.deepEqual(
+    view.kinds[0]?.groups.flatMap((g) => g.missions.map((m) => m.current)),
+    [false, true],
+  );
+  assert.deepEqual(
+    view.menus[0]?.entries.map((e) => e.current),
+    [false, true],
+  );
+  assert.equal(view.shownText, "Showing T");
+});
+
+test("a solo mission is matched to a network row by file in any letter case, within its kind", () => {
+  const state = play(message(MENUS), message(soloPush("rebel", "A.Tie")));
+  assert.deepEqual(
+    describe(state).menus[0]?.entries.map((e) => e.current),
+    [true, false],
+  );
+});
+
+test("a solo-only file marks no row and still shows", () => {
+  const state = play(message(MENUS), message(soloPush("rebel", "only.tie")));
+  const view = describe(state);
+  assert.deepEqual(
+    view.menus[0]?.entries.map((e) => e.current),
+    [false, false],
+  );
+  assert.equal(view.shownText, "Showing T");
+  assert.equal(view.sideKind, "training");
+});
+
+test("a network shown mission still marks its row by id", () => {
+  const state = play(message(MENUS), message(shownPush(2)));
+  assert.deepEqual(
+    describe(state).menus[0]?.entries.map((e) => e.current),
+    [false, true],
+  );
+});
+
+test("a pressed side button sets the model and its note; the next push clears the note", () => {
+  const pressed = reduce(initialState(), {
+    kind: "side-pressed",
+    press: {
+      model: { kind: "battle", side: "imperial", remembered: {} },
+      show: null,
+      note: "No Battle mission is available to show.",
+    },
+  });
+  const view = describe(pressed);
+  assert.equal(view.sideKind, "battle");
+  assert.equal(view.sideFaction, "imperial");
+  assert.equal(view.sideNote, "No Battle mission is available to show.");
+  assert.equal(describe(reduce(pressed, message(shownPush(1)))).sideNote, null);
 });

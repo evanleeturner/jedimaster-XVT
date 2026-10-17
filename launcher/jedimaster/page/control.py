@@ -43,9 +43,11 @@ from typing import Any
 from ..briefing import BriefingBuildError
 from ..briefing import build_bundle
 from ..briefing import mission_file
+from ..briefing import solo_mission_file
 from ..install import BALANCE_OF_POWER
 from ..install import child_in_any_case
 from ..install import resolve_game_path
+from ..launch.model import SIDED_TYPES
 from ..lists import menu_view
 from ..lists import read_menu
 from ..lists.game import menu_game_path
@@ -70,7 +72,9 @@ from .protocol import SETTINGS
 from .protocol import UNKNOWN_ID
 from .results import ResultStore
 from .settings import SettingsStore
+from .solo import find
 from .solo import side_problem
+from .solo import solo_menu
 
 logger = logging.getLogger(__name__)
 
@@ -132,13 +136,31 @@ def _set_args(args: Json) -> str | None:
 
 
 def _show_args(args: Json) -> str | None:
+    if set(args) == {"mission_type", "side", "file"}:
+        return _solo_show_args(args)
     if set(args) != {"mission_type", "id"}:
-        return "arguments must be exactly mission_type and id"
+        return "arguments must be mission_type and id, or mission_type, side and file"
     kind, ident = args["mission_type"], args["id"]
     if not isinstance(kind, str) or kind not in MISSION_TYPE_NAMES:
         return f"no such mission type; one of {list(MISSION_TYPE_NAMES)}"
     if not _is_int(ident) or not 0 <= ident <= MAX_ID:
         return "id must be a whole number from 0 to 2147483647"
+    return None
+
+
+def _solo_show_args(args: Json) -> str | None:
+    kind, side, file = args["mission_type"], args["side"], args["file"]
+    if not isinstance(kind, str) or kind not in MISSION_TYPE_NAMES:
+        return f"no such mission type; one of {list(MISSION_TYPE_NAMES)}"
+    if kind not in SIDED_TYPES:
+        return f"a {kind} mission is shown by id, not by side and file"
+    if not isinstance(side, str):
+        return "side must be text"
+    problem = side_problem(kind, side)
+    if problem is not None:
+        return problem
+    if not isinstance(file, str) or not 1 <= len(file) <= 64:
+        return "file must be text of 1 to 64 characters"
     return None
 
 
@@ -489,27 +511,49 @@ class Control:
         return result
 
     def _show_mission(self, args: Json) -> Json:
-        menu = self._menu(args["mission_type"])
-        for entry in menu["entries"]:
+        kind = args["mission_type"]
+        if "file" in args:
+            entry = find(solo_menu(self.install, kind, args["side"]), args["file"])
+            if entry is None:
+                logger.debug(
+                    "no %s %s solo mission %s", args["side"], kind, args["file"]
+                )
+                return {"shown": False}
+            data = {
+                "mission_type": kind,
+                "side": args["side"],
+                "file": entry["file"],
+                "title": entry["title"],
+            }
+            return self._show(data)
+        for entry in self._menu(kind)["entries"]:
             if entry["id"] == args["id"]:
-                self._shown = {
-                    "event": "page.show_mission",
-                    "data": {
-                        "mission_type": args["mission_type"],
-                        "id": args["id"],
-                        "title": entry["title"],
-                    },
-                }
-                self._pushes.append(self._shown)
-                return {"shown": True}
-        logger.debug("no mission %d in the %s menu", args["id"], args["mission_type"])
+                data = {"mission_type": kind, "id": args["id"], "title": entry["title"]}
+                return self._show(data)
+        logger.debug("no mission %d in the %s menu", args["id"], kind)
         return {"shown": False}
+
+    def _show(self, data: Json) -> Json:
+        self._shown = {"event": "page.show_mission", "data": data}
+        self._pushes.append(self._shown)
+        return {"shown": True}
+
+    def _briefing_path(self, args: Json) -> Path | None:
+        assert self.install is not None
+        kind = args["mission_type"]
+        if "file" not in args:
+            return mission_file(self.install, kind, args["id"])
+        entry = find(solo_menu(self.install, kind, args["side"]), args["file"])
+        if entry is None:
+            logger.debug("no %s %s solo mission %s", args["side"], kind, args["file"])
+            return None
+        return solo_mission_file(self.install, kind, entry["file"])
 
     def _briefing_get(self, args: Json) -> Json:
         missing: Json = {"found": False, "bundle": None}
         if self.install is None:
             return missing
-        path = mission_file(self.install, args["mission_type"], args["id"])
+        path = self._briefing_path(args)
         if path is None:
             return missing
         try:

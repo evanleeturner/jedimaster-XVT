@@ -263,15 +263,15 @@ BRIEFING_UNDER_PLANTS: list[Plant] = [
     Plant(
         "briefing-under-png-translucent",
         U,
-        "widen5(pixel & 31), 255)",
+        "widen5(pixel & 31), alpha)",
         "widen5(pixel & 31), 254)",
         (TU + "test_every_16_bit_pixel_survives_the_png_round_trip",),
     ),
     Plant(
         "briefing-under-png-red-blue-swapped",
         U,
-        "(widen5(pixel >> 11), widen6((pixel >> 5) & 63), widen5(pixel & 31), 255)",
-        "(widen5(pixel & 31), widen6((pixel >> 5) & 63), widen5(pixel >> 11), 255)",
+        "(widen5(pixel >> 11), widen6((pixel >> 5) & 63), widen5(pixel & 31), alpha)",
+        "(widen5(pixel & 31), widen6((pixel >> 5) & 63), widen5(pixel >> 11), alpha)",
         (TU + "test_every_16_bit_pixel_survives_the_png_round_trip",),
     ),
     Plant(

@@ -329,6 +329,87 @@
           </button>
         </div>
       </div>
+      <div class="side-col side-types" role="group" aria-label="Mission type">
+        <span class="visually-hidden" id="side-step-hint"
+          >Shows the next mission. With Shift, the previous one.</span
+        >
+        <button
+          type="button"
+          class="side-btn"
+          data-side="training"
+          aria-label="Training"
+          aria-pressed="false"
+        >
+          <span class="side-tip" aria-hidden="true">Training</span>
+        </button>
+        <button
+          type="button"
+          class="side-btn"
+          data-side="melee"
+          aria-label="Melee"
+          aria-pressed="false"
+        >
+          <span class="side-tip" aria-hidden="true">Melee</span>
+        </button>
+        <button
+          type="button"
+          class="side-btn"
+          data-side="tournament"
+          aria-label="Tournament"
+          aria-pressed="false"
+        >
+          <span class="side-tip" aria-hidden="true">Tournament</span>
+        </button>
+        <button
+          type="button"
+          class="side-btn"
+          data-side="combat"
+          aria-label="Combat engagement"
+          aria-pressed="false"
+        >
+          <span class="side-tip" aria-hidden="true">Combat engagement</span>
+        </button>
+        <button
+          type="button"
+          class="side-btn"
+          data-side="battle"
+          aria-label="Battle"
+          aria-pressed="false"
+        >
+          <span class="side-tip" aria-hidden="true">Battle</span>
+        </button>
+        <button
+          type="button"
+          class="side-btn"
+          data-side="campaign"
+          aria-label="Campaign"
+          aria-pressed="false"
+        >
+          <span class="side-tip" aria-hidden="true">Campaign</span>
+        </button>
+      </div>
+      <div class="side-col side-sides" role="group" aria-label="Pilot side">
+        <button
+          type="button"
+          class="side-btn"
+          data-side="rebel"
+          aria-label="Rebel pilot"
+          aria-pressed="false"
+        >
+          <span class="side-tip" aria-hidden="true">Rebel pilot</span>
+        </button>
+        <button
+          type="button"
+          class="side-btn"
+          data-side="imperial"
+          aria-label="Imperial pilot"
+          aria-pressed="false"
+        >
+          <span class="side-tip" aria-hidden="true">Imperial pilot</span>
+        </button>
+      </div>
+      <div class="side-sprites" id="side-sprites" aria-hidden="true"></div>
+      <p class="side-note" id="side-note" role="status"></p>
       <main class="page-main" id="main" tabindex="-1">
         <p id="mission-shown" class="mission-shown" aria-live="polite"></p>
         <div class="shown-heading" id="shown-heading" hidden>

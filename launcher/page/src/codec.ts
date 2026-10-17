@@ -30,6 +30,7 @@ import type {
   ShowMissionPush,
   ShowMissionRequest,
   ShownMission,
+  ShownSoloMission,
   StatusPush,
 } from "./generated/control.ts";
 
@@ -70,6 +71,8 @@ export const MISSION_TYPES = [
   "campaign",
 ] as const;
 export type MissionType = ShownMission["mission_type"];
+/** A mission the page was told to show: a network menu entry or a solo list entry. */
+export type Shown = ShownMission | ShownSoloMission;
 export const SIDES = ["rebel", "imperial", "none"] as const;
 export const OPTION_NAMES = [
   "difficulty",
@@ -149,6 +152,10 @@ function isSide(value: unknown): value is (typeof SIDES)[number] {
 
 function isPlayer(value: unknown): value is string {
   return typeof value === "string" && PLAYER.test(value);
+}
+
+function isPilotSide(value: unknown): value is ShownSoloMission["side"] {
+  return value === "rebel" || value === "imperial";
 }
 
 function sideFits(type: MissionType, side: string): boolean {
@@ -264,7 +271,7 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   if (!isRecord(value)) return fail("a result must be an object");
   if (hasExactly(value, ["launcher_version", "schema_revision"])) {
     const { launcher_version, schema_revision } = value;
-    if (typeof launcher_version === "string" && schema_revision === 9) {
+    if (typeof launcher_version === "string" && schema_revision === 10) {
       return { value: { launcher_version, schema_revision } };
     }
     return fail("a hello result has the wrong values");
@@ -440,6 +447,26 @@ function pushOf(value: Fields): Decoded {
     return { ok: true, message: push };
   }
   if (event === "page.show_mission") {
+    if (hasExactly(data, ["mission_type", "side", "file", "title"])) {
+      const { mission_type, side, file, title } = data;
+      if (
+        !isMissionType(mission_type) ||
+        !isPilotSide(side) ||
+        !sideFits(mission_type, side) ||
+        typeof file !== "string" ||
+        typeof title !== "string"
+      ) {
+        return {
+          ok: false,
+          reason: "page.show_mission data by side and file has wrong values",
+        };
+      }
+      const push: ShowMissionPush = {
+        event,
+        data: { mission_type, side, file, title },
+      };
+      return { ok: true, message: push };
+    }
     const names = ["mission_type", "id", "title"];
     const { mission_type, id, title } = data;
     if (
@@ -589,6 +616,26 @@ function requestOf(value: Fields): Decoded {
     }
     case "briefing.get":
     case "page.show_mission": {
+      if (hasExactly(args, ["mission_type", "side", "file"])) {
+        const { mission_type, side, file } = args;
+        if (
+          !isMissionType(mission_type) ||
+          !isPilotSide(side) ||
+          !sideFits(mission_type, side) ||
+          typeof file !== "string" ||
+          file.length < 1 ||
+          file.length > 64
+        ) {
+          return {
+            ok: false,
+            reason: `${command} by side and file takes a sided kind, its side and a file`,
+          };
+        }
+        return {
+          ok: true,
+          message: { id, command, args: { mission_type, side, file } },
+        };
+      }
       const { mission_type, id: mission } = args;
       if (
         !hasExactly(args, ["mission_type", "id"]) ||
@@ -598,7 +645,7 @@ function requestOf(value: Fields): Decoded {
       ) {
         return {
           ok: false,
-          reason: `${command} takes a mission type and an id`,
+          reason: `${command} takes a mission type and an id, or a kind, side and file`,
         };
       }
       return {

@@ -14,7 +14,7 @@ Flow:
     redirects to ``/``; every other request needs the cookie). ``socket``
     checks the origin, sends the status (and the battle that flies, if any),
     then reads one JSON message at a time, hands it to ``Control.handle``,
-    sends the reply and then the pushes to every open socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set and ``frame`` serves ``GET /art/frame/<name>`` for the twelve menu frame pictures. ``serve`` binds, prints the page's URL and runs until stopped.
+    sends the reply and then the pushes to every open socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set and ``frame`` serves ``GET /art/frame/<name>`` for the twelve menu frame pictures; ``side`` serves ``GET /art/side/<name>.png`` for the 48 side button sprites. ``serve`` binds, prints the page's URL and runs until stopped.
     ``PageOpener`` opens the page in the browser, at the start and when the
     bot finds no page open (``open_page``), at most once while an opened
     page has not yet connected.
@@ -50,6 +50,7 @@ from aiohttp import WSMsgType
 
 from ..briefing import ArtStore
 from ..briefing.frame import FrameStore
+from ..briefing.side import SideStore
 from .control import Control
 from .control import Outcome
 from .protocol import MAX_MESSAGE_BYTES
@@ -61,6 +62,7 @@ HOSTNAMES = ("127.0.0.1", "localhost")
 COOKIE_NAME = "jedimaster_key"
 ART = web.AppKey("art", ArtStore)
 FRAMES = web.AppKey("frames", FrameStore)
+SIDES = web.AppKey("sides", SideStore)
 CONTROL = web.AppKey("control", Control)
 KEY = web.AppKey("key", str)
 PAGE_DIR = web.AppKey("page_dir", Path)
@@ -226,6 +228,20 @@ async def frame(request: web.Request) -> web.StreamResponse:
     return web.Response(body=found.data, content_type=found.content_type)
 
 
+async def side(request: web.Request) -> web.StreamResponse:
+    """Return one of the side button sprites, or 404 for any other name.
+
+    The bytes come from the application's ``SideStore``: the 48 sprites of
+    the Mission Selection's side buttons, built from the install on first
+    use. A name outside the set, no install, or a sprite that cannot be
+    built is a refusal.
+    """
+    found = request.app[SIDES].get(request.match_info["name"])
+    if found is None:
+        return _refuse(request, 404, "no such side sprite")
+    return web.Response(body=found.data, content_type=found.content_type)
+
+
 async def _send(ws: web.WebSocketResponse, message: dict) -> None:
     try:
         await ws.send_str(json.dumps(message))
@@ -312,6 +328,7 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     app[CONTROL] = control
     app[ART] = ArtStore(control.install)
     app[FRAMES] = FrameStore(control.install)
+    app[SIDES] = SideStore(control.install)
     app[KEY] = key
     app[PAGE_DIR] = page_dir
     app[SOCKETS] = set()
@@ -326,6 +343,7 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     app.router.add_get("/ws", socket)
     app.router.add_get("/art/briefing/{name}", art)
     app.router.add_get("/art/frame/{name}", frame)
+    app.router.add_get("/art/side/{name}", side)
     if page_dir.is_dir():
         app.router.add_static("/", page_dir)
     app.on_shutdown.append(_close_sockets)

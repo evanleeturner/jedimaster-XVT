@@ -55,6 +55,25 @@ page's Debriefing menu shows each one as the game's mission overview and
 player statistics, and `/results` in Discord lists them. The battle summary
 and tournament standings pages, and awards and promotions, are not shown yet.
 
+## The side buttons on the page
+
+When the page has room for the game's menu frame (a window at least 640 by
+480 pixels, without forced colors), the eight small buttons down the left edge
+of the Mission Selection screen work as they did in the game when flying
+alone. Training, Melee, Tournament, Combat engagement, Battle and Campaign
+pick the kind of mission: a first press shows the last mission you saw of that
+kind, or its first open one; pressing the lit kind again shows the next open
+mission, and a right click or Shift with the press shows the previous one,
+wrapping round at either end. For Training, Combat engagement and Campaign the
+press walks that side's own game list, every mission in it, including ones the
+network menu does not list or marks as not open. Rebel pilot and Imperial pilot choose the side:
+Training, Combat engagement and Campaign then show that side's list, and the
+frame's background changes to match. The buttons light up as the game's did,
+from pictures read out of your own install. With no frame (a small window, or
+no game pictures) the buttons are not on the page and the Missions menu does
+the same job. The page remembers the last mission of each list only until it
+is reloaded.
+
 ## When a battle is refused
 
 Before every battle, the launcher asks the game and its AI program which AI

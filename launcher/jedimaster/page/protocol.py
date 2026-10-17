@@ -36,7 +36,7 @@ from ..briefing.model import BriefingBundle
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 9
+SCHEMA_REVISION = 10
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -57,6 +57,8 @@ MISSION_TYPE_NAMES: tuple[str, ...] = typing.get_args(MissionTypeName)
 
 SideName = Literal["rebel", "imperial", "none"]
 SIDE_NAMES: tuple[str, ...] = typing.get_args(SideName)
+PilotSideName = Literal["rebel", "imperial"]
+"""The two sides a solo list is kept for; a solo mission is shown by one of them."""
 """The three sides a solo battle names: ``none`` for a type that takes no side."""
 
 OptionName = Literal[
@@ -140,11 +142,29 @@ class ShowMissionArgs:
 
 
 @dataclass
+class ShowSoloMissionArgs:
+    """The mission to show: an entry of a sided kind's solo list, by side and file."""
+
+    mission_type: MissionTypeName
+    side: PilotSideName
+    file: str
+
+
+@dataclass
 class BriefingGetArgs:
     """The mission to brief: its type and its id in the network menu of that type."""
 
     mission_type: MissionTypeName
     id: int = field(metadata={"minimum": 0, "maximum": MAX_ID})
+
+
+@dataclass
+class BriefingGetSoloArgs:
+    """The mission to brief: an entry of a sided kind's solo list, by side and file."""
+
+    mission_type: MissionTypeName
+    side: PilotSideName
+    file: str
 
 
 @dataclass
@@ -194,7 +214,7 @@ class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[9]
+    schema_revision: Literal[10]
 
 
 @dataclass
@@ -548,20 +568,20 @@ class SettingsSetRequest:
 
 @dataclass
 class ShowMissionRequest:
-    """Tell every open page to show one mission of the network menus."""
+    """Tell every open page to show one mission of the network menus or a solo list."""
 
     id: int = field(metadata=ID_RANGE)
     command: Literal["page.show_mission"]
-    args: ShowMissionArgs
+    args: ShowMissionArgs | ShowSoloMissionArgs
 
 
 @dataclass
 class BriefingGetRequest:
-    """Ask for the briefing bundle of one mission of the network menus."""
+    """Ask for the briefing bundle of one mission of the network menus or a solo list."""
 
     id: int = field(metadata=ID_RANGE)
     command: Literal["briefing.get"]
-    args: BriefingGetArgs
+    args: BriefingGetArgs | BriefingGetSoloArgs
 
 
 @dataclass
@@ -740,11 +760,21 @@ class ShownMission:
 
 
 @dataclass
+class ShownSoloMission:
+    """The solo mission a page is told to show: its side and file, as the solo list gives them."""
+
+    mission_type: MissionTypeName
+    side: PilotSideName
+    file: str
+    title: str
+
+
+@dataclass
 class ShowMissionPush:
     """Sent to every open page when a mission is to be shown."""
 
     event: Literal["page.show_mission"]
-    data: ShownMission
+    data: ShownMission | ShownSoloMission
 
 
 @dataclass

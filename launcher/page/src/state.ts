@@ -1,7 +1,16 @@
-import type { ArtScaling, Message, MissionType } from "./codec.ts";
+import type { ArtScaling, Message, MissionType, Shown } from "./codec.ts";
 import { isMissionType } from "./codec.ts";
 import type { DebriefTab, Table } from "./debrief/view.ts";
 import { headingLine, resultLabel, tablesOf } from "./debrief/view.ts";
+import type { Press, SideLists, SideModel, SideView } from "./frame/side.ts";
+import {
+  afterShown,
+  describeSide,
+  keyOfShown,
+  listsKnown,
+  soloKey,
+  START_MODEL,
+} from "./frame/side.ts";
 import type { BriefingBundle } from "./generated/briefing.ts";
 import type {
   Debrief,
@@ -11,7 +20,6 @@ import type {
   MenuData,
   OkReply,
   ResultSummary,
-  ShownMission,
 } from "./generated/control.ts";
 
 export type Connection = "connecting" | "open" | "closed";
@@ -49,7 +57,7 @@ export interface State {
   readonly install: InstallStatusResult | null;
   readonly menus: readonly MenuData[] | null;
   readonly artScaling: ArtScaling | null;
-  readonly shown: ShownMission | null;
+  readonly shown: Shown | null;
   readonly shownCount: number;
   readonly briefing: BriefingState;
   readonly launch: LaunchState | null;
@@ -61,6 +69,14 @@ export interface State {
    */
   readonly pilot: string | null | undefined;
   readonly debrief: DebriefState;
+  /** The side buttons: the selected type, the chosen side, what was shown last. */
+  readonly side: SideModel;
+  /** The solo lists' mission files, by `soloKey`, as the launcher answered. */
+  readonly soloLists: Readonly<Record<string, readonly string[]>>;
+  /** False while the shown mission could not be placed for want of a list. */
+  readonly sideSettled: boolean;
+  /** What the last side button press had to say, null when nothing. */
+  readonly sideNote: string | null;
   readonly problem: string | null;
 }
 
@@ -71,6 +87,7 @@ export type Action =
   | { readonly kind: "cancelling" }
   | { readonly kind: "debrief-tab"; readonly tab: DebriefTab }
   | { readonly kind: "debrief-seen" }
+  | { readonly kind: "side-pressed"; readonly press: Press }
   | { readonly kind: "message"; readonly message: Message };
 
 export interface MenuEntryView {
@@ -174,6 +191,14 @@ export interface View {
   /** The frame's bottom bar words. */
   readonly pilotBar: string;
   readonly debrief: DebriefView;
+  /** The eight side buttons and their lights. */
+  readonly side: SideView;
+  /** The selected mission type, null when none is. */
+  readonly sideKind: MissionType | null;
+  /** The chosen pilot side. */
+  readonly sideFaction: SideModel["side"];
+  /** What the last side button press had to say, null when nothing. */
+  readonly sideNote: string | null;
   readonly problem: string | null;
 }
 
@@ -200,8 +225,27 @@ export function initialState(): State {
     options: null,
     pilot: undefined,
     debrief: { results: null, shown: null, tab: "overview", fresh: false },
+    side: START_MODEL,
+    soloLists: {},
+    sideSettled: true,
+    sideNote: null,
     problem: null,
   };
+}
+
+function listsOf(state: State): SideLists {
+  return { menus: state.menus, solo: state.soloLists };
+}
+
+/** Return the state with the shown mission placed on the side buttons, once its lists are known. */
+function settle(state: State): State {
+  const shown = state.shown;
+  if (state.sideSettled || shown === null) return state;
+  const lists = listsOf(state);
+  if (!listsKnown(lists, shown.mission_type)) return state;
+  const key = keyOfShown(shown);
+  const side = afterShown(state.side, lists, shown.mission_type, key);
+  return { ...state, side, sideSettled: true };
 }
 
 function applyResult(state: State, result: OkReply["result"]): State {
@@ -214,6 +258,15 @@ function applyResult(state: State, result: OkReply["result"]): State {
   if ("schema_revision" in result) {
     return { ...state, launcherVersion: result.launcher_version };
   }
+  if ("mission_type" in result && "side" in result) {
+    if (result.side === "none") return state;
+    const files = result.entries.map((entry) => entry.file.toLowerCase());
+    const key = soloKey(result.mission_type, result.side);
+    return settle({
+      ...state,
+      soloLists: { ...state.soloLists, [key]: files },
+    });
+  }
   if ("pilots" in result || "mission_type" in result) return state;
   if ("started" in result) return state;
   if ("cancelled" in result) {
@@ -221,7 +274,7 @@ function applyResult(state: State, result: OkReply["result"]): State {
   }
   if ("options" in result) return { ...state, options: result.options };
   if ("found" in result) return { ...state, install: result };
-  if ("menus" in result) return { ...state, menus: result.menus };
+  if ("menus" in result) return settle({ ...state, menus: result.menus });
   if ("shown" in result) return state;
   if ("results" in result) {
     return { ...state, debrief: { ...state.debrief, results: result.results } };
@@ -252,11 +305,16 @@ function applyMessage(state: State, message: Message): State {
       return { ...state, pilot: message.data.pilot, problem: null };
     }
     if (message.event === "page.show_mission") {
+      const lists = listsOf(state);
+      const type = message.data.mission_type;
       return {
         ...state,
         shown: message.data,
         shownCount: state.shownCount + 1,
         briefing: { status: "loading" },
+        side: afterShown(state.side, lists, type, keyOfShown(message.data)),
+        sideSettled: "file" in message.data || listsKnown(lists, type),
+        sideNote: null,
         problem: null,
       };
     }
@@ -318,6 +376,12 @@ export function reduce(state: State, action: Action): State {
       return { ...state, debrief: { ...state.debrief, tab: action.tab } };
     case "debrief-seen":
       return { ...state, debrief: { ...state.debrief, fresh: false } };
+    case "side-pressed":
+      return {
+        ...state,
+        side: action.press.model,
+        sideNote: action.press.note,
+      };
     case "message":
       return applyMessage(state, action.message);
   }
@@ -500,7 +564,19 @@ function titleCase(name: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-function menuView(menu: MenuData, shown: ShownMission | null): MenuView {
+/** True when `entry` of `menu` is the mission shown: by id, or by file for a solo mission. */
+function isShown(
+  shown: Shown | null,
+  menu: MenuData,
+  entry: MenuData["entries"][number],
+): boolean {
+  if (shown?.mission_type !== menu.mission_type) return false;
+  return "file" in shown
+    ? entry.file.toLowerCase() === shown.file.toLowerCase()
+    : entry.id === shown.id;
+}
+
+function menuView(menu: MenuData, shown: Shown | null): MenuView {
   const heading = `${titleCase(menu.mission_type)} missions`;
   if (!menu.resolved) {
     return {
@@ -509,10 +585,7 @@ function menuView(menu: MenuData, shown: ShownMission | null): MenuView {
       entries: [],
     };
   }
-  const target =
-    shown?.mission_type === menu.mission_type
-      ? menu.entries.findIndex((entry) => entry.id === shown.id)
-      : -1;
+  const target = menu.entries.findIndex((entry) => isShown(shown, menu, entry));
   const entries = menu.entries.map((entry, index) => {
     const place = entry.section === "" ? "" : `${entry.section}: `;
     const word = entry.available ? "available" : "not available";
@@ -536,7 +609,7 @@ function menuView(menu: MenuData, shown: ShownMission | null): MenuView {
   };
 }
 
-function kindView(menu: MenuData, shown: ShownMission | null): KindView {
+function kindView(menu: MenuData, shown: Shown | null): KindView {
   const label = titleCase(menu.mission_type);
   const note = menuView(menu, shown).note;
   const groups: { name: string; missions: MissionRow[] }[] = [];
@@ -549,8 +622,7 @@ function kindView(menu: MenuData, shown: ShownMission | null): KindView {
     }
     group.missions.push({
       title: entry.title,
-      current:
-        shown?.mission_type === menu.mission_type && shown.id === entry.id,
+      current: isShown(shown, menu, entry),
       pick:
         entry.available && isMissionType(menu.mission_type)
           ? {
@@ -572,11 +644,11 @@ function kindView(menu: MenuData, shown: ShownMission | null): KindView {
 
 function shownWhere(
   menus: readonly MenuData[],
-  shown: ShownMission | null,
+  shown: Shown | null,
 ): ShownView | null {
   if (shown === null) return null;
   const menu = menus.find((m) => m.mission_type === shown.mission_type);
-  const entry = menu?.entries.find((e) => e.id === shown.id);
+  const entry = menu?.entries.find((e) => isShown(shown, menu, e));
   const section = entry?.section ?? "";
   return {
     kind: titleCase(shown.mission_type),
@@ -629,6 +701,10 @@ export function describe(state: State): View {
     pilotLine: pilotLine(state.pilot),
     pilotBar: pilotBar(state.pilot),
     debrief: debriefView(state.debrief),
+    side: describeSide(state.side),
+    sideKind: state.side.kind,
+    sideFaction: state.side.side,
+    sideNote: state.sideNote,
     problem: state.problem,
   };
 }

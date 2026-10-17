@@ -298,7 +298,7 @@
     },
     "BriefingGetRequest": {
       "type": "object",
-      "description": "Ask for the briefing bundle of one mission of the network menus.",
+      "description": "Ask for the briefing bundle of one mission of the network menus or a solo list.",
       "properties": {
         "id": {
           "type": "integer",
@@ -309,7 +309,14 @@
           "const": "briefing.get"
         },
         "args": {
-          "$ref": "#/$defs/BriefingGetArgs"
+          "oneOf": [
+            {
+              "$ref": "#/$defs/BriefingGetArgs"
+            },
+            {
+              "$ref": "#/$defs/BriefingGetSoloArgs"
+            }
+          ]
         }
       },
       "required": [
@@ -340,6 +347,37 @@
       "required": [
         "found",
         "bundle"
+      ],
+      "additionalProperties": false
+    },
+    "BriefingGetSoloArgs": {
+      "type": "object",
+      "description": "The mission to brief: an entry of a sided kind's solo list, by side and file.",
+      "properties": {
+        "mission_type": {
+          "enum": [
+            "training",
+            "melee",
+            "tournament",
+            "combat",
+            "battle",
+            "campaign"
+          ]
+        },
+        "side": {
+          "enum": [
+            "rebel",
+            "imperial"
+          ]
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mission_type",
+        "side",
+        "file"
       ],
       "additionalProperties": false
     },
@@ -1062,7 +1100,7 @@
           "type": "string"
         },
         "schema_revision": {
-          "const": 9
+          "const": 10
         }
       },
       "required": [
@@ -2177,7 +2215,14 @@
           "const": "page.show_mission"
         },
         "data": {
-          "$ref": "#/$defs/ShownMission"
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ShownMission"
+            },
+            {
+              "$ref": "#/$defs/ShownSoloMission"
+            }
+          ]
         }
       },
       "required": [
@@ -2188,7 +2233,7 @@
     },
     "ShowMissionRequest": {
       "type": "object",
-      "description": "Tell every open page to show one mission of the network menus.",
+      "description": "Tell every open page to show one mission of the network menus or a solo list.",
       "properties": {
         "id": {
           "type": "integer",
@@ -2199,7 +2244,14 @@
           "const": "page.show_mission"
         },
         "args": {
-          "$ref": "#/$defs/ShowMissionArgs"
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ShowMissionArgs"
+            },
+            {
+              "$ref": "#/$defs/ShowSoloMissionArgs"
+            }
+          ]
         }
       },
       "required": [
@@ -2219,6 +2271,37 @@
       },
       "required": [
         "shown"
+      ],
+      "additionalProperties": false
+    },
+    "ShowSoloMissionArgs": {
+      "type": "object",
+      "description": "The mission to show: an entry of a sided kind's solo list, by side and file.",
+      "properties": {
+        "mission_type": {
+          "enum": [
+            "training",
+            "melee",
+            "tournament",
+            "combat",
+            "battle",
+            "campaign"
+          ]
+        },
+        "side": {
+          "enum": [
+            "rebel",
+            "imperial"
+          ]
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mission_type",
+        "side",
+        "file"
       ],
       "additionalProperties": false
     },
@@ -2248,6 +2331,41 @@
       "required": [
         "mission_type",
         "id",
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "ShownSoloMission": {
+      "type": "object",
+      "description": "The solo mission a page is told to show: its side and file, as the solo list gives them.",
+      "properties": {
+        "mission_type": {
+          "enum": [
+            "training",
+            "melee",
+            "tournament",
+            "combat",
+            "battle",
+            "campaign"
+          ]
+        },
+        "side": {
+          "enum": [
+            "rebel",
+            "imperial"
+          ]
+        },
+        "file": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mission_type",
+        "side",
+        "file",
         "title"
       ],
       "additionalProperties": false

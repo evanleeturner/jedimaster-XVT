@@ -145,10 +145,10 @@ DEBRIEF_PLANTS: list[Plant] = [
     Plant(
         "debrief-stale-revision",
         PRO,
+        "SCHEMA_REVISION = 10\n",
         "SCHEMA_REVISION = 9\n",
-        "SCHEMA_REVISION = 8\n",
         (
-            T_CON + "test_the_list_has_fifteen_commands_and_revision_9",
+            T_CON + "test_the_list_has_fifteen_commands_and_revision_10",
             T_CON + "test_hello",
         ),
     ),

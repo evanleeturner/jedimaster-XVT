@@ -83,8 +83,8 @@ DEBRIEF_WEB_PLANTS: list[Plant] = [
     plant(
         "stale-revision",
         COD,
+        'if (typeof launcher_version === "string" && schema_revision === 10) {',
         'if (typeof launcher_version === "string" && schema_revision === 9) {',
-        'if (typeof launcher_version === "string" && schema_revision === 8) {',
         ACC + "reply-ok-hello.json",
         REF + "reply-ok-old-revision.json",
     ),

@@ -134,7 +134,7 @@ STATE_PLANTS: list[Plant] = [
     Plant(
         "web-state-menus-ignored",
         STA,
-        '  if ("menus" in result) return { ...state, menus: result.menus };',
+        '  if ("menus" in result) return settle({ ...state, menus: result.menus });',
         '  if ("menus" in result) return state;',
         (N + "missions list one heading per menu",),
     ),
@@ -625,22 +625,22 @@ SHOW_VIEW_PLANTS: list[Plant] = [
     Plant(
         "web-state-mark-any-type",
         STA,
-        "    shown?.mission_type === menu.mission_type\n      ? menu.entries.findIndex(",
-        "    shown !== null\n      ? menu.entries.findIndex(",
+        "  if (shown?.mission_type !== menu.mission_type) return false;",
+        "  if (shown === null) return false;",
         ("node: the mark needs the same type as well as the same id",),
     ),
     Plant(
         "web-state-mark-any-id",
         STA,
-        "menu.entries.findIndex((entry) => entry.id === shown.id)",
+        "menu.entries.findIndex((entry) => isShown(shown, menu, entry))",
         "menu.entries.findIndex(() => true)",
         (N + "a show-mission push marks that entry and announces its title",),
     ),
     Plant(
         "web-state-mark-last-repeat",
         STA,
-        "menu.entries.findIndex((entry) => entry.id === shown.id)",
-        "menu.entries.findLastIndex((entry) => entry.id === shown.id)",
+        "menu.entries.findIndex((entry) => isShown(shown, menu, entry))",
+        "menu.entries.findLastIndex((entry) => isShown(shown, menu, entry))",
         (N + "when an id repeats inside a menu, the first entry is marked",),
     ),
     Plant(
@@ -1083,7 +1083,7 @@ MENU_PLANTS: list[Plant] = [
     Plant(
         "web-state-kind-current-never",
         STA,
-        "      current:\n        shown?.mission_type === menu.mission_type && shown.id === entry.id,",
+        "      current: isShown(shown, menu, entry),",
         "      current: false,",
         (
             "node: a mission row has a Show request only when available, and the shown one is current",
@@ -1092,8 +1092,8 @@ MENU_PLANTS: list[Plant] = [
     Plant(
         "web-state-kind-mark-any-type",
         STA,
-        "        shown?.mission_type === menu.mission_type && shown.id === entry.id,",
-        "        shown !== null && shown.id === entry.id,",
+        "      current: isShown(shown, menu, entry),",
+        '      current: shown !== null && "id" in shown && shown.id === entry.id,',
         (
             "node: a mission row has a Show request only when available, and the shown one is current",
         ),
@@ -1101,8 +1101,8 @@ MENU_PLANTS: list[Plant] = [
     Plant(
         "web-state-kind-locked-button",
         STA,
-        "shown.id === entry.id,\n      pick:\n        entry.available && isMissionType(menu.mission_type)",
-        "shown.id === entry.id,\n      pick:\n        isMissionType(menu.mission_type)",
+        "isShown(shown, menu, entry),\n      pick:\n        entry.available && isMissionType(menu.mission_type)",
+        "isShown(shown, menu, entry),\n      pick:\n        isMissionType(menu.mission_type)",
         (
             "node: a mission row has a Show request only when available, and the shown one is current",
         ),
@@ -1110,8 +1110,8 @@ MENU_PLANTS: list[Plant] = [
     Plant(
         "web-state-kind-pick-label",
         STA,
-        "shown.id === entry.id,\n      pick:\n        entry.available && isMissionType(menu.mission_type)\n          ? {\n              missionType: menu.mission_type,\n              id: entry.id,\n              label: `Show ${entry.title}`",
-        "shown.id === entry.id,\n      pick:\n        entry.available && isMissionType(menu.mission_type)\n          ? {\n              missionType: menu.mission_type,\n              id: entry.id,\n              label: `Show ${entry.file}`",
+        "isShown(shown, menu, entry),\n      pick:\n        entry.available && isMissionType(menu.mission_type)\n          ? {\n              missionType: menu.mission_type,\n              id: entry.id,\n              label: `Show ${entry.title}`",
+        "isShown(shown, menu, entry),\n      pick:\n        entry.available && isMissionType(menu.mission_type)\n          ? {\n              missionType: menu.mission_type,\n              id: entry.id,\n              label: `Show ${entry.file}`",
         (
             "node: a mission row has a Show request only when available, and the shown one is current",
         ),

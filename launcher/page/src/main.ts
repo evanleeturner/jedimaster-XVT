@@ -2,6 +2,14 @@ import { BriefingPanel } from "./briefing/panel.ts";
 import type { Request } from "./codec.ts";
 import { decode, encodeRequest, isArtScaling, isMissionType } from "./codec.ts";
 import { DebriefPanel } from "./debrief/panel.ts";
+import type { SideButtonId, SideView } from "./frame/side.ts";
+import {
+  keyOfShown,
+  missionArgs,
+  press,
+  SIDE_BUTTONS,
+  SIDE_PATH,
+} from "./frame/side.ts";
 import { FrameSkin } from "./frame/skin.ts";
 import type { BriefingBundle } from "./generated/briefing.ts";
 import { logger } from "./logger.ts";
@@ -51,6 +59,17 @@ const optionsCopy = find(HTMLElement, "#options-copy-grid");
 const barVersion = find(HTMLParagraphElement, "#bar-version");
 const pilotLine = find(HTMLParagraphElement, "#pilot-line");
 const barPilot = find(HTMLParagraphElement, "#bar-pilot");
+const sideSprites = find(HTMLDivElement, "#side-sprites");
+const sideNote = find(HTMLParagraphElement, "#side-note");
+const sideButtons = new Map(
+  SIDE_BUTTONS.map(
+    (button) =>
+      [
+        button.id,
+        find(HTMLButtonElement, `.side-btn[data-side="${button.id}"]`),
+      ] as const,
+  ),
+);
 const menuButtons = Array.from(
   document.querySelectorAll<HTMLButtonElement>(".menu-btn[aria-controls]"),
 );
@@ -65,15 +84,15 @@ const debriefPanel = new DebriefPanel(
     dispatch({ kind: "debrief-tab", tab });
   },
 );
+let framed = false;
 const frameSkin = new FrameSkin(
   find(HTMLCanvasElement, "#frame-art"),
   (layout) => {
     briefingPanel.setFrame(layout);
+    framed = layout !== null;
+    if (lastView !== null) renderSide(lastView.side, lastView.sideNote);
   },
 );
-briefingPanel.onTeam = (background) => {
-  frameSkin.setTeam(background);
-};
 let shownBundle: BriefingBundle | null = null;
 let openPanel = "";
 let pickedKind = "";
@@ -358,6 +377,45 @@ function renderBriefing(view: View): void {
   }
 }
 
+const sideImages = new Map<string, HTMLImageElement>();
+
+function sideImage(name: string): HTMLImageElement {
+  const kept = sideImages.get(name);
+  if (kept !== undefined) return kept;
+  const image = new Image();
+  image.alt = "";
+  image.addEventListener("error", () => {
+    logger.warn("a side button picture did not load", name);
+    image.dataset.broken = "true";
+    image.hidden = true;
+  });
+  image.src = `${SIDE_PATH}${name}.png`;
+  sideSprites.append(image);
+  sideImages.set(name, image);
+  return image;
+}
+
+function renderSide(view: SideView, note: string | null): void {
+  const wanted = new Set([
+    ...view.buttons.map((b) => b.sprite),
+    ...view.lights,
+  ]);
+  // The pictures are asked for only when the page wears the frame.
+  if (framed) for (const name of wanted) sideImage(name);
+  for (const [name, image] of sideImages) {
+    image.hidden = !wanted.has(name) || image.dataset.broken !== undefined;
+  }
+  for (const button of view.buttons) {
+    const element = sideButtons.get(button.id);
+    if (element === undefined) continue;
+    element.setAttribute("aria-pressed", String(button.selected));
+    if (button.stepping) {
+      element.setAttribute("aria-describedby", "side-step-hint");
+    } else element.removeAttribute("aria-describedby");
+  }
+  setText(sideNote, note ?? "");
+}
+
 function render(view: View): void {
   setText(connectionLine, view.connectionText);
   setText(versionLine, view.versionText);
@@ -380,7 +438,9 @@ function render(view: View): void {
   setText(barPilot, view.pilotBar);
   setText(shownLine, view.shownText);
   setText(barVersion, view.launcherVersion ?? "");
-  frameSkin.setMission(view.shownType);
+  renderSide(view.side, view.sideNote);
+  frameSkin.setMission(view.sideKind);
+  frameSkin.setSide(view.sideFaction);
   if (view.artScaling !== null) {
     briefingPanel.setScaling(view.artScaling);
     frameSkin.setScaling(view.artScaling);
@@ -426,7 +486,7 @@ function onMessage(event: MessageEvent): void {
   if ("event" in message && message.event === "page.show_mission") {
     send({
       command: "briefing.get",
-      args: { mission_type: message.data.mission_type, id: message.data.id },
+      args: missionArgs(message.data.mission_type, keyOfShown(message.data)),
     });
   }
   // A page that connects with results kept shows the newest one's debriefing.
@@ -453,6 +513,11 @@ function connect(): void {
     send({ command: "hello", args: { page_version: PAGE_VERSION } });
     send({ command: "install.status", args: {} });
     send({ command: "missions.list", args: {} });
+    for (const mission_type of ["training", "combat", "campaign"] as const) {
+      for (const side of ["rebel", "imperial"] as const) {
+        send({ command: "launch.menu", args: { mission_type, side } });
+      }
+    }
     send({ command: "settings.get", args: {} });
     send({ command: "options.get", args: { player: null } });
     send({ command: "results.list", args: {} });
@@ -500,6 +565,45 @@ function onCancel(): void {
   battleStrip.focus();
 }
 
+function onSideButton(id: SideButtonId, backward: boolean): void {
+  if (socket?.readyState !== WebSocket.OPEN) {
+    logger.warn("side button ignored, the socket is not open", id);
+    return;
+  }
+  const result = press(
+    state.side,
+    { menus: state.menus, solo: state.soloLists },
+    id,
+    backward,
+  );
+  logger.debug("side button", {
+    button: id,
+    backward,
+    kind: result.model.kind,
+    side: result.model.side,
+    mission:
+      result.show === null
+        ? null
+        : missionArgs(result.show.missionType, result.show.key),
+  });
+  dispatch({ kind: "side-pressed", press: result });
+  if (result.show !== null) {
+    send({
+      command: "page.show_mission",
+      args: missionArgs(result.show.missionType, result.show.key),
+    });
+  }
+}
+
+for (const [id, element] of sideButtons) {
+  element.addEventListener("click", (event) => {
+    onSideButton(id, event.shiftKey);
+  });
+  element.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    onSideButton(id, true);
+  });
+}
 cancelButton.addEventListener("click", onCancel);
 scalingGroup.addEventListener("change", onScalingChange);
 missionsBody.addEventListener("click", onMissionsClick);
