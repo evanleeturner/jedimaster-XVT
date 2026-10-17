@@ -22,9 +22,10 @@ Purpose:
     fires no cannon here. Lined up or not,
     it fires a guided warhead at its target when ``warheads.choose`` lets it:
     its lock declared, a warhead that suits the target, inside 1997's limits.
-    At skill level Jedi and up it may fire one unguided at a big ship, and
-    while only the aim holds that shot it steers at the point where the
-    shot would meet the ship; its cannons still fire only lined up on it.
+    At skill level Jedi and up it may fire one unguided at a big ship, and a
+    Sith Lord at any craft (``lord``); while only the aim holds that shot it
+    steers at the point where the shot would meet its target, and its
+    cannons still fire only lined up on it.
 
     With no target its order names in the battle, a craft an enemy is after
     (``pursuer``) fights that enemy while it may fight back (``fights_back``:

@@ -50,7 +50,8 @@ Purpose:
 
     The unguided shot (rulings 50 and 51): a small craft at skill level
     Jedi or above (UNGUIDED_SKILL_LEVEL, the Sith ranks too) fires at a
-    freighter, starship or platform without its lock declared. The lock
+    freighter, starship or platform without its lock declared, and a Sith
+    Lord at any craft, a player's too (``lord``, missiles idea E). The lock
     test gives way to the aim, tested last:
 
     aim       the point where the shot meets the target (``lead``) lies
@@ -93,6 +94,7 @@ import logging
 import math
 
 from . import geometry
+from . import lord
 from . import tactics
 from .world import Books
 from .world import Contact
@@ -386,9 +388,12 @@ def locked_on(view: CraftView, question: Question, target: Contact) -> bool:
 
 def fires_unguided(view: CraftView, question: Question, target: Contact) -> bool:
     """Return whether the craft may fire an unguided warhead at the target:
-    its skill level is UNGUIDED_SKILL_LEVEL or more, the target is bulky,
-    and the craft's own contact, which the question must show, is small."""
-    if view.skill_level < UNGUIDED_SKILL_LEVEL or not tactics.is_bulky(target):
+    its skill level is UNGUIDED_SKILL_LEVEL or more, the target is bulky or
+    the craft a Sith Lord (``lord.is_lord``), and the craft's own contact,
+    which the question must show, is small."""
+    if view.skill_level < UNGUIDED_SKILL_LEVEL:
+        return False
+    if not (tactics.is_bulky(target) or lord.is_lord(view)):
         return False
     own = tactics.own_contact(view, question)
     return own is not None and not tactics.is_bulky(own)

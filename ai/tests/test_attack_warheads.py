@@ -329,3 +329,54 @@ def test_a_jedi_fires_six_unguided_shots_in_a_run_then_steers_at_the_ship(
     assert fired == [True] * 6 + [False] * 2
     assert memory_of(decision).held == warheads.Held.CAPS
     assert decision.actions.steer == Steer(0, LEVEL, 0)
+
+
+# Idea E: a Sith Lord (skill level 7) with no lock leads a crossing fighter
+# with its unguided shot as a Jedi leads a ship, and fires once in the run.
+LORD = UNGUIDED | {"skill_level": 7}
+CROSSING_FIGHTER = {
+    "genus": 0,
+    "size": 400,
+    "hull_strength": 400,
+    "y": 8_000,
+    "yaw": 0x4000,
+    "pitch": LEVEL,
+    "speed": 150,
+}
+FIGHTER_LEAD_YAW = 3334
+
+
+def test_a_sith_lord_steers_ahead_of_a_crossing_fighter_while_the_aim_holds(
+    craft, foe, ask
+) -> None:
+    decision = ask(craft(**LORD), foe(**CROSSING_FIGHTER))
+    assert decision.actions.steer == Steer(FIGHTER_LEAD_YAW, LEVEL, 0)
+    assert memory_of(decision).held == warheads.Held.AIM
+
+
+def test_with_its_nose_on_the_point_a_sith_lord_fires_unguided_at_a_fighter(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("INFO")
+    decision = ask(craft(**LORD, yaw=FIGHTER_LEAD_YAW), foe(**CROSSING_FIGHTER))
+    assert decision.actions.warhead == Warhead(0)
+    assert (
+        f"attack.unguided object={ME} target={FOE} launcher=0 paired=0 type=143 "
+        "lock=0 ticks=229 miss=0 shots=1" in caplog.text
+    )
+
+
+def test_a_sith_lord_fires_one_unguided_shot_a_run_at_a_fighter(
+    craft, foe, ask
+) -> None:
+    changes = LORD | {"yaw": FIGHTER_LEAD_YAW}
+    fired = []
+    for step in range(3):
+        tick = 1000 + 500 * step
+        decision = ask(craft(**changes), foe(**CROSSING_FIGHTER), tick=tick)
+        fired.append(decision.actions.warhead is not None)
+        waiting = changes | MADE | {"notebook": decision.notebook}
+        settled = ask(craft(**waiting), foe(**CROSSING_FIGHTER), tick=tick + 16)
+        changes = changes | {"notebook": settled.notebook}
+    assert fired == [True, False, False]
+    assert memory_of(decision).held == warheads.Held.CAPS

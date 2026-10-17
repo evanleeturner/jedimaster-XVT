@@ -1,6 +1,7 @@
 """Fence for warheads: each test of a guided shot at its boundary, the order
 the tests run in, the launcher a Missile Boat picks, and the unguided shot's
-aim, flown in a toy of the engine's motion.
+aim, flown in a toy of the engine's motion; a Sith Lord's unguided shot at
+any craft (idea E).
 
 The craft (object 4) holds a declared lock on its target (contact 1, object
 9), a starfighter with no shield and 1,000 hull left, and one launcher of
@@ -21,6 +22,7 @@ from jedimaster_ai import geometry
 from jedimaster_ai import warheads
 from jedimaster_ai.warheads import Held
 from jedimaster_ai.world import Books
+from jedimaster_ai.world import ContactFlags
 from jedimaster_ai.world import Lock
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import Question
@@ -451,6 +453,68 @@ def test_a_freighter_starship_or_platform_never_fires_unguided(
 
 def test_with_no_contact_of_its_own_no_unguided_shot(jedi, ship, decide):
     assert decide(jedi(), ship(), own=False).held == Held.LOCK
+
+
+# Idea E: a Sith Lord (skill level 7) fires unguided at any craft, a player's
+# too. Its launcher holds concussion missiles, which go at small craft; the
+# fighter sits at rest 4,000 dead ahead, 400 across.
+LORD = {"skill_level": 7, "warhead_type": (warheads.CONCUSSION_MISSILE, 0)}
+
+
+def fighter(ship, **changes):
+    theirs = {"genus": STARFIGHTER, "hull_strength": 400, "y": 4_000, "size": 400}
+    return ship(**(theirs | changes))
+
+
+@pytest.mark.parametrize(
+    ("level", "held"), [(5, Held.LOCK), (6, Held.LOCK), (7, Held.NONE)]
+)
+def test_only_a_sith_lord_fires_unguided_at_a_fighter(jedi, ship, decide, level, held):
+    me = jedi(**(LORD | {"skill_level": level}))
+    assert decide(me, fighter(ship)).held == held
+
+
+def test_a_sith_lord_fires_unguided_at_a_fighter_dead_ahead(jedi, ship, decide):
+    choice = decide(jedi(**LORD), fighter(ship))
+    assert choice == warheads.Choice(Warhead(0), Held.NONE, choice.lead)
+    assert (choice.lead.dy, choice.lead.miss) == (4_000, 0)
+
+
+@pytest.mark.parametrize(
+    "genus", [STARFIGHTER, TRANSPORT, UTILITY, FREIGHTER, STARSHIP, PLATFORM]
+)
+def test_a_sith_lord_fires_unguided_at_every_genus(jedi, ship, decide, genus):
+    me = jedi(skill_level=7, warhead_type=(warheads.PROTON_TORPEDO, 0))
+    assert decide(me, ship(genus=genus)).held == Held.NONE
+
+
+def test_a_sith_lord_fires_unguided_at_a_players_craft(jedi, ship, decide):
+    target = fighter(ship, flags=ContactFlags.PLAYER)
+    assert decide(jedi(**LORD), target).warhead == Warhead(0)
+
+
+def test_a_sith_lords_unguided_shot_needs_the_aim(jedi, ship, decide):
+    """300 off the nose line misses a craft 400 across: half is 200."""
+    choice = decide(jedi(**LORD), fighter(ship, x=300))
+    assert (choice.held, choice.lead.miss) == (Held.AIM, 300)
+
+
+def test_a_sith_lords_lock_on_a_fighter_comes_first(jedi, ship, decide):
+    locked = jedi(**LORD, lock_ticks=708, lock_state=Lock.DECLARED)
+    assert decide(locked, fighter(ship)) == warheads.Choice(Warhead(0), Held.NONE)
+
+
+def test_a_sith_lord_fires_one_unguided_shot_a_run_at_a_fighter(jedi, ship, decide):
+    assert decide(jedi(**LORD), fighter(ship), shots=1) == warheads.Choice(
+        None, Held.CAPS
+    )
+
+
+def test_a_sith_lord_in_a_bulky_craft_fires_no_unguided_shot(jedi, ship, contact):
+    me, target = jedi(**LORD), fighter(ship)
+    mine = contact(object_index=ME, team=1, genus=FREIGHTER, target=FOE)
+    question = Question(1000, (me,), (mine, target))
+    assert warheads.choose(me, question, target, 0, False).held == Held.LOCK
 
 
 # A corvette 40,000 ahead crossing to +x at speed 64, which moves 1,165 world
