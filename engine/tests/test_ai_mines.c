@@ -189,15 +189,18 @@ static void check_craft_kinds(void)
 	XVT_ASSERT_INT_EQ(find(MINE, TARGET_GROUP), 0);
 }
 
-/* A craft going into hyperspace is skipped at phase 1, kept at phase 0. */
+/* A craft of kind entering hyperspace is skipped. The same craft back at
+ * kind active (a jump that stalled) is found, and so is one flying out to its
+ * jump point (activity leaving by hyperspace) that has not jumped yet. */
 static void check_hyperspace(void)
 {
 	fresh_world();
 	struct craft_data *craft = place_craft(0, TARGET_GROUP, 0x1000, 0, 0);
-	craft->ai_controller.maneuver_mode = AI_MANEUVER_MODE_INTO_HYPERSPACE;
-	craft->ai_controller.maneuver_phase = 1;
+	craft->object_kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
 	XVT_ASSERT_INT_EQ(find(MINE, TARGET_GROUP), NONE);
-	craft->ai_controller.maneuver_phase = 0;
+	craft->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	XVT_ASSERT_INT_EQ(find(MINE, TARGET_GROUP), 0);
+	craft->ai_controller.activity = AI_ACTIVITY_LEAVING_BY_HYPERSPACE;
 	XVT_ASSERT_INT_EQ(find(MINE, TARGET_GROUP), 0);
 }
 

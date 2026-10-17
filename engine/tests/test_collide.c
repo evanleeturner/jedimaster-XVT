@@ -4417,8 +4417,8 @@ static void check_collisions_capital_ship_meets_craft(void)
 			g_test_craft[1].ai_controller.maneuver_mode =
 				AI_MANEUVER_MODE_BOARD;
 		} else if (mode == 2) {
-			g_test_craft[1].ai_controller.maneuver_mode =
-				AI_MANEUVER_MODE_INTO_HYPERSPACE;
+			g_test_craft[1].object_kind =
+				CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
 		} else {
 			g_test_craft[1].ai_controller.maneuver_mode =
 				AI_MANEUVER_MODE_DROPOFF;
@@ -4426,6 +4426,17 @@ static void check_collisions_capital_ship_meets_craft(void)
 		collide_collisions();
 		XVT_ASSERT_TRUE(untouched());
 	}
+	/* The controls: a craft of kind active that stalled out of a jump, or
+	 * one flying out to its jump point at activity 6, is tested. */
+	starship_meets_craft();
+	g_test_craft[1].object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 800);
+	starship_meets_craft();
+	g_test_craft[1].ai_controller.activity =
+		AI_ACTIVITY_LEAVING_BY_HYPERSPACE;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 800);
 }
 
 /* Shot 2, a laser of craft 0's, moving through craft 1 at (20,000, 0, 0);

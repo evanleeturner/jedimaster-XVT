@@ -66,9 +66,7 @@ static int matches_targets(uint16_t object_index,
 static int craft_targetable(uint16_t target_index, uint16_t mine,
 			    const struct craft_data *craft)
 {
-	const struct ai_controller *controller = &craft->ai_controller;
-	if (controller->maneuver_mode == AI_MANEUVER_MODE_INTO_HYPERSPACE &&
-	    controller->maneuver_phase != 0) {
+	if (craft->object_kind == CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE) {
 		return 0;
 	}
 	if (craft->object_kind == CRAFT_OBJECT_KIND_UNKNOWN_1 ||

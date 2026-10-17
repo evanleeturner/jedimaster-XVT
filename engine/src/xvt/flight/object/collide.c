@@ -1893,8 +1893,8 @@ void collide_collisions(void)
 						    UINT16_MAX ||
 					    maneuver_mode ==
 						    AI_MANEUVER_MODE_BOARD ||
-					    maneuver_mode ==
-						    AI_MANEUVER_MODE_INTO_HYPERSPACE ||
+					    candidate_craft->object_kind ==
+						    CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE ||
 					    maneuver_mode ==
 						    AI_MANEUVER_MODE_DROPOFF) {
 						collide_insert_mobile_object_proximity_candidate(
