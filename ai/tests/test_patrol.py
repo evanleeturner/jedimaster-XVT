@@ -18,6 +18,8 @@ from __future__ import annotations
 import dataclasses
 
 import pytest
+from shot_setup import aimed
+from shot_setup import SHOT
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
@@ -510,3 +512,18 @@ def test_circle_and_evade_rests_before_weaving_again(patrolling, mine, enemy) ->
     decision = decide(craft, [mine(craft), enemy()])
     assert decision.actions == Actions(steer=toward(P0), throttle=HALF)
     assert not flown(decision.notebook).flying
+
+
+def test_circle_and_evade_weaves_from_a_homing_shot(patrolling, mine, caplog) -> None:
+    """A tier-1 pilot, a torpedo 2,048 off: inside its 4,096."""
+    caplog.set_level("DEBUG")
+    craft = aimed(patrolling(order_code=CIRCLE_AND_EVADE, skill=0x8000), (0, -0x800, 0))
+    decision = decide(craft, [mine(craft)])
+    assert flown(decision.notebook).flying and decision.actions.weaving
+    assert f"weave.start object={ME} threat={SHOT} " in caplog.text
+
+
+def test_a_rookie_on_circle_and_evade_never_swerves(patrolling, mine) -> None:
+    craft = aimed(patrolling(order_code=CIRCLE_AND_EVADE, skill=0), (0, -0x400, 0))
+    decision = decide(craft, [mine(craft)])
+    assert not flown(decision.notebook).flying and not decision.actions.weaving

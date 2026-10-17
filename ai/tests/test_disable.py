@@ -9,6 +9,7 @@ the same question first, to show the situation fires.
 from __future__ import annotations
 
 import pytest
+from shot_setup import aimed
 
 from jedimaster_ai import notebook
 from jedimaster_ai import warheads
@@ -383,3 +384,9 @@ def test_the_targets_line_records_the_sort(craft, foe, ask, caplog) -> None:
     one_group = craft(cannon_group_count=1, cannon_type=(LASER, ION_CANNON))
     ask(one_group, foe())
     assert "ion_groups=0" in caplog.text
+
+
+def test_a_homing_shot_closing_makes_it_weave(craft, ask) -> None:
+    decision = ask(aimed(craft(), (0, -0x1000, 0)))
+    assert notebook.decode(decision.notebook).phase == attack.EVADE
+    assert decision.actions.weaving

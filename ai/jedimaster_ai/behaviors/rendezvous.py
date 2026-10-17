@@ -37,9 +37,10 @@ Purpose:
 
     It defends itself as a craft on Wait does
     (``waiting``): it fights an enemy after it while it may fight back
-    (``attack.fights_back``), else weaves while an enemy sits on its tail,
-    under its line; then it flies on, or stops again where it is. 1997's
-    rendezvous1pln answered hits too (AVOIDHITORDR).
+    (``attack.fights_back``), else weaves while an enemy sits on its tail
+    or a homing shot closes on it (``attack.chased_by``), under its line;
+    then it flies on, or stops again where it is. 1997's rendezvous1pln
+    answered hits too (AVOIDHITORDR).
 
     ``ended`` gives the line back, NONE, once another behavior flies the
     craft and names none.
@@ -120,7 +121,7 @@ def think(view: CraftView, question: Question) -> Decision:
     phase, actions = _decide(view, question, was)
     chaser = attack.pursuer(view, question)
     fights = chaser is not None and attack.fights_back(view, question, chaser)
-    chased = attack.tail_threat(view, question) is not None
+    chased = attack.chased_by(view, question) is not None
     if fights or chased or attack.weaving(view):
         fight = attack.fight(view, question, [chaser] if fights else [])
         if fight.actions.steer is None:

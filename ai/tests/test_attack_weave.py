@@ -7,6 +7,7 @@ test says otherwise; contact 0 is its own, contact 1 its order's target
 
 from __future__ import annotations
 
+import pytest
 from attack_setup import BULK_FREIGHTER_SIZE
 from attack_setup import FOE
 from attack_setup import FREIGHTER
@@ -14,6 +15,8 @@ from attack_setup import ISD_BOX
 from attack_setup import ME
 from attack_setup import phase_of
 from attack_setup import STARSHIP
+from shot_setup import aimed
+from shot_setup import SHOT
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
@@ -338,3 +341,82 @@ def test_weaving_reads_the_notebook(craft, foe, ask) -> None:
     flying = attack.Memory(weave=weave.Weave(swerves=1)).write()
     other = notebook.Notebook(BehaviorCode.HOME, attack.EVADE, 77, 990, flying)
     assert not attack.weaving(craft(notebook=other.encode()))
+
+
+# A homing shot closing on the craft (``countermeasures.incoming``): tier 2
+# swerves from 6,144 units; a torpedo 4,096 behind is inside.
+BEHIND = (0, -0x1000, 0)
+
+
+def test_a_homing_shot_closing_makes_it_weave(craft, foe, ask, caplog) -> None:
+    caplog.set_level("DEBUG")
+    decision = ask(aimed(craft(), BEHIND), foe(x=0x4000, y=0x1000))
+    assert phase_of(decision) == attack.EVADE
+    assert decision.actions.weaving and decision.actions.target == FOE
+    assert f"weave.start object={ME} threat={SHOT} course=0 " in caplog.text
+
+
+def test_lined_up_it_fires_at_a_chaser_but_swerves_from_a_shot(craft, foe, ask) -> None:
+    """As 1997's attack runs did: a shot is not held back by the aim."""
+    chaser = foe(object_index=12, y=-0x2000, target=ME)
+    fires = ask(craft(), foe(), chaser)
+    assert phase_of(fires) == attack.ATTACK and fires.actions.lasers[0].burst == 5
+    swerves = ask(aimed(craft(), BEHIND), foe(), chaser)
+    assert phase_of(swerves) == attack.EVADE and swerves.actions.weaving
+
+
+def test_a_shot_at_the_swerve_range_is_fought_through(craft, foe, ask) -> None:
+    decision = ask(aimed(craft(), (0, -0x1800, 0)), foe(x=0x4000, y=0x1000))
+    assert phase_of(decision) == attack.ATTACK
+
+
+def test_the_weave_from_a_shot_flies_on_and_ends_once_it_is_gone(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    target = foe(x=0x4000, y=0x1000)
+    first = ask(aimed(craft(), BEHIND), target, tick=1000)
+    nearer = aimed(craft(notebook=first.notebook), (0, -0xC00, 0))
+    caplog.clear()
+    held = ask(nearer, target, tick=1016)
+    assert phase_of(held) == attack.EVADE and held.actions.weaving
+    # Flown on, not ended and begun again: the same swerve, nothing logged.
+    assert held.actions.steer == first.actions.steer
+    assert "weave.end" not in caplog.text and "weave.start" not in caplog.text
+    out = ask(craft(notebook=held.notebook), target, tick=1032)
+    assert phase_of(out) == attack.ATTACK and not out.actions.weaving
+    assert f'weave.end object={ME} reason="clear" swerves=1 rest_until=0' in (
+        caplog.text
+    )
+
+
+def test_with_no_target_a_shot_closing_makes_it_weave(craft, ask) -> None:
+    """The search with no target in the battle swerves too."""
+    decision = ask(aimed(craft(order_target_mask=0), (0x800, 0, 0)))
+    assert phase_of(decision) == attack.EVADE
+    assert decision.actions.weaving and decision.actions.target == NO_OBJECT
+
+
+def test_an_evade_command_names_the_shot_it_weaves_from(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("INFO")
+    ask(aimed(craft(commands=Commands.EVADE), BEHIND), foe(y=0x2000))
+    assert f"attack.evade_ordered object={ME} chaser={SHOT}" in caplog.text
+
+
+@pytest.mark.parametrize("genus", [3, 4, 5])
+def test_a_freighter_starship_or_platform_never_swerves(craft, foe, ask, genus) -> None:
+    decision = ask(aimed(craft(), BEHIND), foe(x=0x4000, y=0x1000), genus=genus)
+    assert phase_of(decision) != attack.EVADE and not decision.actions.weaving
+
+
+def test_a_rookie_never_swerves(craft, foe, ask) -> None:
+    decision = ask(aimed(craft(skill=0), (0, -0x400, 0)), foe(x=0x4000, y=0x1000))
+    assert phase_of(decision) == attack.ATTACK
+
+
+def test_a_break_off_wins_over_a_shot(craft, foe, ask) -> None:
+    """Too close ahead of its target, the craft breaks off first."""
+    decision = ask(aimed(craft(), BEHIND), foe(y=0x800))
+    assert phase_of(decision) == attack.BREAK and not decision.actions.weaving

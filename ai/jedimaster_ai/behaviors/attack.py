@@ -12,9 +12,12 @@ Purpose:
     another bulky craft lies in that heading's way
     (``avoidance.in_the_way``), away from the two of them alike; it holds
     that heading until it is outside the keep, and comes round again; with
-    an enemy on its tail that targets it, it weaves (``weave``) until the
-    tail is clear or the weave's swerves are flown, steering clear of every
-    bulky craft its own target among them, then fights again. Skill
+    an enemy on its tail that targets it, or a homing shot closing on it
+    (``countermeasures.incoming``), it weaves (``weave``) until neither is
+    left or the weave's swerves are flown, steering clear of every
+    bulky craft its own target among them, then fights again. Lined up on
+    its target, it keeps firing at an enemy on its tail but still swerves
+    from a shot, as 1997's attack runs did. Skill
     sets the aim cone, the firing range and the burst (``cannons``) and how
     soon it looks again for a nearer target. Its ion cannons hold, as in
     1997: only the Disable order fires them, at its target
@@ -31,7 +34,8 @@ Purpose:
     (``pursuer``) fights that enemy while it may fight back (``fights_back``:
     it has cannons, it can move, and its hull is at FIGHT_BACK_HULL or more,
     or it is a Sith Lord, which fights at any hull: ``lord``),
-    and otherwise weaves when the enemy sits on its tail.
+    and otherwise weaves when the enemy sits on its tail or a homing shot
+    closes on it (``chased_by``).
     With neither, it flies 1997's cruise (``seek``): round its group's
     waypoints, else to its group's start point, else on its course.
     ``fight`` is the dogfight itself, at the targets a behavior gives it:
@@ -57,14 +61,14 @@ Phases, the notebook's phase byte:
 
     SEEK    no target: hold fire, cruise when the caller says (``seek``),
             else keep course; look again each think; an enemy on the tail
-            starts a weave
+            or a homing shot closing starts a weave
     ATTACK  steer at the target, fire when lined up; each entry to ATTACK,
             and each new target, starts an attack run
     BREAK   inside the target's keep, ahead, or anywhere for a bulky
             target: hold a heading a quarter turn away from the side of the
             target's nearest part, or away from it and the bulky craft in
             that way, until outside the keep, for BREAK_LIMIT_TICKS at most
-    EVADE   an enemy on the tail: weave
+    EVADE   an enemy on the tail or a homing shot closing: weave
 
 The scratch bytes, little-endian: u16 target index, u16 its signature,
 u16 yaw and u16 pitch a break holds, u32 the tick to look again for a
@@ -133,6 +137,7 @@ from ..world import Question
 from ..world import Steer
 from . import avoidance
 from . import BehaviorCode
+from . import countermeasures
 from . import Decision
 from . import patrol
 from . import seek
@@ -293,7 +298,7 @@ def fight(
         )
         return Decision(book.encode(), actions)
     if book.phase == EVADE and memory.weave.flying:
-        chased = tail_threat(view, question) is not None or _ordered_on(memory, tick)
+        chased = chased_by(view, question) is not None or _ordered_on(memory, tick)
         flown, move, state = weave.fly(view, memory.weave, chased, book.dice, tick)
         memory = dataclasses.replace(
             memory, weave=flown, ordered=memory.ordered if flown.flying else 0
@@ -330,9 +335,11 @@ def fight(
         return _hold(view, book, state, BREAK, tick, memory, target, interval)
 
     threat = tail_threat(view, question)
-    if threat is not None and not aim.lined_up and weave.may_start(memory.weave, tick):
+    shot = countermeasures.incoming(view, question)
+    dodged = shot if threat is None or aim.lined_up else threat
+    if dodged is not None and weave.may_start(memory.weave, tick):
         started, move, state = weave.start(
-            view, threat.object_index, memory.weave, book.dice, tick
+            view, dodged.object_index, memory.weave, book.dice, tick
         )
         memory = dataclasses.replace(memory, weave=started)
         book = dataclasses.replace(
@@ -596,6 +603,18 @@ def tail_threat(view: CraftView, question: Question) -> Contact | None:
     return None if nearest is None else nearest[1]
 
 
+def chased_by(view: CraftView, question: Question) -> int | None:
+    """Return the object index of what the craft weaves from: the nearest
+    enemy on its tail that targets it (``tail_threat``), else the first
+    homing shot closing on it within its swerve range
+    (``countermeasures.incoming``); None when neither is."""
+    chaser = tail_threat(view, question)
+    if chaser is not None:
+        return chaser.object_index
+    shot = countermeasures.incoming(view, question)
+    return None if shot is None else shot.object_index
+
+
 def pursuer(view: CraftView, question: Question) -> Contact | None:
     """Return the enemy after the craft, or None.
 
@@ -726,14 +745,13 @@ def _seek(
     cruising: bool,
 ) -> Decision:
     """Return the decision of a craft with no target, its memory holding only
-    the weave's state and the route: weave from an enemy on its tail, else
-    hold fire on ``seek``'s cruise when cruising, on its course when not."""
+    the weave's state and the route: weave from an enemy on its tail or a
+    homing shot closing on it (``chased_by``), else hold fire on ``seek``'s
+    cruise when cruising, on its course when not."""
     tick = question.tick
-    threat = tail_threat(view, question)
+    threat = chased_by(view, question)
     if threat is not None and weave.may_start(memory.weave, tick):
-        started, move, state = weave.start(
-            view, threat.object_index, memory.weave, book.dice, tick
-        )
+        started, move, state = weave.start(view, threat, memory.weave, book.dice, tick)
         book = dataclasses.replace(
             book.in_phase(EVADE, tick),
             dice=state,
@@ -811,8 +829,8 @@ def _evade_ordered(view: CraftView, question: Question) -> Decision:
     tick = question.tick
     book = notebook.open_for(view, CODE, tick)
     memory = Memory.read(book.scratch)
-    threat = tail_threat(view, question)
-    chaser = NO_OBJECT if threat is None else threat.object_index
+    threat = chased_by(view, question)
+    chaser = NO_OBJECT if threat is None else threat
     started, move, state = weave.start(view, chaser, memory.weave, book.dice, tick)
     memory = Memory(weave=started, ordered=1, route=memory.route)
     book = dataclasses.replace(

@@ -12,6 +12,8 @@ same question first, to show the situation breaks off or fires.
 from __future__ import annotations
 
 import pytest
+from shot_setup import aimed
+from shot_setup import SHOT
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
@@ -645,3 +647,38 @@ def test_another_behavior_gives_the_line_back(craft) -> None:
     assert kamikaze.ended(showing, named) == named
     other = craft(activity=Activity.SELF_DESTRUCTING)
     assert kamikaze.ended(other, quiet) == quiet
+
+
+def test_with_no_target_it_weaves_from_a_homing_shot(cruising, ask) -> None:
+    decision = ask(aimed(cruising(order_target_mask=0), (0, -0x1000, 0)))
+    assert memory_of(decision).weave.flying and decision.actions.weaving
+    assert phase_of(decision) == kamikaze.CRUISE
+
+
+def test_a_dive_takes_no_notice_of_a_homing_shot(craft, foe, ask) -> None:
+    decision = ask(aimed(craft(order_target_mask=0b10), (0, -0x1000, 0)), foe())
+    assert decision.actions.steer == Steer(0, LEVEL, 0)
+    assert not memory_of(decision).weave.flying and not decision.actions.weaving
+
+
+def test_an_evade_command_names_the_shot_it_weaves_from(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("INFO")
+    ask(aimed(craft(commands=Commands.EVADE), (0, -0x1000, 0)), foe())
+    assert f"kamikaze.evade_ordered object={ME} chaser={SHOT}" in caplog.text
+
+
+def test_an_evade_weave_flown_out_with_a_shot_closing_ends_at_its_limit(
+    craft, foe, ask, caplog
+) -> None:
+    """With nothing after it the last swerve ends the weave clear, no rest;
+    a shot still closing ends it at its limit, with a rest."""
+    caplog.set_level("DEBUG")
+    last = weave.Weave(swerves=weave.SWERVES_MAX, swerve_ends=900)
+    done = written(kamikaze.EVADE, kamikaze.Memory(weave=last, ordered=1))
+    ask(aimed(craft(notebook=done), (0, -0x1000, 0)), foe())
+    rest = 1000 + weave.REST_TICKS
+    assert f'weave.end object={ME} reason="limit" swerves=3 rest_until={rest}' in (
+        caplog.text
+    )

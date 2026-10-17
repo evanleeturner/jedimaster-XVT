@@ -16,7 +16,8 @@ Purpose:
     The 1997 plan never fought back. Here a craft on Wait defends itself as
     one on the player's wait command does: it fights
     an enemy after it while it may fight back (``attack.fights_back``), else
-    weaves while an enemy sits on its tail, and stops again once clear. The
+    weaves while an enemy sits on its tail or a homing shot closes on it
+    (``attack.chased_by``), and stops again once clear. The
     timer runs on meanwhile.
 
     ``ended`` gives the activity back, NONE, once another behavior flies the
@@ -77,7 +78,7 @@ def think(view: CraftView, question: Question) -> Decision:
     activity = Activity.NONE if over else Activity.WAITING
     chaser = attack.pursuer(view, question)
     fights = chaser is not None and attack.fights_back(view, question, chaser)
-    chased = attack.tail_threat(view, question) is not None
+    chased = attack.chased_by(view, question) is not None
     if not (fights or chased or attack.weaving(view)):
         book = notebook.open_for(view, CODE, question.tick)
         scratch = SLOT.pack(view.order_slot) + book.scratch[SLOT.size :]

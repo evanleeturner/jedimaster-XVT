@@ -9,6 +9,7 @@ every contact hostile but the first two.
 from __future__ import annotations
 
 import pytest
+from shot_setup import aimed
 
 from jedimaster_ai import notebook
 from jedimaster_ai import warheads
@@ -248,3 +249,9 @@ def test_the_attackers_line_records_the_sort(craft, friend, foe, ask, caplog) ->
     me = craft(order_target_mask=0b110, enemy_mask=ENEMIES & ~0b100)
     ask(me, friend(), untouched, foe())
     assert f"protect.attackers object={ME} named=2 hit=1 attackers=1" in caplog.text
+
+
+def test_a_homing_shot_closing_makes_it_weave(craft, friend, ask) -> None:
+    decision = ask(aimed(craft(), (0, -0x1000, 0)), friend())
+    assert notebook.decode(decision.notebook).phase == attack.EVADE
+    assert decision.actions.weaving

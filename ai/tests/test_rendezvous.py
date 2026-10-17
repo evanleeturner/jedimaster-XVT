@@ -13,6 +13,7 @@ from __future__ import annotations
 import dataclasses
 
 import pytest
+from shot_setup import aimed
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
@@ -337,3 +338,9 @@ def test_flown_by_another_behavior_it_gets_activity_none(craft) -> None:
     going = Decision(b"", Actions(activity=Activity.GOING_HOME))
     assert rendezvous.ended(craft(activity=WAITING), going) == going
     assert rendezvous.ended(craft(activity=Activity.WAITING), plain) == plain
+
+
+def test_a_homing_shot_closing_makes_it_weave(craft, ask) -> None:
+    decision = ask(aimed(craft(), (0, -0x1000, 0)))
+    assert notebook.decode(decision.notebook).phase == attack.EVADE
+    assert decision.actions.weaving and decision.actions.steer is not None

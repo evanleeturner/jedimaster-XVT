@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 
 import pytest
+from shot_setup import aimed
 
 from jedimaster_ai import dice
 from jedimaster_ai import notebook
@@ -364,3 +365,9 @@ def test_another_behavior_gives_the_line_back(view) -> None:
     assert selfdestruct.ended(showing, named) == named
     other = view(activity=Activity.KAMIKAZE_ATTACK)
     assert selfdestruct.ended(other, quiet) == quiet
+
+
+def test_a_homing_shot_closing_makes_it_weave(fighter, fly) -> None:
+    decision = fly(aimed(fighter(), (0, -0x1000, 0)))
+    assert notebook.decode(decision.notebook).phase == attack.EVADE
+    assert decision.actions.weaving and decision.actions.steer is not None

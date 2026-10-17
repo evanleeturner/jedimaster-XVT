@@ -25,8 +25,10 @@ Purpose:
     tail) turns it round to fight while it may fight back (``attack.
     fights_back``: its hull at three quarters or more), and
     otherwise it flies home evading, weaving about its way home whenever the
-    enemy sits on its tail. Once the enemy is dead, gone, or
-    targets another craft, it goes home again. At the door it goes on: a
+    enemy sits on its tail. A homing shot closing on it
+    (``countermeasures.incoming``) makes it fly home evading too, weaving
+    from the shot. Once the enemy is dead, gone, or targets another craft
+    and no shot closes, it goes home again. At the door it goes on: a
     craft departing, turning in to the hangar or docking is not turned
     round.
 
@@ -46,8 +48,9 @@ Invariants:
       with attack's notebook; a weave home keeps its state in a home
       notebook (BehaviorCode.HOME, the weave's STATE_BYTES first in the
       scratch), which ends a weave under way once no enemy is after the
-      craft. Otherwise the notebook goes back as it came. A new route is
-      logged at DEBUG when the activity changes: a fighting craft's is NONE.
+      craft and no shot closes on it. Otherwise the notebook goes back as
+      it came. A new route is logged at DEBUG when the activity changes: a
+      fighting craft's is NONE.
 """
 
 from __future__ import annotations
@@ -70,6 +73,7 @@ from ..world import Question
 from ..world import Steer
 from . import attack
 from . import BehaviorCode
+from . import countermeasures
 from . import Decision
 from . import formation
 
@@ -143,12 +147,15 @@ def _on_the_way(
 ) -> tuple[str, Decision]:
     """Fly a route out, unless an enemy is after the craft on the way to its
     jump or its hangar: then fight it while the craft may fight back, else
-    fly the route evading."""
+    fly the route evading; a homing shot closing on it with no enemy after
+    it flies the route evading too."""
     if route not in ("jump", "hangar") or actions.depart:
         return route, Decision(view.notebook, actions)
     chaser = attack.pursuer(view, question)
     if chaser is None:
-        return route, _clear(view, question, actions)
+        if countermeasures.incoming(view, question) is None:
+            return route, _clear(view, question, actions)
+        return "evade", _evade(view, question, actions)
     if attack.fights_back(view, question, chaser):
         return "fight", _fighting(attack.fight(view, question, [chaser]))
     return "evade", _evade(view, question, actions)
@@ -172,21 +179,20 @@ def _fighting(decision: Decision) -> Decision:
 
 def _evade(view: CraftView, question: Question, actions: Actions) -> Decision:
     """Fly the route's actions going home evading, weaving about the route's
-    heading while an enemy sits on the craft's tail; each answer built from
-    the weave's move is flagged ``weaving``."""
+    heading while an enemy sits on the craft's tail or a homing shot closes
+    on it (``attack.chased_by``); each answer built from the weave's move is
+    flagged ``weaving``."""
     tick = question.tick
     book = notebook.open_for(view, CODE, tick)
     flown = weave.Weave.read(book.scratch)
-    threat = attack.tail_threat(view, question)
+    threat = attack.chased_by(view, question)
     move = None
     state = book.dice
     if flown.flying:
         flown, move, state = weave.fly(view, flown, threat is not None, state, tick)
     elif threat is not None and weave.may_start(flown, tick):
         course = None if actions.steer is None else actions.steer.yaw
-        flown, move, state = weave.start(
-            view, threat.object_index, flown, state, tick, course
-        )
+        flown, move, state = weave.start(view, threat, flown, state, tick, course)
     book = dataclasses.replace(book, dice=state, scratch=_scratch(flown))
     actions = dataclasses.replace(actions, activity=Activity.GOING_HOME_EVADING)
     if move is not None:

@@ -30,7 +30,8 @@ Purpose:
 
     With no waypoint on, the craft stops where it is and counts one round, as
     a starship does on its one waypoint. Circle and Evade weaves while an
-    enemy sits on its tail (``weave``), about its course to the waypoint, at
+    enemy sits on its tail or a homing shot closes on it (``weave``,
+    ``attack.chased_by``), about its course to the waypoint, at
     full throttle, and goes back to its round once the weave ends; Circle
     and the starship orders leave attackers to the turrets, as in 1997.
 
@@ -238,18 +239,17 @@ def evade(
     state: int,
 ) -> tuple[weave.Weave, Actions, int]:
     """Return the weave, actions and dice of a Circle and Evade craft: it
-    weaves about its course while an enemy sits on its tail, each answer
-    built from the weave's move flagged ``weaving``."""
+    weaves about its course while an enemy sits on its tail or a homing shot
+    closes on it (``attack.chased_by``), each answer built from the weave's
+    move flagged ``weaving``."""
     tick = question.tick
-    threat = attack.tail_threat(view, question)
+    threat = attack.chased_by(view, question)
     move = None
     if flown.flying:
         flown, move, state = weave.fly(view, flown, threat is not None, state, tick)
     elif threat is not None and weave.may_start(flown, tick):
         course = None if actions.steer is None else actions.steer.yaw
-        flown, move, state = weave.start(
-            view, threat.object_index, flown, state, tick, course
-        )
+        flown, move, state = weave.start(view, threat, flown, state, tick, course)
     if move is not None:
         actions = dataclasses.replace(
             actions,

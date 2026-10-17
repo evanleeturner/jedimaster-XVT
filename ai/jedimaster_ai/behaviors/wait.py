@@ -8,7 +8,8 @@ Purpose:
     further orders. A waiting craft defends itself as a craft going home
     does: it fights an enemy that is after it while
     it may fight back (``attack.fights_back``), else weaves while an enemy
-    sits on its tail, and stops again once clear. The 1997 wait plans
+    sits on its tail or a homing shot closes on it (``attack.chased_by``),
+    and stops again once clear. The 1997 wait plans
     (craftwaitforgopln, starshipwaitforgopln) stopped the craft and answered
     an attacker the same way, by their under-attack order.
 
@@ -46,7 +47,7 @@ def think(view: CraftView, question: Question) -> Decision:
         logger.info("wait.start object=%d", view.object_index)
     chaser = attack.pursuer(view, question)
     fights = chaser is not None and attack.fights_back(view, question, chaser)
-    chased = attack.tail_threat(view, question) is not None
+    chased = attack.chased_by(view, question) is not None
     if not (fights or chased or attack.weaving(view)):
         actions = Actions(
             throttle=STOPPED,

@@ -11,6 +11,7 @@ hostile but the first two.
 from __future__ import annotations
 
 import pytest
+from shot_setup import aimed
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
@@ -363,3 +364,11 @@ def test_the_lines_record_the_threats_and_the_station(
         f"escort.station object={ME} escorted={HOST} distance={HOST_Y} "
         f"range={0x8000} disabled=0" in caplog.text
     )
+
+
+def test_a_homing_shot_closing_makes_it_leave_its_station_to_weave(
+    craft, host, ask
+) -> None:
+    decision = ask(aimed(craft(), (0, -0x1000, 0)), host())
+    assert notebook.decode(decision.notebook).phase == attack.EVADE
+    assert decision.actions.weaving and decision.actions.target == NO_OBJECT

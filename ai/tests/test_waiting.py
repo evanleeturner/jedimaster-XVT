@@ -9,6 +9,7 @@ The craft flies at the origin facing +y, level, at full skill, on a Wait of
 from __future__ import annotations
 
 import pytest
+from shot_setup import aimed
 
 from jedimaster_ai import notebook
 from jedimaster_ai.behaviors import attack
@@ -186,3 +187,11 @@ def test_released_from_wait_a_craft_gets_activity_none(craft) -> None:
     going = Decision(b"", Actions(activity=Activity.GOING_HOME))
     assert waiting.ended(craft(activity=Activity.WAITING), going) == going
     assert waiting.ended(craft(), plain) == plain
+
+
+def test_a_homing_shot_closing_makes_it_weave_then_stop_again(craft, ask) -> None:
+    first = ask(aimed(craft(), (0, -0x1000, 0)))
+    assert notebook.decode(first.notebook).phase == attack.EVADE
+    assert first.actions.weaving
+    clear = ask(craft(notebook=first.notebook), tick=1016)
+    assert clear.actions.steer is None and clear.actions.throttle == 0

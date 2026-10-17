@@ -20,8 +20,9 @@ Purpose:
 
     With no target, it flies its group's waypoints as Patrol does
     (``patrol.advance``, ``patrol.cruise``) and weaves while an enemy sits on
-    its tail (``patrol.evade``), as Circle and Evade does. A
-    weave under way is flown out before a dive begins.
+    its tail or a homing shot closes on it (``patrol.evade``), as Circle and
+    Evade does. A weave under way is flown out before a dive begins; the
+    dive itself never swerves, as 1997's never did.
 
     An evade command drops the target and starts a weave on the craft's
     course, flown to its last swerve, chased or not, as Attack flies one;
@@ -41,7 +42,7 @@ Purpose:
 Phases, the notebook's phase byte:
 
     CRUISE  no target: the waypoints, and a weave while an enemy is on the
-            tail
+            tail or a homing shot closes
     DIVE    steer at the target at full throttle, fire when lined up
     EVADE   an evade command's weave
 
@@ -172,7 +173,7 @@ def _flown(view: CraftView, question: Question) -> Decision:
     if view.commands & Commands.EVADE:
         return _evade_ordered(view, question, book, memory)
     if book.phase == EVADE and memory.weave.flying:
-        chased = attack.tail_threat(view, question) is not None or _ordered_on(
+        chased = attack.chased_by(view, question) is not None or _ordered_on(
             memory, tick
         )
         flown, move, state = weave.fly(view, memory.weave, chased, book.dice, tick)
@@ -353,8 +354,8 @@ def _evade_ordered(
     dropped and a weave begun on the craft's course, flown to its last
     swerve (1997's kamikaze3pln)."""
     tick = question.tick
-    threat = attack.tail_threat(view, question)
-    chaser = NO_OBJECT if threat is None else threat.object_index
+    threat = attack.chased_by(view, question)
+    chaser = NO_OBJECT if threat is None else threat
     started, move, state = weave.start(view, chaser, memory.weave, book.dice, tick)
     memory = dataclasses.replace(
         memory, weave=started, ordered=1, target=NO_OBJECT, signature=0

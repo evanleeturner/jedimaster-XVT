@@ -11,7 +11,8 @@ Purpose:
     keeps a running timer. Meanwhile the craft sits at throttle 0 and
     defends itself as a waiting craft does: it fights an enemy
     that is after it while it may fight back (``attack.fights_back``), else
-    weaves while an enemy sits on its tail, and stops again once clear. Its
+    weaves while an enemy sits on its tail or a homing shot closes on it
+    (``attack.chased_by``), and stops again once clear. Its
     turrets defend, as every craft's do.
 
     - A variable1 of 0 asks for 2 to 5 units at random, as 1997 did,
@@ -143,7 +144,7 @@ def _defense(view: CraftView, question: Question) -> Decision | None:
     enemy is after it, on its tail or being weaved from."""
     chaser = attack.pursuer(view, question)
     fights = chaser is not None and attack.fights_back(view, question, chaser)
-    chased = attack.tail_threat(view, question) is not None
+    chased = attack.chased_by(view, question) is not None
     if not (fights or chased or attack.weaving(view)):
         return None
     decision = attack.fight(view, question, [chaser] if fights else [])

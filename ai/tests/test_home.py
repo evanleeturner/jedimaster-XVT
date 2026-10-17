@@ -21,6 +21,8 @@ import dataclasses
 import logging
 
 import pytest
+from shot_setup import aimed
+from shot_setup import SHOT
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
@@ -512,3 +514,35 @@ def test_weaving_on_the_hangar_approach_is_at_full_throttle(
     assert decision.actions.activity == Activity.GOING_HOME_EVADING
     assert decision.actions.throttle == home.FULL_THROTTLE
     assert decision.actions.target == CARRIER
+
+
+# A homing shot closing on the way home: tier 2 swerves from 6,144 units.
+
+
+def test_a_homing_shot_on_the_way_home_makes_it_weave(view, mine, caplog) -> None:
+    """No enemy after it: a torpedo 4,096 off flies it home evading."""
+    caplog.set_level("DEBUG")
+    craft = aimed(view(**JUMPING), (-0x1000, 0, 0))
+    decision = decide(craft, [mine(craft)])
+    flown = weave.Weave.read(notebook.decode(decision.notebook).scratch)
+    assert notebook.decode(decision.notebook).behavior == 3  # home's
+    assert flown.flying and flown.course == HOME_YAW
+    assert decision.actions.activity == Activity.GOING_HOME_EVADING
+    assert decision.actions.weaving
+    assert f"weave.start object={ME} threat={SHOT} course={HOME_YAW}" in caplog.text
+
+
+def test_once_the_shot_is_gone_the_weave_home_ends(view, mine) -> None:
+    craft = aimed(view(**JUMPING), (-0x1000, 0, 0))
+    first = decide(craft, [mine(craft)])
+    then = view(**JUMPING | {"notebook": first.notebook})
+    decision = decide(then, [mine(then)], tick=1016)
+    assert not weave.Weave.read(notebook.decode(decision.notebook).scratch).flying
+    assert not decision.actions.weaving
+
+
+def test_a_shot_at_the_swerve_range_lets_it_fly_straight_home(view, mine) -> None:
+    craft = aimed(view(**JUMPING), (-0x1800, 0, 0))
+    decision = decide(craft, [mine(craft)])
+    assert decision.actions.activity != Activity.GOING_HOME_EVADING
+    assert not decision.actions.weaving

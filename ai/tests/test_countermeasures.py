@@ -9,11 +9,13 @@ import re
 
 import pytest
 
+from jedimaster_ai import geometry
 from jedimaster_ai import progress
 from jedimaster_ai.behaviors import countermeasures
 from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
+from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Books
 from jedimaster_ai.world import Countermeasure
 from jedimaster_ai.world import NO_OBJECT
@@ -313,3 +315,25 @@ def test_the_swerve_is_logged(fighter, me, caplog) -> None:
     assert (
         "countermeasures.incoming object=4 threat=20 type=144 distance=5000 range=12288"
     ) in caplog.messages
+
+
+def test_a_craft_weaving_home_from_a_missile_launches_chaff_at_it_too(
+    fighter, me
+) -> None:
+    """The swerve and the countermeasures weigh the same shot: a tier-1
+    craft going home to a far jump point, a missile 2,048 behind, weaves and
+    launches chaff in one answer; with no missile it flies straight on."""
+    far = (0x40000, 0, 0)
+    home = {
+        "books": Books.ORDERS_DONE | Books.MAY_JUMP | Books.HOME_POINT,
+        "home_point": far,
+        "yaw": geometry.bearing(*far)[0],
+        "pitch": geometry.LEVEL,
+        "countermeasure": Countermeasure.CHAFF,
+    } | TIER_1
+    chased = fighter((20, MISSILE, 0, False, -0x800, 0), **home)
+    actions = think(Question(1000, (chased,), (me(),))).craft[0].actions
+    assert actions.weaving and actions.countermeasure
+    assert actions.activity == Activity.GOING_HOME_EVADING
+    clear = think(Question(1000, (fighter(**home),), (me(),))).craft[0].actions
+    assert not clear.weaving and not clear.countermeasure
