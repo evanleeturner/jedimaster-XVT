@@ -51,7 +51,8 @@ from .world import LinkMode
 # skill: a better pilot holds fire until the shot is good. The Sith tiers
 # fire from no farther than a Jedi, and no tier farther than its shots fly
 # (``fire_range``). Their bursts stay a Jedi's: each answer sets the burst
-# again, 16 or 8 ticks on.
+# again, 16 or 8 ticks on. The Sith Lord's cone, measured offline (AI ruling
+# 240): from 0x100 to 0x280 it hit within 1% as often, at 0x300 4% less.
 AIM_CONE = (0x800, 0x600, 0x400, 0x300, 0x200)
 FIRE_RANGE = (0x6000, 0x8000, 0xA000, 0xA000, 0xA000)
 BURST = (3, 4, 5, 5, 5)
@@ -95,8 +96,9 @@ SPEED_TO_WORLD_SCALE = 4660
 SIMULATED_SECOND_TICKS = 236
 # A target's predicted flight (``predict``) is stepped this many ticks at a
 # time, each step on its middle heading, and a shot's time to meet it found
-# in this many passes (``meet``). Starting values: a tuning harness and a
-# flight set them (AI ruling 224).
+# in this many passes (``meet``). Measured offline against scripted targets
+# (AI ruling 240): steps of 2 to 32 ticks and 2 to 8 passes moved the meeting
+# point by less than 30 world units and changed no hit, so both stay.
 PREDICT_STEP_TICKS = 8
 LEAD_PASSES = 4
 # A predicted speed stays between 0 and the fastest any craft flies, the speed

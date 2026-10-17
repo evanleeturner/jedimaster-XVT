@@ -67,11 +67,15 @@ def home_books(view: CraftView, books: int) -> int:
     return books & ~Books.ABORTED
 
 
-# The aim's starting values; a tuning harness and a flight set them (AI
-# ruling 224). A look moves the correction by GAIN, a fraction, of its
-# tracers' mean miss, each axis held within MAX_CORRECTION world units; a
-# tracer counts only when its pass came within NEAR_PASS of the target, so
-# shots at another craft count for nothing.
+# A look moves the correction by GAIN, a fraction, of its tracers' mean miss,
+# each axis held within MAX_CORRECTION world units; a tracer counts only when
+# its pass came within NEAR_PASS of the target, so shots at another craft
+# count for nothing. Measured offline against scripted targets (AI ruling
+# 240): a GAIN of 1/4 to 1/2 hit within 2% as often, a limit of 150 to 2,400
+# and a NEAR_PASS of 512 to 4,096 within 1%, so these stay; a whole GAIN hit
+# 6% less, and no correction at all 11% less when the program saw its
+# target 8 ticks late. The flight may still move GAIN and MAX_CORRECTION (AI
+# ruling 224).
 GAIN = (1, 2)
 MAX_CORRECTION = 600
 NEAR_PASS = 0x800
