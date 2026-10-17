@@ -156,7 +156,7 @@ from a ball round the ship's centre. The code is in `ai/jedimaster_ai/behaviors/
 
 | What the computer pilots do now | In the 1997 game | Kept, changed or new | Related issues |
 | --- | --- | --- | --- |
-| Every craft steers clear of freighters from 8,192 units (0.2 km) outside the clearance round their position, and of starships and platforms from 8,192 units outside a keep off their hull: 4,096 units (0.1 km) and three quarters of the craft's own length, so a fighter heads toward a Super Star Destroyer's flank until near it, where a ball round its position turned it some 250,000 units out, and a big ship keeps its own length off another's hull. It turns toward the edge of the ship on the side its nose points to. It never swings its nose across a big ship whose clearance it is inside; that turn goes the long way round. Between two big ships it picks the widest pass. A craft's own target counts as an obstacle during a break (`behaviors/avoidance.py`). | Go Home turned off a starship it would hit. | Changed | |
+| Every craft steers clear of freighters from 8,192 units (0.2 km) outside the clearance round their position, and of starships and platforms from 8,192 units outside a keep off their hull: 4,096 units (0.1 km) and three quarters of the craft's own length, so a fighter heads toward a Super Star Destroyer's flank until near it, where a ball round its position turned it some 250,000 units out, and a big ship keeps its own length off another's hull. It turns toward the edge of the ship on the side its nose points to. Over or under a starship or platform, where every turn left or right still meets the ship, it keeps its direction and tilts its nose just past the edge of the space it keeps clear instead: up over a deck, down under a hull. It flies level across the ship until it is past the side, then steers as before. Before this change, a craft over a parked starship dived through its deck toward a point under it. It never swings its nose across a big ship whose clearance it is inside; that turn goes the long way round. Between two big ships it picks the widest pass. A craft's own target counts as an obstacle during a break (`behaviors/avoidance.py`). | Go Home turned off a starship it would hit. | Changed | |
 | Big ships steer clear of each other by the other's hull and their own length. A starship that stopped to turn round another moves on again (`behaviors/avoidance.py`, `behaviors/patrol.py`). | Followers were pushed into formation places. | Changed | [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296) |
 | A craft going home targets its own mothership, so steering never turns it off its own hangar. Before this change, 1 of 12 launches in a networked test flight flew into its carrier. | Unknown | Changed | |
 
@@ -413,7 +413,7 @@ every capital ship, at every level.
 ## Open AI issues
 
 <!-- ai-issues:start -->
-On 2026-10-17 (UTC) the label `ai` was on 18 open issues and 36 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
+On 2026-10-17 (UTC) the label `ai` was on 17 open issues and 37 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
 
 - [#2](https://github.com/evanleeturner/jedimaster-XVT/issues/2): Research: enemy pilots that fight as a pack
 - [#3](https://github.com/evanleeturner/jedimaster-XVT/issues/3): Research: "Jev", a language-model commander for the enemy side
@@ -429,7 +429,6 @@ On 2026-10-17 (UTC) the label `ai` was on 18 open issues and 36 closed ones. Thi
 - [#295](https://github.com/evanleeturner/jedimaster-XVT/issues/295): A Python layer over the flight engine's shared state, so players, lasers, collisions, craft and targeting can move into Python later
 - [#297](https://github.com/evanleeturner/jedimaster-XVT/issues/297): Below about 31 frames a second, unlocked timing slows six mission timers: arrivals, goal checks and messages come late
 - [#298](https://github.com/evanleeturner/jedimaster-XVT/issues/298): Host aborted once with heap corruption in a network game (free(): corrupted unsorted chunks); a replay did not crash
-- [#300](https://github.com/evanleeturner/jedimaster-XVT/issues/300): Mines never fire
 - [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301): Shift+B resupply is always refused
 - [#306](https://github.com/evanleeturner/jedimaster-XVT/issues/306): Three more engine rules read the removed 1997 pilot's maneuver, so they never act for computer-flown craft
 - [#310](https://github.com/evanleeturner/jedimaster-XVT/issues/310): AI: a computer craft loses its warhead shot when the shared shot slots are full
@@ -445,14 +444,14 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 89 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 106 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 9,100 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 14,389 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 873 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Commits that changed the pilot program | 90 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 107 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 9,191 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 14,683 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 888 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 23 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
 | Mission order codes that have a written behavior | 37 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
-| Kinds of line the pilot program writes to its log | 76 | the entries in `ai/jedimaster_ai/events.json` |
+| Kinds of line the pilot program writes to its log | 77 | the entries in `ai/jedimaster_ai/events.json` |
 | Lines of C in the engine's computer-pilot code | 7,641 in 29 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
 | Test files and checks for that engine code | 15 files, 199 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 14 | the `check_order_...` functions in `engine/tests/test_flight.c` |
