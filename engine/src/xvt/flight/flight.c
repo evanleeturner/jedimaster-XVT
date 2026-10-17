@@ -1473,8 +1473,10 @@ unsigned int flight_checksum_buffer_rotate_xor(const void *data,
  * and its current order is Board and Give Cargo or Board to Repair, with the
  * caller among the craft that order names. A craft on any other boarding
  * order (take, exchange, capture, destroy, pick up, starship board) does not
- * answer, since the caller has nothing to give it. The order-target match
- * reads g_cur_craft, so the key sets it to the target's craft first. */
+ * answer, since the caller has nothing to give it. Nor does a craft that has
+ * already docked with the caller's craft: it has served it once, and the
+ * AI program does not board a craft twice. The order-target match reads
+ * g_cur_craft, so the key sets it to the target's craft first. */
 static int flight_resupply_answers(int target_index, uint16_t caller)
 {
 	if (g_object_table[target_index]
@@ -1487,7 +1489,24 @@ static int flight_resupply_answers(int target_index, uint16_t caller)
 	    order != MISSION_ORDER_BOARD_TO_REPAIR) {
 		return 0;
 	}
-	return ai_brain_order_targets_match_object(caller) != 0;
+	if (ai_brain_order_targets_match_object(caller) == 0) {
+		return 0;
+	}
+	const struct ai_flight_state *flight =
+		&g_object_table[target_index].mobj->p_craft->ai_flight;
+	int docked = flight->docked_target_count;
+	if (docked > (int)(sizeof flight->docked_target_signatures /
+			   sizeof flight->docked_target_signatures[0])) {
+		docked = (int)(sizeof flight->docked_target_signatures /
+			       sizeof flight->docked_target_signatures[0]);
+	}
+	for (int slot = 0; slot < docked; ++slot) {
+		if (flight->docked_target_signatures[slot] ==
+		    g_object_table[caller].object_signature) {
+			return 0;
+		}
+	}
+	return 1;
 }
 
 /* Acts on the action key a player pressed this step (g_current_action_key). In

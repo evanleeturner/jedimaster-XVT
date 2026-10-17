@@ -2816,6 +2816,13 @@ enum {
 	F_OTHER_ISTARGET = 4096, /* The other player flies the target. */
 	F_OTHER_ELSE = 8192,	 /* The other player targets something else. */
 	F_AVOIDING = 16384,	 /* The presser already avoids the target. */
+	F_DOCKED_ONLY =
+		32768, /* The supply craft docked with the pilot: 1 of 1. */
+	F_DOCKED_THIRD =
+		65536, /* The pilot is the third of 3 it docked with. */
+	F_DOCKED_OTHER = 131072, /* It docked with one other craft only. */
+	F_DOCKED_UNCOUNTED =
+		262144, /* The pilot is in slot 0, past the count. */
 };
 
 /* The order of the supply craft names the pilot's group in different ways. */
@@ -2900,6 +2907,25 @@ static void order_world(const struct order_case *c)
 	}
 	computer_craft(ENEMY, 2, 2, AI_ACTIVITY_NONE);
 	computer_craft(SUPPLY, 3, 0, c->activity);
+	struct ai_flight_state *supply = &g_test_craft[SUPPLY].ai_flight;
+	if (flags & F_DOCKED_ONLY) {
+		supply->docked_target_count = 1;
+		supply->docked_target_signatures[0] = PILOT_SIGNATURE;
+	}
+	if (flags & F_DOCKED_THIRD) {
+		supply->docked_target_count = 3;
+		supply->docked_target_signatures[0] = PILOT_SIGNATURE + 1;
+		supply->docked_target_signatures[1] = PILOT_SIGNATURE + 2;
+		supply->docked_target_signatures[2] = PILOT_SIGNATURE;
+	}
+	if (flags & F_DOCKED_OTHER) {
+		supply->docked_target_count = 1;
+		supply->docked_target_signatures[0] = PILOT_SIGNATURE + 1;
+	}
+	if (flags & F_DOCKED_UNCOUNTED) {
+		supply->docked_target_count = 0;
+		supply->docked_target_signatures[0] = PILOT_SIGNATURE;
+	}
 	struct mission_order *order = &g_mission_flight_groups[3].fg.orders[0];
 	order->order = (uint8_t)c->order;
 	order->target1_type = 1;
@@ -3883,6 +3909,18 @@ static const struct order_case g_resupply_cases[] = {
 	{"resupply_looking_repair", k_resupply_called_board, FLIGHT_KEY_SHIFT_B,
 	 PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, 0, MATCH_FIRST,
 	 MISSION_ORDER_BOARD_TO_REPAIR},
+	{"resupply_docked_only", k_resupply_looking_refused, FLIGHT_KEY_SHIFT_B,
+	 PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, F_DOCKED_ONLY,
+	 MATCH_FIRST, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
+	{"resupply_docked_third", k_resupply_looking_refused,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD,
+	 F_DOCKED_THIRD, MATCH_FIRST, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
+	{"resupply_docked_other", k_resupply_called_board, FLIGHT_KEY_SHIFT_B,
+	 PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD, F_DOCKED_OTHER,
+	 MATCH_FIRST, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
+	{"resupply_docked_uncounted", k_resupply_called_board,
+	 FLIGHT_KEY_SHIFT_B, PILOT, SUPPLY, AI_ACTIVITY_LOOKING_TO_BOARD,
+	 F_DOCKED_UNCOUNTED, MATCH_FIRST, MISSION_ORDER_BOARD_AND_GIVE_CARGO},
 };
 
 /* Shift+B calls the targeted supply craft when it is looking for a craft to
@@ -3892,7 +3930,9 @@ static const struct order_case g_resupply_cases[] = {
  * answer, and the pilot's craft is the supply craft's command target. Any
  * other call gets the not-responding message: a craft on a take, exchange,
  * capture, destroy, pick-up or starship-board order, one that is not looking
- * to board, or one whose order does not name the pilot. With the radio out
+ * to board, one whose order does not name the pilot, or one that already
+ * docked with the pilot's craft (found by its signature among the first
+ * docked_target_count entries of the craft's list). With the radio out
  * it says so; with no target, or one past the craft slots, nothing
  * happens. */
 static void check_order_resupply(void)
