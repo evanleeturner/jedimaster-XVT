@@ -148,7 +148,7 @@ named in the table.
 | Fire turrets, on every craft, at hostile craft within 65,536 units (1.6 km) that target it, last hit it, or are among its order's targets. Nearest first, shared over the turrets (`behaviors/turrets.py`). On SS Protect, also at the enemies attacking the craft it protects; on SS Patrol and Disable, ion shots at the order's targets that still work, and never at a disabled craft. | Turrets fired by the rules of each order. Hold Steady had no turret rule, and only starship orders used turrets offensively. | Changed | [#103](https://github.com/evanleeturner/jedimaster-XVT/issues/103) |
 | When attacked on the way home, a small enemy (a fighter or a player) that hit the craft or sits behind it and targets it turns the craft round to fight, while its hull is at 75% or more (a Sith Lord at any hull). Below that it flies home weaving. A freighter, starship or platform firing at it never turns it. It goes home again once the enemy is dead, gone or aims elsewhere. At the door (jumping, turning in or docking) it carries on (`behaviors/home.py`). | Flew straight on under fire. It dodged warheads and turned off a starship it would hit. | Changed | |
 | An Attack craft that is chased before its targets arrive fights the chaser at 75% hull or more (a Sith Lord at any hull), otherwise weaves, and then waits for its targets again. A disabled craft is never a chaser. | Unknown | New | |
-| With no hyperdrive there is no jump on any order. With no jump and no mothership the craft fights the nearest enemy at any hull, if it has cannons and can move. A mothership that arrives takes it home. | A craft flew to its point and stayed. A starship jumped to hyperspace with no hyperdrive. | Changed | |
+| With no hyperdrive there is no jump on any order. With every system dead there is no jump until one works again. With no jump and no mothership the craft fights the nearest enemy at any hull, if it has cannons and can move. A mothership that arrives takes it home. | A craft flew to its point and stayed. A starship jumped to hyperspace with no hyperdrive. | Changed | |
 | Starships have no missile defense: nothing fires at homing warheads or attackers. | Starship launchers fired at homing warheads and at attackers. | Changed: not built yet | [#49](https://github.com/evanleeturner/jedimaster-XVT/issues/49) |
 
 ## Big ships and collisions
@@ -196,7 +196,7 @@ Escort leader keeps its place in formation.
 | Shift+E (evade): the wingman drops its target and weaves 3 swerves, chased or not (`behaviors/attack.py`). | Dropped its target and flew an evasive move that ignored the chaser. | Changed | |
 | Shift+H (home): the wingman is marked aborted and flies home (`ai/jedimaster_ai/progress.py`). | The same. | Kept | |
 | Shift+W (wait) and Shift+G (go): wait stops the craft and keeps its order, and the display reads "awaiting further orders". It fights a chaser at 75% hull or more (a Sith Lord at any hull), otherwise weaves; a disabled craft is never a chaser. Shift+G releases any craft, a starship too (`behaviors/wait.py`). | Wait stopped the craft and answered attackers; go resumed. | Kept, bug fixed | [#292](https://github.com/evanleeturner/jedimaster-XVT/issues/292) |
-| Shift+B (resupply): a craft on one of the eight boarding orders that is looking for a craft to board, and whose order names your craft, answers and takes your craft as its target; near your hatch it asks you to stop, then docks. On Give it reloads your warheads, charges your weapons, fills your countermeasures and repairs your craft; on another order the dock does that order's own work to your craft (Capture and Pick Up take it to their side). A craft already docking never answers, and a boarder never boards one craft twice, even one you name with Shift+B | Answered a Give craft looking for a craft to board, or a boarder flying back to its rendezvous point, and served the same craft again up to the order's count. | Changed | [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301) |
+| Shift+B (resupply): a craft on a Give or Board to Repair order that is looking for a craft to board, whose order names your craft and that has not served your craft before, answers and takes your craft as its target; near your hatch it asks you to stop, then docks. On Give it reloads your warheads, charges your weapons, fills your countermeasures and repairs your craft; on Board to Repair it repairs your craft. A craft on another boarding order, one already docking, or one that served your craft before says it is not responding. | Answered a Give craft looking for a craft to board, or a boarder flying back to its rendezvous point, and served the same craft again up to the order's count. | Changed | [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301) |
 
 ## Waypoints, patrols and going home
 
@@ -366,7 +366,7 @@ filed against it. All of them are closed except #209.
   and fights by itself; beside a player, each follower still flies by itself.
   Related issue: [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138).
 - The rest of the two skill levels above Jedi, Sith Apprentice and Sith Lord
-  (below).
+  (below, and on [their own page](SITH.md)).
 - Possible later work that has not started: capital ships, advanced fighters and
   turbolasers, ion cannons, and aiming at parts of a ship.
 
@@ -374,80 +374,19 @@ filed against it. All of them are closed except #209.
 
 Partly built. The launcher's Sith setting (None, Apprentices or A Lord)
 promotes the enemy's best computer fighter flight in a single-player
-battle, and the message at the end of the battle says how its craft
-fared. The cockpit's two target readouts mark these craft: "Sith"
-after a Sith Apprentice's name, "Sith Lord" after a Sith Lord's.
-Seven of the table's rows are built: aim and fire, the warhead that fits
-the target, the warhead with no lock at a big ship and, for a Sith Lord, at
-any craft, the third throttle and the turn by the player's rule, and the
-Sith Lord's change of speed at once and its never leaving the fight. Until the rest are, Sith craft fly the
-other behaviors with a Jedi's skill.
-
-A Sith Lord never retreats. It fights every enemy after it however damaged
-it is, and its flight group's abort rules do not send it home. It still
-leaves when the mission's time to leave comes or its orders are done. It
-also fires warheads without a lock at any craft, a player's fighter too,
-when its shot lines up; a Jedi fires them only at big ships. It fires one
-such shot in each attack run at a fighter (`ai/jedimaster_ai/lord.py`).
-A Sith Lord's speed changes at once: when it sets its throttle it is at
-that speed straight away, where other craft speed up and slow down over
-time. A Lord whose engines are out, or that a tractor beam holds, slows as
-any craft does (`engine/src/xvt/flight/flight.c`).
-
-A Sith Lord also follows its target's turn: at a small craft it aims where
-a shot meets the target on the path it is turning along, and walks its
-shots in by its own tracers. The engine tells the pilot program how each
-craft turned and changed speed over the last moment, and where each of the
-Lord's tracer shots is (about half of the cannon shots it fires: those that
-land in an even shot slot). Each tracer that
-passed the target since the Lord's last look shows how far behind, beside
-or below the target it went, and half of their average miss moves its aim,
-at most 600 units each way, kept in the target's own directions so it
-turns with it; a new target starts again at none. At a freighter, starship
-or platform it leads as a Jedi does. Its numbers were swept offline and
-kept: no other value gained 5% of the hits. Its tracers matter most when the
-program sees its target late: without them it hit 11% less. A flight will
-check them. Against a fighter turning at its
-full rate at 32,768 units (0.8 km), a Jedi's perfectly aimed shot misses by
-850 units and a Sith Lord's by 13 (`ai/jedimaster_ai/lord.py`). A mission gives each computer craft a skill level
-from 0 to 5, and the launcher's mission reader names them Rookie,
-Officer, Veteran, Ace, Top Ace and Jedi, and now Sith Apprentice and
-Sith Lord (`launcher/jedimaster/mission/names.py`). Two levels will sit above Jedi:
-6, Sith Apprentice, and 7, Sith Lord. The engine's tables by skill level
-already hold 8 entries, so both fit (`engine/src/xvt/flight/ai_brain.c`).
-
-A Sith Apprentice is more experienced than a Jedi: it uses every behavior
-planned on this page at full strength, and no more. A Sith Lord is meant to
-be a nearly unbeatable foe that never retreats. In the story, the Sith use
-their powers to predict your movements in space and time. In the game, the
-pilot program gets a live record of every craft and every warhead in
-flight, the same kind of record the engine writes to its debug log for its
-tests, and uses it to the full.
-The debug log now holds each warhead's, chaff's and flare's path in flight
-every 64 ms, and a craft record every 472 ticks in single-player battles as
-well as network ones.
-
-| Behavior | Levels 0 to 5 (up to Jedi) | Sith Apprentice (6) | Sith Lord (7) |
-| --- | --- | --- | --- |
-| Aim and fire | the 3 skill tiers, leading by skill | tier 3: a narrower cone, a faster look, the whole lead | tier 4, sharper still; follows its target's turn and walks its shots in by its tracers |
-| Pick the warhead to fit the target: concussion missiles at fighters, space bombs at big ships ([#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299)) | yes | yes | yes |
-| Fire a warhead with no lock at a big ship, aimed ahead of it ([#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299)) | Jedi only | yes | yes |
-| Fire a warhead with no lock at any craft, players' craft too | no | no | yes |
-| Shoot warheads down with lasers | no | only warheads chasing itself | any warhead, anywhere |
-| Use ion cannons to disable a craft whose shields are down | weaker at lower levels | full | full |
-| Hit a big ship's shield generators and guns before its hull | higher levels | full | full |
-| Drop to one third throttle on a target's tail, and turn and loop by a player's rule (see "Throttle and turning, measured") | no | yes | yes |
-| Change speed at once at any moment, as craft arriving from hyperspace do | no | no | yes |
-| Leave the fight when damaged: the mission's abort rules, weaving instead of fighting below 75% hull | yes | yes | never |
-| A live record of every craft and warhead | no | no | yes |
-
-Capital ships turning their working guns toward a threat is planned for
-every capital ship, at every level.
+battle: its craft fly at skill level 6, Sith Apprentice, and with A Lord
+its leader flies at 7, Sith Lord. They fly the same craft as any other
+pilot, with sharper aim, a player's turning and the one third throttle
+trick. A Sith Lord also changes speed at once, never retreats, fires
+warheads without a lock at any craft and walks its shots in by its
+tracers. The cockpit's target readouts mark them "Sith" and "Sith Lord".
+Every Sith feature, its numbers and what is not built yet are on their
+own page: [Sith pilots: two skill levels above Jedi](SITH.md).
 
 ## Open AI issues
 
 <!-- ai-issues:start -->
-On 2026-10-17 (UTC) the label `ai` was on 17 open issues and 40 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
+On 2026-10-17 (UTC) the label `ai` was on 16 open issues and 41 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
 
 - [#2](https://github.com/evanleeturner/jedimaster-XVT/issues/2): Research: enemy pilots that fight as a pack
 - [#3](https://github.com/evanleeturner/jedimaster-XVT/issues/3): Research: "Jev", a language-model commander for the enemy side
@@ -465,7 +404,6 @@ On 2026-10-17 (UTC) the label `ai` was on 17 open issues and 40 closed ones. Thi
 - [#298](https://github.com/evanleeturner/jedimaster-XVT/issues/298): Host aborted once with heap corruption in a network game (free(): corrupted unsorted chunks); a replay did not crash
 - [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301): Shift+B resupply is always refused
 - [#313](https://github.com/evanleeturner/jedimaster-XVT/issues/313): A computer craft does not swerve away from a homing warhead coming at it
-- [#314](https://github.com/evanleeturner/jedimaster-XVT/issues/314): A computer craft with every system dead keeps trying to jump to hyperspace
 <!-- ai-issues:end -->
 
 ## The work behind it
@@ -478,8 +416,8 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 105 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 123 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Commits that changed the pilot program | 106 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 124 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
 | Lines of Python in the pilot program | 10,165 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
 | Lines of Python in its tests | 16,688 | the `.py` files in `ai/tests/`, counted with `wc -l` |
 | Test functions in those tests | 1,016 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
@@ -487,7 +425,7 @@ may trail the real count by 1, because a commit cannot name itself.
 | Mission order codes that have a written behavior | 39 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
 | Kinds of line the pilot program writes to its log | 84 | the entries in `ai/jedimaster_ai/events.json` |
 | Lines of C in the engine's computer-pilot code | 8,111 in 30 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
-| Test files and checks for that engine code | 15 files, 213 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
+| Test files and checks for that engine code | 15 files, 214 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 14 | the `check_order_...` functions in `engine/tests/test_flight.c` |
 | Lines of the 1997 pilot code that were deleted | 14,608 in 9 files | `engine/src/xvt/flight/ai/` just before commit `7d2a109` |
 <!-- ai-numbers:end -->
