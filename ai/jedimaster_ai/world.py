@@ -77,6 +77,8 @@ class Activity(enum.IntEnum):
     DEPLOYING_CRAFT = 16
     SELF_DESTRUCTING = 17
     KAMIKAZE_ATTACK = 18
+    FLYING_TO_RENDEZVOUS = 19
+    WAITING_FOR_BOARDING_CRAFT = 20
 
 
 # The activities only the engine sets: a round's arrival out of hyperspace or
@@ -183,11 +185,13 @@ class Books(enum.IntFlag):
       past 255
     - HURT: the craft's hull damage has reached its craft record's
       system damage hull threshold, a number its model sets
+    - RENDEZVOUS_POINT: its current order is Rendezvous, so
+      ``rendezvous_point`` is given
 
     ALL_RETURNED comes with wire version 13, STATION and START_POINT with
     14, BOARD_POINT, AT_BOARD_POINT and ALL_LAUNCHED with 16, CAPTURED with
-    17, DROP_POINT, AT_DROP_POINT and ALL_DROPPED with 18, HURT with 19; the
-    engine sends none of them before.
+    17, DROP_POINT, AT_DROP_POINT and ALL_DROPPED with 18, HURT with 19,
+    RENDEZVOUS_POINT with 20; the engine sends none of them before.
     """
 
     ORDERS_DONE = 0x001
@@ -212,6 +216,7 @@ class Books(enum.IntFlag):
     AT_DROP_POINT = 0x80000
     ALL_DROPPED = 0x100000
     HURT = 0x200000
+    RENDEZVOUS_POINT = 0x400000
 
 
 class ContactFlags(enum.IntFlag):
@@ -337,6 +342,20 @@ class CraftView:
     meanwhile (``engine_flies``); ``order_progress`` then counts the places
     delivered. Both come with wire version 18 and read (0, 0, 0) and 0
     before it.
+
+    ``rendezvous_point`` is a Rendezvous craft's point: its group's mission
+    point 12 as the mission file holds it, on or off (1997 flew there either
+    way), given with the RENDEZVOUS_POINT book and (0, 0, 0)
+    without it. On Rendezvous ``order_progress`` counts the boardings done
+    to the craft, as on Await Boarding, without switching it off or
+    restoring it. On Attack Escorts the order's targets, in
+    ``order_target_mask``, ``order_first_pair_mask``, ``targets_now`` and
+    TARGETS_LEFT, are the craft that escort a group the order names: a craft,
+    a player's too, whose current order is Escort and whose
+    flight escorts that group, leader and wingmen; TARGETS_LEFT
+    also counts a named group still to arrive, 1997's later test. All of
+    this comes with wire version 20; ``rendezvous_point`` reads (0, 0, 0)
+    before it.
     """
 
     object_index: int
@@ -419,6 +438,7 @@ class CraftView:
     order_first_pair_mask: int = 0
     drop_point: tuple[int, int, int] = (0, 0, 0)
     drop_phase: int = 0
+    rendezvous_point: tuple[int, int, int] = (0, 0, 0)
 
     @property
     def threats(self) -> tuple[Threat, ...]:

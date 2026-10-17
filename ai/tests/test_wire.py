@@ -66,6 +66,7 @@ DISTINCT = CraftView(
     boarded=(0xD1D0, 0xD3D2, 0xD5D4, 0xD7D6, 0xD9D8, 0xDBDA, 0xDDDC, 0xDFDE, 0xE1E0, 0xE3E2),
     board_phase=0xE4, lifetime_timer=0xE6E5, order_first_pair_mask=0xEAE9E8E7,
     drop_point=(-8, 0x6F6E6D6C, 0x7B7A7978), drop_phase=0xF1,
+    rendezvous_point=(-14, 0x3B3A3938, 0x7F7E7D7C),
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
@@ -288,7 +289,7 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
         (b"\x01\x00", "not one of the eighteen"),
         (b"\x01\x13", "not one of the eighteen"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
-        (b"\x01\x03\x13", "out of range"),
+        (b"\x01\x03\x15", "out of range"),
         (b"\x01\x03\x05", "set by the engine alone"),
         (b"\x01\x03\x07", "set by the engine alone"),
         (b"\x01\x04\x00\x00", "out of range"),
@@ -327,7 +328,7 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS, STATICS)
         (b"\x01\x10", "ends inside a value"),
     ],
     ids=[
-        "kind 0", "kind 19", "twice", "activity 19", "activity 5", "activity 7", "interval 0", "short", "long",
+        "kind 0", "kind 19", "twice", "activity 21", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "target past the statics", "turret aimed at a static",
         "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
@@ -675,11 +676,11 @@ def test_boarded_is_padded_with_zeros_and_cut_to_its_count() -> None:
     question = Question(TEST_TICK, (view,), CONTACTS, STATICS)
     message = wire.question_bytes(question)
     assert wire.read_question(message[4:]) == question
-    # u8 count then ten u16, the last seven 0, then the 20 bytes of the dock
-    # phase, lifetime timer, first pair mask, drop point and drop phase: 41
-    # bytes before the notebook.
+    # u8 count then ten u16, the last seven 0, then the 32 bytes of the dock
+    # phase, lifetime timer, first pair mask, drop point, drop phase and
+    # rendezvous point: 53 bytes before the notebook.
     tail = message[4 + wire.HEADER.size :][
-        wire.VIEW_FIELDS.size - 41 : wire.VIEW_FIELDS.size - 20
+        wire.VIEW_FIELDS.size - 53 : wire.VIEW_FIELDS.size - 32
     ]
     assert tail == bytes([3]) + struct.pack("<10H", 0x301, 0x302, 0x303, *[0] * 7)
 
@@ -689,7 +690,7 @@ def test_a_view_that_boarded_too_many_is_not_written_or_read() -> None:
     with pytest.raises(wire.WireError, match="at most 10"):
         wire.question_bytes(Question(TEST_TICK, (view,), CONTACTS, STATICS))
     message = bytearray(wire.question_bytes(QUESTION_7))
-    count_at = 4 + wire.HEADER.size + wire.VIEW_FIELDS.size - 41
+    count_at = 4 + wire.HEADER.size + wire.VIEW_FIELDS.size - 53
     message[count_at] = 11
     with pytest.raises(wire.WireError, match="at most 10"):
         wire.read_question(bytes(message[4:]))

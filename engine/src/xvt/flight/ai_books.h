@@ -38,6 +38,14 @@ void ai_books_view_craft(uint16_t object_index,
 int ai_books_pair_matches(const struct mission_order *order, int pair,
 			  uint16_t group);
 
+/* Whether the object in object_index escorts the order's target pair: a craft
+ * that may count as a target (a player's craft too), whose current order is
+ * Escort and whose flight escorts a flight group that matches the pair
+ * (ai_formation_escorted_group). It asks nothing of the asking craft; the
+ * Attack Escorts targets are the craft this is true of. */
+int ai_books_escorts_pair(uint16_t object_index,
+			  const struct mission_order *order, int pair);
+
 /* Whether the object in object_index, a static slot, counts as an order
  * target by the 1997 rule the books use: the slot holds an object, its type
  * carries behavior flag 2 and it may count as a target left. Whether it

@@ -36,8 +36,10 @@ AI_STATE_H = ENGINE / "src" / "xvt" / "flight" / "ai_state.h"
 MISSION_H = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.h"
 MISSION_C = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.c"
 # What the program names before the engine sends it, until the header adds it:
-# empty at wire version 19, kept for the next round.
+# empty at wire version 20, kept for the next round.
 AWAITED_BOOKS: dict[str, int] = {}
+AWAITED_ACTIVITIES: dict[str, int] = {}
+AWAITED_VIEW_FIELDS: list[str] = []
 AWAITED_CONTACT_FIELDS: list[str] = []
 C_TYPES = {
     "uint8_t": "B",
@@ -191,6 +193,10 @@ def test_craft_view_fields_match() -> None:
     members = c_struct("ai_wire_craft_view")
     assert members[-1] == ("notebook", "B", NOTEBOOK_BYTES)
     assert members[:-1] == list(wire.VIEW_LAYOUT)
+    assert not {name for name, _, _ in members} & set(AWAITED_VIEW_FIELDS)
+    assert set(AWAITED_VIEW_FIELDS) <= {
+        field.name for field in dataclasses.fields(world.CraftView)
+    }
 
 
 def test_contact_fields_match() -> None:
@@ -217,8 +223,11 @@ def test_contact_flags_match() -> None:
 
 def test_activities_match() -> None:
     activities = c_enum(AI_STATE_H, "ai_activity", "AI_ACTIVITY_")
-    assert activities.pop("COUNT") == len(Activity)
-    assert activities == {activity.name: activity.value for activity in Activity}
+    assert activities.pop("COUNT") + len(AWAITED_ACTIVITIES) == len(Activity)
+    assert activities | AWAITED_ACTIVITIES == {
+        activity.name: activity.value for activity in Activity
+    }
+    assert not activities.keys() & AWAITED_ACTIVITIES.keys()
 
 
 def test_order_codes_match() -> None:

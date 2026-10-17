@@ -1665,6 +1665,149 @@ static void check_hurt(void)
 	}
 }
 
+/* Rendezvous gives the group's mission point 12 as the file holds it, on or
+ * off, with its book; any other order gives zeros and the book clear. */
+static void check_rendezvous_point(void)
+{
+	fresh_world();
+	make_craft(1, TEST_GROUP);
+	struct mission_flight_group *group =
+		&g_mission_flight_groups[TEST_GROUP];
+	group->fg.mission_point_x[12] = 15;
+	group->fg.mission_point_y[12] = 16;
+	group->fg.mission_point_z[12] = 17;
+	/* Another group's point 12 is not this one's. */
+	g_mission_flight_groups[CARGO_GROUP].fg.mission_point_x[12] = 99;
+	XVT_ASSERT_INT_EQ(AI_WIRE_BOOKS_RENDEZVOUS_POINT, 0x400000);
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_RENDEZVOUS_POINT));
+	group->fg.orders[0].order = MISSION_ORDER_RENDEZVOUS;
+	for (int on = 0; on <= 1; ++on) {
+		group->fg.mission_point_enabled[12] = (uint16_t)on;
+		struct ai_wire_craft_view view = view_of(1);
+		XVT_ASSERT_INT_EQ(view.books & AI_WIRE_BOOKS_RENDEZVOUS_POINT,
+				  AI_WIRE_BOOKS_RENDEZVOUS_POINT);
+		XVT_ASSERT_INT_EQ(view.rendezvous_point[0], 15 * 256);
+		XVT_ASSERT_INT_EQ(view.rendezvous_point[1], -16 * 256);
+		XVT_ASSERT_INT_EQ(view.rendezvous_point[2], 17 * 256);
+	}
+	group->fg.orders[0].order = MISSION_ORDER_AWAIT_BOARDING;
+	struct ai_wire_craft_view view = view_of(1);
+	XVT_ASSERT_INT_EQ(view.books & AI_WIRE_BOOKS_RENDEZVOUS_POINT, 0);
+	for (int axis = 0; axis < 3; ++axis) {
+		XVT_ASSERT_INT_EQ(view.rendezvous_point[axis], 0);
+	}
+}
+
+/* Slot 1 of TEST_GROUP on Attack Escorts in order slot 0 against the
+ * ALTERNATE_GROUP, which a craft in slot 2 holds. Group group's order in slot
+ * 0 is Escort of the ALTERNATE_GROUP. */
+static void escort_world(void)
+{
+	fresh_world();
+	struct mission_order *order =
+		&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	order->order = MISSION_ORDER_ATTACK_ESCORTS;
+	order->target1_type = 1;
+	order->target1 = ALTERNATE_GROUP;
+	order->target1_or_target2 = 1;
+	make_craft(1, TEST_GROUP);
+	make_craft(2, ALTERNATE_GROUP);
+}
+
+static void escorts(int group, int escorted)
+{
+	struct mission_order *order =
+		&g_mission_flight_groups[group].fg.orders[0];
+	order->order = MISSION_ORDER_ESCORT;
+	order->target1_type = 1;
+	order->target1 = (uint8_t)escorted;
+	order->target1_or_target2 = 1;
+}
+
+/* Attack Escorts' targets now and left are the craft that escort a group the
+ * order names, a leader, a wingman or a player's craft, and not the escorted
+ * group's own craft, the asking craft's own flight, a craft on another order
+ * or a craft that escorts another group; the groups still to arrive count
+ * as before. */
+static void check_attack_escorts_targets(void)
+{
+	escort_world();
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0);
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	/* A leader on Escort. */
+	escorts(CARGO_GROUP, ALTERNATE_GROUP);
+	make_craft(3, CARGO_GROUP);
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 1);
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	/* Its wingman, the leader gone: the flight's leader is measured from. */
+	g_objects[3].object_type = 0;
+	struct craft_data *wingman = make_craft(4, CARGO_GROUP);
+	wingman->leader_obj_idx = 3;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 1);
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	g_objects[4].object_type = 0;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0);
+	/* A player's craft on Escort. */
+	escorts(1, ALTERNATE_GROUP);
+	make_craft(5, 1);
+	g_objects[5].player_owner_idx = 0;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 1);
+	g_objects[5].object_type = 0;
+	g_mission_flight_groups[1].fg.orders[0].order = MISSION_ORDER_ATTACK;
+	/* A craft that escorts another group, or whose escorted group is not
+	 * here. */
+	escorts(CARGO_GROUP, 1);
+	make_craft(3, CARGO_GROUP);
+	make_craft(6, 1);
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0);
+	escorts(CARGO_GROUP, ALTERNATE_GROUP);
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 1);
+	g_objects[2].object_type = 0;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0);
+	make_craft(2, ALTERNATE_GROUP);
+	/* The escorted group's own craft, and a craft on another order. */
+	g_objects[3].object_type = 0;
+	g_objects[6].object_type = 0;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0);
+	make_craft(7, 0);
+	g_mission_flight_groups[0].fg.orders[0].target1_type = 1;
+	g_mission_flight_groups[0].fg.orders[0].target1 = ALTERNATE_GROUP;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now, 0);
+	/* An escorter of the asking craft's own flight, on its second order. */
+	g_mission_flight_groups[TEST_GROUP].fg.orders[1] =
+		g_mission_flight_groups[CARGO_GROUP].fg.orders[0];
+	make_craft(8, TEST_GROUP)->ai_controller.current_order_slot = 1;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now & 1, 0);
+	/* A craft that may not count is no target. */
+	make_craft(3, CARGO_GROUP)->object_kind = CRAFT_OBJECT_KIND_EXPLODING;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now & 1, 0);
+	g_craft[3].object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now & 1, 1);
+	/* The later half: a named group still to arrive is a target left, and
+	 * no target now. */
+	g_objects[3].object_type = 0;
+	g_mission_fg_stats[ALTERNATE_GROUP].arrival_enabled = 1;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now & 1, 0);
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	/* A static of the named group is no escorter: a target of Attack, not
+	 * of Attack Escorts. */
+	enum { STATIC_SLOT = SLOT_COUNT - 1, STATIC_TYPE = 20 };
+	escort_world();
+	g_region_main_object_slot_end = STATIC_SLOT;
+	g_active_region_craft_object_slot_end = STATIC_SLOT;
+	g_region_static_object_slot_count = 1;
+	g_objects[STATIC_SLOT].mobj = NULL;
+	g_object_type_table[STATIC_TYPE].behavior_flags = 2;
+	g_objects[STATIC_SLOT].object_type = STATIC_TYPE;
+	g_objects[STATIC_SLOT].flight_group_idx = ALTERNATE_GROUP;
+	g_objects[2].object_type = 0;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now & 1, 0);
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].order =
+		MISSION_ORDER_ATTACK;
+	XVT_ASSERT_INT_EQ(view_of(1).targets_now & 1, 1);
+	g_object_type_table[STATIC_TYPE].behavior_flags = 0;
+}
+
 int main(void)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -1695,6 +1838,8 @@ int main(void)
 	check_order_progress_and_boarded();
 	check_captured();
 	check_hurt();
+	check_rendezvous_point();
+	check_attack_escorts_targets();
 	check_board_bits_write_three_axes();
 	return 0;
 }

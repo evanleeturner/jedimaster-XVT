@@ -38,11 +38,11 @@ enum {
 			    AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where what a boarder sees starts, the 57 bytes before the notebook:
+	/* Where what a boarder sees starts, the 69 bytes before the notebook:
 	 * board point 12, order progress 4, boarded count 1, boarded 20, dock
 	 * phase 1, lifetime timer 2, order first pair mask 4, drop point 12,
-	 * drop phase 1. */
-	VIEW_BOARD_POINT = VIEW_NOTEBOOK - 57,
+	 * drop phase 1, rendezvous point 12. */
+	VIEW_BOARD_POINT = VIEW_NOTEBOOK - 69,
 	VIEW_ORDER_PROGRESS = VIEW_BOARD_POINT + 12,
 	VIEW_BOARDED_COUNT = VIEW_ORDER_PROGRESS + 4,
 	VIEW_BOARDED = VIEW_BOARDED_COUNT + 1,
@@ -51,6 +51,7 @@ enum {
 	VIEW_FIRST_PAIR = VIEW_LIFETIME + 2,
 	VIEW_DROP_POINT = VIEW_FIRST_PAIR + 4,
 	VIEW_DROP_PHASE = VIEW_DROP_POINT + 12,
+	VIEW_RENDEZVOUS_POINT = VIEW_DROP_PHASE + 1,
 	/* Where its escorted craft starts, the 35 bytes before those:
 	 * escorted 2, station 12, start point 12, targets now 1, static target
 	 * mask 8. */
@@ -1748,7 +1749,8 @@ static void check_contact_boarder(void)
 }
 
 /* The status line of each looking activity, of a disabled craft, and of the
- * three the pilot program sets for Drop Off, Self Destruct and Kamikaze. */
+ * three the pilot program sets for Drop Off, Self Destruct and Kamikaze and
+ * the two for Rendezvous. */
 static void check_activity_status_lines(void)
 {
 	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[13],
@@ -1767,10 +1769,16 @@ static void check_activity_status_lines(void)
 			  IFMSG_190_SELF_DESTRUCTING);
 	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[18],
 			  IFMSG_191_KAMIKAZE_ATTACK);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[19],
+			  IFMSG_174_FLYING_TO_RENDEZVOUS_POINT);
+	XVT_ASSERT_INT_EQ(g_ai_activity_status_message_id[20],
+			  IFMSG_175_WAITING_FOR_BOARDING_CRAFT);
+	XVT_ASSERT_INT_EQ(AI_ACTIVITY_FLYING_TO_RENDEZVOUS, 19);
+	XVT_ASSERT_INT_EQ(AI_ACTIVITY_WAITING_FOR_BOARDING_CRAFT, 20);
 	XVT_ASSERT_INT_EQ(AI_ACTIVITY_DEPLOYING_CRAFT, 16);
 	XVT_ASSERT_INT_EQ(AI_ACTIVITY_SELF_DESTRUCTING, 17);
 	XVT_ASSERT_INT_EQ(AI_ACTIVITY_KAMIKAZE_ATTACK, 18);
-	XVT_ASSERT_INT_EQ(AI_ACTIVITY_COUNT, 19);
+	XVT_ASSERT_INT_EQ(AI_ACTIVITY_COUNT, 21);
 }
 
 /* The self destruct action sets the lifetime timer of a craft whose timer
@@ -1856,6 +1864,81 @@ static void check_order_first_pair_mask(void)
 		XVT_ASSERT_INT_EQ(get_u32(view + 38), cases[row].all_mask);
 		XVT_ASSERT_INT_EQ(get_u32(view + VIEW_FIRST_PAIR),
 				  cases[row].first_mask);
+	}
+}
+
+/* On Attack Escorts the order target mask and the first pair mask name the
+ * craft that escort a group of the pair, and no other: slot 3 (group 3)
+ * escorts group 4 (the first pair), slot 5 escorts group 6 (the second), slot
+ * 4 is of the escorted group itself, slot 6 is of group 6 and on no order,
+ * and slot 7 is of the asking craft's own flight and on an Escort order of
+ * its second slot. Contacts are slots 1, 3, 4, 5, 6, 7: bits 0 to 5. */
+static void check_attack_escorts_masks(void)
+{
+	pair_world(4, 6);
+	struct mission_order *order =
+		&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	order->order = MISSION_ORDER_ATTACK_ESCORTS;
+	for (int slot = 6; slot <= 7; ++slot) {
+		due_craft(slot)->ai_controller.think_timer = 5;
+		g_test_objects[slot].flight_group_idx =
+			(uint16_t)(slot == 6 ? 6 : TEST_GROUP);
+	}
+	g_active_region_craft_object_slot_end = 8;
+	g_mission_header.num_flight_groups = 8;
+	struct mission_order *escort = &g_mission_flight_groups[3].fg.orders[0];
+	escort->order = MISSION_ORDER_ESCORT;
+	escort->target1_type = 1;
+	escort->target1 = 4;
+	escort->target1_or_target2 = 1;
+	g_mission_flight_groups[5].fg.orders[0] = *escort;
+	g_mission_flight_groups[5].fg.orders[0].target1 = 6;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[1] = *escort;
+	g_test_craft[7].ai_controller.current_order_slot = 1;
+	ai_brain_think_due_craft();
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u32(view + 38), 0xA);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_FIRST_PAIR), 0x2);
+	/* The same craft on Attack: the groups themselves are the targets. */
+	pair_world(4, 6);
+	ai_brain_think_due_craft();
+	view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u32(view + 38), 0x4);
+}
+
+/* A static of a group the order names is a target of an Attack order and
+ * never of an Attack Escorts order: a static escorts no one. */
+static void check_attack_escorts_static_mask(void)
+{
+	enum {
+		STATIC_SLOT = 30,
+		STATIC_TYPE = 21,
+		STATIC_GROUP = 3,
+	};
+	for (int escorts = 0; escorts <= 1; ++escorts) {
+		fresh_world();
+		g_region_main_object_slot_end = STATIC_SLOT;
+		g_region_static_object_slot_count = 1;
+		g_test_objects[STATIC_SLOT].mobj = NULL;
+		g_object_type_table[STATIC_TYPE].behavior_flags = 2;
+		g_test_objects[STATIC_SLOT] = (struct object_record){
+			.object_signature = 0x77,
+			.object_type = STATIC_TYPE,
+			.flight_group_idx = STATIC_GROUP};
+		struct mission_order *order =
+			&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+		order->order = escorts ? MISSION_ORDER_ATTACK_ESCORTS
+				       : MISSION_ORDER_ATTACK;
+		order->target1_type = 1;
+		order->target1 = STATIC_GROUP;
+		order->target1_or_target2 = 1;
+		due_craft(1);
+		g_fake.echo = 1;
+		ai_brain_think_due_craft();
+		XVT_ASSERT_INT_EQ(get_u32(g_fake.question[0] +
+					  AI_WIRE_HEAD_BYTES +
+					  VIEW_STATIC_MASK),
+				  escorts ? 0 : 1);
 	}
 }
 
@@ -2243,6 +2326,8 @@ int main(void)
 	check_activity_status_lines();
 	check_self_destruct_action();
 	check_order_first_pair_mask();
+	check_attack_escorts_masks();
+	check_attack_escorts_static_mask();
 	check_view_lifetime_and_phase();
 	check_order_targets_match_object();
 	check_board_action();

@@ -389,6 +389,7 @@ def test_debug_records_the_new_view_values_and_the_statics(
         order_first_pair_mask=6,
         drop_point=(41, 42, 43),
         drop_phase=2,
+        rendezvous_point=(51, 52, 53),
     )
     think(Question(1000, (craft,), (contact(),), (static,)))
     assert "think.question tick=1000 craft=1 contacts=1 statics=1" in caplog.text
@@ -398,7 +399,8 @@ def test_debug_records_the_new_view_values_and_the_statics(
         "start_y=22 start_z=23 targets_now=5 static_targets=1 "
         'board_x=31 board_y=32 board_z=33 progress="01020304" boarded="7,8" '
         "board_phase=2 lifetime_timer=3540 first_pair=6 drop_x=41 drop_y=42 "
-        "drop_z=43 drop_phase=2 " in caplog.text
+        "drop_z=43 drop_phase=2 rendezvous_x=51 rendezvous_y=52 rendezvous_z=53 "
+        in caplog.text
     )
 
 

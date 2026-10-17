@@ -255,6 +255,26 @@ static void ai_formation_station(const struct object_record *escorted,
 	station[2] = escorted->world_z + g_rotated_z * factor;
 }
 
+uint16_t ai_formation_escorted_group(uint16_t object_index)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	const struct craft_data *craft = object->mobj->p_craft;
+	const struct mission_order *order =
+		&g_mission_flight_groups[object->flight_group_idx]
+			 .fg.orders[craft->ai_controller.current_order_slot];
+	if (order->order != MISSION_ORDER_ESCORT) {
+		return UINT16_MAX;
+	}
+	uint16_t leader = craft->leader_obj_idx == UINT8_MAX
+				  ? object_index
+				  : craft->leader_obj_idx;
+	uint16_t group = ai_formation_nearest_group(leader, order, 0);
+	if (group == UINT16_MAX) {
+		group = ai_formation_nearest_group(leader, order, 1);
+	}
+	return group;
+}
+
 void ai_formation_view_escort(uint16_t object_index,
 			      struct ai_wire_craft_view *view)
 {
@@ -272,10 +292,7 @@ void ai_formation_view_escort(uint16_t object_index,
 	    craft->leader_obj_idx != UINT8_MAX) {
 		return;
 	}
-	uint16_t group = ai_formation_nearest_group(object_index, order, 0);
-	if (group == UINT16_MAX) {
-		group = ai_formation_nearest_group(object_index, order, 1);
-	}
+	uint16_t group = ai_formation_escorted_group(object_index);
 	uint16_t escorted = group == UINT16_MAX
 				    ? UINT16_MAX
 				    : ai_formation_group_leader(group);

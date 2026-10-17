@@ -48,6 +48,15 @@ void ai_formation_view_craft(uint16_t object_index,
 void ai_formation_view_escort(uint16_t object_index,
 			      struct ai_wire_craft_view *view);
 
+/* The flight group a craft whose current order is Escort escorts: the group
+ * of the nearest object, craft or static, that matches the order's first
+ * target pair, else its second, measured from the craft's flight leader (the
+ * craft itself when it leads or flies alone). 0xFFFF when its current order
+ * is not Escort or nothing matches. It asks no station test, so a craft
+ * whose station variable names no station still escorts. Changes no game
+ * state but the rough distance globals. */
+uint16_t ai_formation_escorted_group(uint16_t object_index);
+
 /* Keeps the formation books as the pilot program's activity action moves
  * the craft in object_index from activity was to activity now. A craft
  * whose leaving-hangar mark ends gives every craft of its flight group in

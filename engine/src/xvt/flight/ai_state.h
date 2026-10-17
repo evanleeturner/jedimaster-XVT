@@ -113,7 +113,12 @@ enum ai_activity {
 	AI_ACTIVITY_DEPLOYING_CRAFT = 16,
 	AI_ACTIVITY_SELF_DESTRUCTING = 17,
 	AI_ACTIVITY_KAMIKAZE_ATTACK = 18,
-	AI_ACTIVITY_COUNT = 19,
+	/* Rendezvous (rendezvous1pln, rendezvousflw1pln and rendezvous2pln): the
+	 * way to its point and the wait there. The engine sets neither; the
+	 * pilot program does. */
+	AI_ACTIVITY_FLYING_TO_RENDEZVOUS = 19,
+	AI_ACTIVITY_WAITING_FOR_BOARDING_CRAFT = 20,
+	AI_ACTIVITY_COUNT = 21,
 };
 
 struct ai_controller {

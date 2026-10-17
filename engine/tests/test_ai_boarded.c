@@ -425,6 +425,66 @@ static void check_release_on_abort(void)
 	XVT_ASSERT_INT_EQ(craft->working_subsystems, 0);
 }
 
+/* A Rendezvous craft counts the boardings done to it and is never switched
+ * off or restored: not at the start, not when a boarding lands, not at
+ * variable1. A captured craft and a slot whose goal is met are left alone. */
+static void check_rendezvous_counts_only(void)
+{
+	struct craft_data *craft = boarded_on(MISSION_ORDER_RENDEZVOUS);
+	ai_boarded_step(LEADER);
+	XVT_ASSERT_INT_EQ(craft->working_subsystems, SYSTEMS);
+	XVT_ASSERT_INT_EQ(lines_starting("ai.self_disabled"), 0);
+	/* States 2 and 3 count, state 1 never; below variable1 the state is
+	 * cleared. */
+	for (int state = 1; state <= 3; ++state) {
+		craft = boarded_on(MISSION_ORDER_RENDEZVOUS);
+		craft->boarding_state = (uint8_t)state;
+		ai_boarded_step(LEADER);
+		XVT_ASSERT_INT_EQ(
+			craft->ai_controller.order_progress.goal_progress[0],
+			state == 1 ? 0 : 1);
+		XVT_ASSERT_INT_EQ(craft->boarding_state, state == 1 ? 1 : 0);
+		ai_boarded_step(LEADER);
+		XVT_ASSERT_INT_EQ(
+			craft->ai_controller.order_progress.goal_progress[0],
+			state == 1 ? 0 : 1);
+		XVT_ASSERT_INT_EQ(craft->working_subsystems, SYSTEMS);
+	}
+	/* At variable1 nothing is restored: damage stays, no message, no line. */
+	craft = boarded_on(MISSION_ORDER_RENDEZVOUS);
+	craft->subsystem_damage = 7;
+	craft->working_subsystems = SYSTEMS - 1;
+	craft->ai_flight.times_boarded = NEEDED;
+	craft->ai_controller.order_progress.goal_progress[0] = NEEDED - 1;
+	craft->boarding_state = 2;
+	ai_boarded_step(LEADER);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.order_progress.goal_progress[0],
+			  NEEDED);
+	XVT_ASSERT_INT_EQ(craft->working_subsystems, SYSTEMS - 1);
+	XVT_ASSERT_INT_EQ(craft->subsystem_damage, 7);
+	XVT_ASSERT_INT_EQ(g_repaired[LEADER], 0);
+	XVT_ASSERT_INT_EQ(lines_starting("ai.boarded_restored"), 0);
+	/* The goal met: a further boarding is not counted. */
+	craft->boarding_state = 2;
+	ai_boarded_step(LEADER);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.order_progress.goal_progress[0],
+			  NEEDED);
+	/* Captured: left alone. */
+	craft = boarded_on(MISSION_ORDER_RENDEZVOUS);
+	craft->captured_by_flight_group = 0x81;
+	craft->boarding_state = 2;
+	ai_boarded_step(LEADER);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.order_progress.goal_progress[0],
+			  0);
+	XVT_ASSERT_INT_EQ(craft->boarding_state, 2);
+	/* Never released: an abort mark leaves its systems as they are. */
+	craft = boarded_on(MISSION_ORDER_RENDEZVOUS);
+	craft->working_subsystems = SYSTEMS - 1;
+	ai_boarded_release(LEADER);
+	XVT_ASSERT_INT_EQ(craft->working_subsystems, SYSTEMS - 1);
+	XVT_ASSERT_INT_EQ(lines_starting("ai.boarded_released"), 0);
+}
+
 int main(void)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -433,6 +493,7 @@ int main(void)
 	check_switch_off();
 	check_count();
 	check_restore();
+	check_rendezvous_counts_only();
 	check_follower_stops();
 	check_taken_back();
 	check_release_direct();

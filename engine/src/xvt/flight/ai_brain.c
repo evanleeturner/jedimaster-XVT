@@ -95,6 +95,10 @@ const uint8_t g_ai_activity_status_message_id[AI_ACTIVITY_COUNT] = {
 	[AI_ACTIVITY_DEPLOYING_CRAFT] = IFMSG_189_DEPLOYING_CRAFT,
 	[AI_ACTIVITY_SELF_DESTRUCTING] = IFMSG_190_SELF_DESTRUCTING,
 	[AI_ACTIVITY_KAMIKAZE_ATTACK] = IFMSG_191_KAMIKAZE_ATTACK,
+	[AI_ACTIVITY_FLYING_TO_RENDEZVOUS] =
+		IFMSG_174_FLYING_TO_RENDEZVOUS_POINT,
+	[AI_ACTIVITY_WAITING_FOR_BOARDING_CRAFT] =
+		IFMSG_175_WAITING_FOR_BOARDING_CRAFT,
 };
 
 /* Readies the pilots for a new flight. Nothing to ready until the pilot
@@ -503,8 +507,11 @@ static void ai_brain_view_weapons(const struct craft_data *craft,
  * roll are the object's. Bit n of the order target mask is set when the
  * batch's contact n matches the targets of the craft's current order, and bit
  * n of the enemy mask when contact n is hostile to the craft; bit n of the
- * static target mask is set when the batch's static n matches them. The leader is
- * the craft's leader_obj_idx, 0xFFFF when it leads. Its countermeasures
+ * static target mask is set when the batch's static n matches them. On Attack
+ * Escorts the targets are the craft that escort a group the order names
+ * (ai_books_escorts_pair), any craft of such a flight, and no static is one:
+ * the static target mask is 0. The leader is the craft's leader_obj_idx,
+ * 0xFFFF when it leads. Its countermeasures
  * and the homing shots aimed at it come from
  * ai_countermeasures_view_craft, its group's waypoints from
  * ai_waypoints_view_craft, a player's commands from
@@ -547,9 +554,22 @@ static void ai_brain_view_craft(uint16_t object_index,
 	const struct mission_order *order =
 		&g_mission_flight_groups[object->flight_group_idx]
 			 .fg.orders[controller->current_order_slot];
+	const int escorters = order->order == MISSION_ORDER_ATTACK_ESCORTS;
 	for (int contact = 0; contact < batch->contact_count; ++contact) {
 		const uint16_t other = batch->contacts[contact].object_index;
-		if (ai_brain_pair_matches(order, 0, other) != 0) {
+		if (escorters) {
+			if (g_object_table[other].flight_group_idx ==
+			    object->flight_group_idx) {
+				/* Never its own flight's craft. */
+			} else if (ai_books_escorts_pair(other, order, 0) !=
+				   0) {
+				view->order_first_pair_mask |= 1u << contact;
+				view->order_target_mask |= 1u << contact;
+			} else if (ai_books_escorts_pair(other, order, 1) !=
+				   0) {
+				view->order_target_mask |= 1u << contact;
+			}
+		} else if (ai_brain_pair_matches(order, 0, other) != 0) {
 			view->order_first_pair_mask |= 1u << contact;
 			view->order_target_mask |= 1u << contact;
 		} else if (ai_brain_pair_matches(order, 1, other) != 0) {
@@ -560,7 +580,8 @@ static void ai_brain_view_craft(uint16_t object_index,
 			view->enemy_mask |= 1u << contact;
 		}
 	}
-	for (int target = 0; target < batch->static_count; ++target) {
+	for (int target = 0; target < batch->static_count && !escorters;
+	     ++target) {
 		if (ai_brain_order_targets_match(
 			    object->flight_group_idx,
 			    controller->current_order_slot,

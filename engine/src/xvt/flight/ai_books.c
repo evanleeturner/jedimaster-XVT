@@ -18,6 +18,7 @@
 #include "xvt/flight/ai_boarded.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/ai_dropoff.h"
+#include "xvt/flight/ai_formation.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
@@ -73,8 +74,8 @@ enum {
 	/* Entries in g_order_throttle_to_craft_throttle_speed. */
 	BOOKS_THROTTLE_ENTRIES = 12,
 	/* Mission point 12, where a captured craft leaves by hyperspace when
-	 * that point is on, as an order target reference and as a point
-	 * index. */
+	 * that point is on, and where a Rendezvous craft flies, on or off, as
+	 * an order target reference and as a point index. */
 	BOOKS_CAPTURED_HOME_POINT_REF = 0x800C,
 	BOOKS_CAPTURED_HOME_POINT = 12,
 	/* The books an order's 1997 leader plan kept: its departure (order
@@ -377,23 +378,47 @@ static int books_target_counts(uint16_t object_index)
 	       craft->hull_damage <= craft->hull_max;
 }
 
+int ai_books_escorts_pair(uint16_t object_index,
+			  const struct mission_order *order, int pair)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	if (object->object_type == 0 || object->mobj == NULL ||
+	    object->mobj->p_craft == NULL ||
+	    !books_target_counts(object_index)) {
+		return 0;
+	}
+	uint16_t group = ai_formation_escorted_group(object_index);
+	return group != UINT16_MAX && ai_books_pair_matches(order, pair, group);
+}
+
 /* Whether a target of the order's pair is in the battle now, the 1997
  * count: a craft of another group in the active region's craft slots that
  * matches and may count, for a Disable order one in working order not
  * captured by the asking craft's team; or a static object whose type counts
- * as a target. */
+ * as a target. For an Attack Escorts order the targets are the craft that
+ * escort the pair (ai_books_escorts_pair), whatever their own group matches,
+ * and no static: a static never escorts. */
 static int books_pair_has_target_now(uint16_t object_index,
 				     const struct mission_order *order,
 				     int pair)
 {
 	const struct object_record *asking = &g_object_table[object_index];
 	int working_only = order->order == MISSION_ORDER_DISABLE;
+	int escorters = order->order == MISSION_ORDER_ATTACK_ESCORTS;
 	for (uint16_t slot = (uint16_t)g_active_region_object_slot_start;
 	     slot < g_active_region_craft_object_slot_end; ++slot) {
 		const struct object_record *object = &g_object_table[slot];
 		if (object->object_type == 0 ||
-		    object->flight_group_idx == asking->flight_group_idx ||
-		    !ai_books_pair_matches(order, pair,
+		    object->flight_group_idx == asking->flight_group_idx) {
+			continue;
+		}
+		if (escorters) {
+			if (ai_books_escorts_pair(slot, order, pair)) {
+				return 1;
+			}
+			continue;
+		}
+		if (!ai_books_pair_matches(order, pair,
 					   object->flight_group_idx) ||
 		    !books_target_counts(slot)) {
 			continue;
@@ -405,6 +430,9 @@ static int books_pair_has_target_now(uint16_t object_index,
 		      asking->mobj->team != object->mobj->team))) {
 			return 1;
 		}
+	}
+	if (escorters) {
+		return 0;
 	}
 	int end = g_region_main_object_slot_end +
 		  g_region_static_object_slot_count;
@@ -457,8 +485,9 @@ static int books_slot_targets_now(uint16_t object_index, int slot)
  * target pairs, now or later: the 1997 test that ended the Attack, Attack
  * Escorts, Protect, Escort and Disable orders and a starship's protect,
  * attack and disable orders. Attack Escorts' own search, which made the
- * nearest escort leader the target, is not kept: its targets count as any
- * order's do. */
+ * nearest escort leader the target, is not kept: its targets now are every
+ * craft that escorts a named group (books_pair_has_target_now), and the named
+ * groups still to arrive count as later. */
 static int books_targets_left(uint16_t object_index)
 {
 	uint8_t slot =
@@ -1127,6 +1156,30 @@ static void books_view_start_point(uint16_t object_index,
 	view->books |= AI_WIRE_BOOKS_START_POINT;
 }
 
+/* Writes the view's rendezvous point and its books bit: for a craft whose
+ * current order is Rendezvous, the world position of its group's mission
+ * point 12, whether that point is on or off (the 1997 order flew to it
+ * either way); else 0, 0, 0 and the bit clear. */
+static void books_view_rendezvous_point(uint16_t object_index,
+					struct ai_wire_craft_view *view)
+{
+	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
+		view->rendezvous_point[axis] = 0;
+	}
+	view->books &= ~(uint32_t)AI_WIRE_BOOKS_RENDEZVOUS_POINT;
+	if (mission_current_order_code(object_index) !=
+	    MISSION_ORDER_RENDEZVOUS) {
+		return;
+	}
+	mission_resolve_object_or_mission_point_world_loc(
+		BOOKS_CAPTURED_HOME_POINT_REF,
+		g_object_table[object_index].flight_group_idx);
+	view->rendezvous_point[0] = g_world_loc_x;
+	view->rendezvous_point[1] = g_world_loc_y;
+	view->rendezvous_point[2] = g_world_loc_z;
+	view->books |= AI_WIRE_BOOKS_RENDEZVOUS_POINT;
+}
+
 /* Writes the view's way home and adds its bits: how its group leaves; may
  * jump for an active craft whose model has a hyperdrive and whose group
  * leaves by hyperspace; its mothership with its outside and inside hangar
@@ -1425,6 +1478,7 @@ void ai_books_view_craft(uint16_t object_index, struct ai_wire_craft_view *view)
 	books_view_orders(object_index, view);
 	books_view_home(object_index, view);
 	books_view_start_point(object_index, view);
+	books_view_rendezvous_point(object_index, view);
 	books_view_boarding(object_index, view);
 }
 

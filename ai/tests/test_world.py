@@ -191,3 +191,17 @@ def test_drop_names_default_to_nothing() -> None:
     assert Activity.DEPLOYING_CRAFT == 16
     assert Activity.SELF_DESTRUCTING == 17
     assert Activity.KAMIKAZE_ATTACK == 18
+
+
+def test_rendezvous_names() -> None:
+    """From wire version 20: the point reads (0, 0, 0) until the engine gives
+    it, with its book and the two Rendezvous activities."""
+    from conftest import VIEW
+
+    from jedimaster_ai.world import Activity
+    from jedimaster_ai.world import Books
+
+    assert VIEW.rendezvous_point == (0, 0, 0)
+    assert Books.RENDEZVOUS_POINT == 0x400000
+    assert Activity.FLYING_TO_RENDEZVOUS == 19
+    assert Activity.WAITING_FOR_BOARDING_CRAFT == 20

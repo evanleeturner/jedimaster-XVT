@@ -181,7 +181,8 @@ def _log_view(view: CraftView) -> None:
         "start_x=%d start_y=%d start_z=%d targets_now=%d static_targets=%d "
         'board_x=%d board_y=%d board_z=%d progress="%s" boarded="%s" '
         "board_phase=%d lifetime_timer=%d first_pair=%d drop_x=%d drop_y=%d "
-        'drop_z=%d drop_phase=%d notebook="%s"',
+        "drop_z=%d drop_phase=%d rendezvous_x=%d rendezvous_y=%d rendezvous_z=%d "
+        'notebook="%s"',
         view.object_index,
         view.object_signature,
         view.object_type,
@@ -268,6 +269,9 @@ def _log_view(view: CraftView) -> None:
         view.drop_point[1],
         view.drop_point[2],
         view.drop_phase,
+        view.rendezvous_point[0],
+        view.rendezvous_point[1],
+        view.rendezvous_point[2],
         view.notebook.hex(),
     )
     for threat in view.threats:

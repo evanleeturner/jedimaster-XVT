@@ -19,7 +19,10 @@
  * u8 object type, u8 flight group, u8 order code, u8 order slot, u8 activity,
  * u8 team, u16 skill, u16 think interval, u16 throttle, i32 x, i32 y, i32 z,
  * u16 yaw, u16 pitch, u16 roll, u16 speed, i16 random seed, u32 order target
- * mask (bit n set when contact n matches the targets of the craft's order),
+ * mask (bit n set when contact n matches the targets of the craft's order; on
+ * Attack Escorts, when contact n is a craft of another flight group that
+ * escorts a group the order names: its flight's leader's escorted group, on
+ * Escort, so a wingman and a player's craft count, and no static does),
  * u16 turret slot mask (bit n set when weapon slot n is a turret), u8 cannon
  * group count, u8 warhead launcher count, u8 cannon type[2] (each group's shot
  * object type), u8 warhead type[2], u8 warheads left[2], u16 launcher
@@ -89,7 +92,10 @@
  * delivered group's first place, 932 above it, given with the books' drop
  * point bit, else 0) and u8 drop phase (0 no drop, 1 push to the place, 2 wait
  * after a delivery: the engine runs the drop from the drop off action to its
- * end); then the notebook's AI_NOTEBOOK_BYTES.
+ * end); then what a Rendezvous craft sees: i32 x, i32 y, i32 z of its
+ * rendezvous point (its group's mission point 12, on or off, given with the
+ * books' rendezvous point bit, else 0); then the notebook's
+ * AI_NOTEBOOK_BYTES.
  * Then u16 contact count, u16 zero, and one contact per craft in the active
  * region, at most AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
@@ -208,12 +214,12 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 19,
+	AI_WIRE_VERSION = 20,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 407 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 419 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
@@ -351,6 +357,9 @@ enum ai_wire_books {
 	 * hull threshold (at or above it; a model whose threshold is 0 reads
 	 * hurt from the start). */
 	AI_WIRE_BOOKS_HURT = 0x200000,
+	/* Its current order is Rendezvous, so its rendezvous point is given:
+	 * its group's mission point 12, whether that point is on or off. */
+	AI_WIRE_BOOKS_RENDEZVOUS_POINT = 0x400000,
 };
 
 /* A craft view's countermeasure, the engine's countermeasure type; the
@@ -467,6 +476,7 @@ struct ai_wire_craft_view {
 	uint32_t order_first_pair_mask;
 	int32_t drop_point[AI_WIRE_POINT_AXES];
 	uint8_t drop_phase;
+	int32_t rendezvous_point[AI_WIRE_POINT_AXES];
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 

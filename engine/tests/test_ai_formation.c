@@ -516,6 +516,54 @@ static void check_station_only_for_escorting_leaders(void)
 	XVT_ASSERT_INT_EQ(escort_view().escorted, STRANGER);
 }
 
+/* The escorted group is the one the escort view's escorted craft is of, for a
+ * craft that leads, with a station or none (a variable past the tables); a
+ * wingman's is measured from its flight's leader, not from itself; a craft
+ * off an Escort order, or with nothing to escort, has none. */
+static void check_escorted_group(void)
+{
+	for (int variable = 27; variable <= 28; ++variable) {
+		escort_world(variable);
+		struct ai_wire_craft_view view = escort_view();
+		XVT_ASSERT_INT_EQ(ai_formation_escorted_group(LEADER),
+				  NEAR_GROUP);
+		if (variable == 27) {
+			XVT_ASSERT_INT_EQ(
+				g_test_objects[view.escorted].flight_group_idx,
+				NEAR_GROUP);
+		} else {
+			assert_no_station(&view);
+		}
+		g_test_objects[SECOND_FOLLOWER].world_x = 10;
+		view = escort_view();
+		XVT_ASSERT_INT_EQ(ai_formation_escorted_group(LEADER),
+				  FAR_GROUP);
+		if (variable == 27) {
+			XVT_ASSERT_INT_EQ(
+				g_test_objects[view.escorted].flight_group_idx,
+				FAR_GROUP);
+		}
+	}
+	/* A wingman of the flight led by STRANGER, next to the far group: the
+	 * leader's nearest object decides, not its own. */
+	escort_world(27);
+	g_mission_flight_groups[EMPTY_GROUP].fg.orders[0] =
+		g_mission_flight_groups[GROUP].fg.orders[0];
+	g_test_objects[FOLLOWER].flight_group_idx = EMPTY_GROUP;
+	g_test_objects[FOLLOWER].world_x = 89000;
+	XVT_ASSERT_INT_EQ(ai_formation_escorted_group(FOLLOWER), NEAR_GROUP);
+	g_test_craft[FOLLOWER].leader_obj_idx = UINT8_MAX;
+	XVT_ASSERT_INT_EQ(ai_formation_escorted_group(FOLLOWER), FAR_GROUP);
+	/* Off an Escort order, or with nothing to escort. */
+	g_mission_flight_groups[EMPTY_GROUP].fg.orders[0].order =
+		MISSION_ORDER_ATTACK;
+	XVT_ASSERT_INT_EQ(ai_formation_escorted_group(FOLLOWER), UINT16_MAX);
+	g_test_objects[FOLLOWER].object_type = 0;
+	g_mission_flight_groups[GROUP].fg.orders[0].target1 = EMPTY_GROUP;
+	g_mission_flight_groups[GROUP].fg.orders[0].target2_type = 0;
+	XVT_ASSERT_INT_EQ(ai_formation_escorted_group(LEADER), UINT16_MAX);
+}
+
 int main(void)
 {
 	check_follower_place_is_1997s();
@@ -529,5 +577,6 @@ int main(void)
 	check_station_offsets();
 	check_station_variable_limit();
 	check_station_only_for_escorting_leaders();
+	check_escorted_group();
 	return 0;
 }

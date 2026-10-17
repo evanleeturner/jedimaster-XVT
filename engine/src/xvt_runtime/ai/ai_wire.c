@@ -155,6 +155,7 @@ static uint8_t *put_craft_view(uint8_t *at,
 	at = put_u32(at, view->order_first_pair_mask);
 	at = put_point(at, view->drop_point);
 	*at++ = view->drop_phase;
+	at = put_point(at, view->rendezvous_point);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }

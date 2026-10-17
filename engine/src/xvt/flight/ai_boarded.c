@@ -1,10 +1,11 @@
 /* The boarded side of a boarding, ported from the 1997 AI's Disabled and
- * Await Boarding plans (paiorder_makedisabledorder, paiorder_awaitboardorder
- * and the restore inside paiorder_abortmissionorder and
- * paiorder_stopgohomeorder, in paiorder.c, deleted with the 1997 AI). A
- * fault of the 1997 plans not kept: the count had no end, so a craft that could
- * not move its order on counted past variable1 until the byte wrapped. A
- * captured craft is left alone, as 1997's capture gave it a fly-home plan. */
+ * Await Boarding plans, with the count alone on Rendezvous
+ * (paiorder_makedisabledorder, paiorder_awaitboardorder and the restore
+ * inside paiorder_abortmissionorder and paiorder_stopgohomeorder, in
+ * paiorder.c, deleted with the 1997 AI). A fault of the 1997 plans not kept:
+ * the count had no end, so a craft that could not move its order on counted
+ * past variable1 until the byte wrapped. A captured craft is left alone, as
+ * 1997's capture gave it a fly-home plan. */
 #include "xvt/flight/ai_boarded.h"
 
 #include <stdint.h>
@@ -49,7 +50,8 @@ static int boarded_released(uint16_t object_index)
 
 /* Counts the boarding done to the craft, when its state says one was, and
  * restores the craft once variable1 boardings are done: below that the state
- * is cleared, so one boarding counts once. */
+ * is cleared, so one boarding counts once. A Rendezvous craft is counted the
+ * same and never restored: it was never switched off. */
 static void boarded_count(uint16_t object_index)
 {
 	struct craft_data *craft = boarded_craft(object_index);
@@ -69,6 +71,9 @@ static void boarded_count(uint16_t object_index)
 		(int)state, g_flight_sim_side_effects_suppressed);
 	if (craft->ai_flight.times_boarded < order->variable1) {
 		craft->boarding_state = 0;
+		return;
+	}
+	if (order->order == MISSION_ORDER_RENDEZVOUS) {
 		return;
 	}
 	craft->working_subsystems = craft->system_flags;
@@ -94,7 +99,8 @@ void ai_boarded_step(uint16_t object_index)
 	const struct mission_order *order = boarded_order(object_index);
 	if (g_object_table[object_index].player_owner_idx != -1 ||
 	    (order->order != MISSION_ORDER_DISABLED &&
-	     order->order != MISSION_ORDER_AWAIT_BOARDING) ||
+	     order->order != MISSION_ORDER_AWAIT_BOARDING &&
+	     order->order != MISSION_ORDER_RENDEZVOUS) ||
 	    craft->captured_by_flight_group != 0 ||
 	    boarded_released(object_index) ||
 	    craft->ai_controller.order_progress.goal_progress
@@ -102,13 +108,16 @@ void ai_boarded_step(uint16_t object_index)
 		    order->variable1) {
 		return;
 	}
-	if (craft->working_subsystems != 0) {
-		XVT_LOG_DEBUG(
-			"ai.self_disabled object=%d working=%04x predicted=%d",
-			(int)object_index, (unsigned)craft->working_subsystems,
-			g_flight_sim_side_effects_suppressed);
+	if (order->order != MISSION_ORDER_RENDEZVOUS) {
+		if (craft->working_subsystems != 0) {
+			XVT_LOG_DEBUG(
+				"ai.self_disabled object=%d working=%04x predicted=%d",
+				(int)object_index,
+				(unsigned)craft->working_subsystems,
+				g_flight_sim_side_effects_suppressed);
+		}
+		craft->working_subsystems = 0;
 	}
-	craft->working_subsystems = 0;
 	boarded_count(object_index);
 }
 

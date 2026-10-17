@@ -19,7 +19,9 @@ extern "C" {
  * on Disabled or Await Boarding, unless the craft is captured, released or
  * has its slot's goal met, it is switched off, then a boarding done to it
  * (boarding state 2 or 3) is counted, and at the order's variable1 it is
- * restored. Any other order is left alone. */
+ * restored. On Rendezvous the boardings are counted the same way, but the
+ * craft is neither switched off nor restored. Any other order is left
+ * alone. */
 void ai_boarded_step(uint16_t object_index);
 
 /* The craft's abort or departure mark was just set: an undamaged craft on
