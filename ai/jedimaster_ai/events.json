@@ -253,6 +253,11 @@
       "fields": ["object", "target", "launcher"],
       "text": "Craft {object} on a Kamikaze order asked launcher {launcher} for a warhead at craft {target} and the engine made none (its launcher wait is not running, so the craft counts no shot and may ask again)"
     },
+    "lord.stays": {
+      "level": "D",
+      "fields": ["object", "books"],
+      "text": "Craft {object}, a Sith Lord, stays in the battle with its group's abort trigger held (books {books}): it never retreats, and only its departure time or its orders done send it home"
+    },
     "notebook.unreadable": {
       "level": "W",
       "fields": ["object", "behavior", "error"],

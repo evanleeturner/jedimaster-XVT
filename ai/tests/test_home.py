@@ -298,6 +298,17 @@ def test_attacked_below_three_quarters_it_weaves_about_its_way_home(
     assert actions.target == NO_OBJECT
 
 
+def test_attacked_below_three_quarters_a_sith_lord_turns_to_fight(
+    view, mine, enemy
+) -> None:
+    """A Sith Lord never retreats (lord): rulings 33 and 34 do not hold."""
+    craft = view(**JUMPING | {"skill_level": 7})
+    decision = decide(craft, [mine(craft, **HURT), enemy()])
+    assert decision.actions.target == CHASER
+    assert decision.actions.activity == Activity.NONE
+    assert notebook.decode(decision.notebook).behavior == 1  # attack's
+
+
 def test_evading_with_the_enemy_off_its_tail_it_flies_straight_home(
     view, mine, enemy
 ) -> None:

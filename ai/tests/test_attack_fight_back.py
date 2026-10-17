@@ -58,6 +58,37 @@ def test_a_damaged_craft_with_no_order_target_only_weaves(
     )
 
 
+def test_a_damaged_sith_lord_with_no_order_target_still_fights(
+    craft, foe, ask, caplog
+) -> None:
+    """A Sith Lord never retreats (lord): under three quarters of its hull
+    it weaves from the chaser as a whole craft does, then fights it."""
+    caplog.set_level("DEBUG")
+    first = ask(craft(order_target_mask=0, skill_level=7), foe(**BEHIND), **HURT)
+    assert phase_of(first) == attack.EVADE and first.actions.target == 12
+    assert (
+        f"attack.pursued object={ME} pursuer=12 hull_left=299 hull_strength=400 "
+        "fights=1" in caplog.text
+    )
+    me = craft(order_target_mask=0, skill_level=7, notebook=first.notebook)
+    overshot = ask(me, foe(**AHEAD), tick=1016, **HURT)
+    assert phase_of(overshot) == attack.ATTACK and overshot.actions.target == 12
+
+
+def test_a_damaged_sith_apprentice_only_weaves(craft, foe, ask) -> None:
+    decision = ask(craft(order_target_mask=0, skill_level=6), foe(**BEHIND), **HURT)
+    assert phase_of(decision) == attack.EVADE
+    assert decision.actions.target == NO_OBJECT
+
+
+def test_a_sith_lord_that_cannot_dogfight_does_not_fight_back(
+    craft, foe, shown
+) -> None:
+    me = craft(order_target_mask=0, skill_level=7, cannon_group_count=0)
+    question = shown(me, foe(**BEHIND))
+    assert not attack.fights_back(me, question, attack.pursuer(me, question))
+
+
 def test_a_weaves_rest_outlasts_the_search(craft, foe, ask) -> None:
     """A damaged craft with no order target that cannot shake its chaser rests
     after a full weave, as one with a target does."""

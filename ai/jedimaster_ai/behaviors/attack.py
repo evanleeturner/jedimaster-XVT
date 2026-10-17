@@ -28,7 +28,8 @@ Purpose:
 
     With no target its order names in the battle, a craft an enemy is after
     (``pursuer``) fights that enemy while it may fight back (``fights_back``:
-    it has cannons, it can move, and its hull is at FIGHT_BACK_HULL or more),
+    it has cannons, it can move, and its hull is at FIGHT_BACK_HULL or more,
+    or it is a Sith Lord, which fights at any hull: ``lord``),
     and otherwise weaves when the enemy sits on its tail (rulings 34 and 43).
     With neither, it flies 1997's cruise (``seek``): round its group's
     waypoints, else to its group's start point, else on its course.
@@ -110,6 +111,7 @@ from .. import cannons
 from .. import dice
 from .. import geometry
 from .. import hull
+from .. import lord
 from .. import notebook
 from .. import tactics
 from .. import warheads
@@ -591,13 +593,16 @@ def pursuer(view: CraftView, question: Question) -> Contact | None:
 
 def fights_back(view: CraftView, question: Question, chaser: Contact) -> bool:
     """Return whether the craft fights a chaser: it has cannons, it can move,
-    and its hull is at FIGHT_BACK_HULL of its strength or more. A craft whose
-    own contact is not shown, or whose hull strength is 0, counts as whole."""
+    and its hull is at FIGHT_BACK_HULL of its strength or more, or it is a
+    Sith Lord (``lord.is_lord``), which never retreats. A craft whose own
+    contact is not shown, or whose hull strength is 0, counts as whole."""
     own = tactics.own_contact(view, question)
     strength = 0 if own is None else own.hull_strength
     left = strength if own is None else strength - own.hull_damage
     share, whole = FIGHT_BACK_HULL
-    fights = can_dogfight(view) and (strength <= 0 or left * whole >= strength * share)
+    fights = can_dogfight(view) and (
+        lord.is_lord(view) or strength <= 0 or left * whole >= strength * share
+    )
     logger.debug(
         "attack.pursued object=%d pursuer=%d hull_left=%d hull_strength=%d fights=%d",
         view.object_index,
