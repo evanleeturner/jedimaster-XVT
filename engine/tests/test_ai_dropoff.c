@@ -364,8 +364,9 @@ static void check_books_drop_point(void)
 	XVT_ASSERT_INT_EQ(drop_bits(2), AI_WIRE_BOOKS_DROP_POINT);
 }
 
-/* ALL_DROPPED: every case of ruling 134, and the group's total past what the
- * 8-bit counters reach. */
+/* ALL_DROPPED: every case, a Drop Off with nothing to drop counted as done
+ * (1997 circled the drop point for good), and the group's total past what
+ * the 8-bit counters reach. */
 static void check_books_all_dropped(void)
 {
 	struct mission_order *order =
