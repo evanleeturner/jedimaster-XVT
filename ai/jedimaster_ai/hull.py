@@ -14,7 +14,10 @@ Purpose:
     1997 did; ``keep`` is how near it a craft comes before it breaks off.
     ``seen`` is how the box, grown by a margin, lies from a craft: the
     headings that reach it, which avoidance steers clear of (ruling 94).
-    ``off_box`` is how a point lies off the box, which avoidance measures a
+    From over or under the box every yaw reaches it (``ALL_ROUND``), so
+    only the pitch can steer clear: a quarter turn either side of the
+    nearest point's yaw, which straight down or up names no side, left a
+    dive at the deck free from three quarters of the yaws. ``off_box`` is how a point lies off the box, which avoidance measures a
     Drop Off approach's straight line by (issue #311).
 
 The box comes from the engine: its smallest and largest corners in the
@@ -46,6 +49,9 @@ from .world import CraftView
 # off (ruling 100): the margin a fighter target's clearance already keeps
 # past its position (``tactics.CLEARANCE_MARGIN``).
 KEEP = 0x1000
+# A yaw spread that takes in every yaw: no two yaws lie more than a half turn
+# apart (``geometry.angle_between``).
+ALL_ROUND = geometry.HALF_TURN + 1
 # The axes' unit, as ``geometry.sine`` gives it.
 _UNIT_BITS = 16
 
@@ -97,7 +103,8 @@ def nearest(view: CraftView, contact: Contact) -> Nearest:
 class Seen:
     """How a box lies from a craft outside it: the yaw and the pitch halfway
     across the headings that reach it, and how far those headings spread
-    either side of each, a quarter turn at most."""
+    either side of each, a quarter turn at most, or ALL_ROUND for the yaw
+    from over or under the box."""
 
     yaw: int
     yaw_edge: int
@@ -108,14 +115,18 @@ class Seen:
 def seen(view: CraftView, contact: Contact, grow: int) -> Seen:
     """Return how a contact's box, grown by ``grow`` on every side, lies from
     the craft; a quarter turn either side of its nearest point when the
-    craft is inside the grown box.
+    craft is inside the grown box, every yaw when it is over or under the
+    box itself there.
 
     The yaws spread as far as the grown box's eight corners: seen from
     outside it, no point of a box lies farther round than a corner. From
-    over or under the box they go all the way round, and the spread is a
-    quarter turn either side of the nearest point. The pitches spread as far
-    as the corners and the grown box's nearest point, which stands for the
-    steepest part of the face nearest the craft.
+    over or under the box they go all the way round, and the spread is
+    ALL_ROUND. The pitches spread as far as the corners and the grown box's
+    nearest point, which stands for the steepest part of the face nearest
+    the craft. Inside the grown box the craft is over or under the box when
+    the box's own corners' yaws go all the way round; inside the box itself
+    (a hangar launch) its nearest part is the position, and a quarter turn
+    either side of it stands.
     """
     offset = tactics.offset(view, contact)
     turned = axes(contact.yaw, contact.pitch, contact.roll)
@@ -126,27 +137,49 @@ def seen(view: CraftView, contact: Contact, grow: int) -> Seen:
     if near == craft:
         inside = nearest(view, contact)
         yaw, pitch = geometry.bearing(inside.dx, inside.dy, inside.dz)
-        return Seen(yaw, geometry.QUARTER_TURN, pitch, geometry.QUARTER_TURN)
-    corners = [
+        yaw_edge = geometry.QUARTER_TURN
+        if inside.distance:
+            box = _corners(contact.box_min, contact.box_max)
+            yaws = [yaw for yaw, _ in _bearings(offset, turned, box)]
+            if _spread(yaws, yaw)[1] == ALL_ROUND:
+                yaw_edge = ALL_ROUND
+        return Seen(yaw, yaw_edge, pitch, geometry.QUARTER_TURN)
+    bearings = _bearings(offset, turned, [near, *_corners(low, high)])
+    yaw, yaw_edge = _spread([yaw for yaw, _ in bearings], bearings[0][0])
+    pitches = [pitch for _, pitch in bearings]
+    pitch = (max(pitches) + min(pitches)) // 2
+    return Seen(yaw, yaw_edge, pitch, (max(pitches) - min(pitches) + 1) // 2)
+
+
+def _corners(low: Vector, high: Vector) -> list[Vector]:
+    """Return the eight corners of a box from low to high."""
+    return [
         (x, y, z)
         for x in (low[0], high[0])
         for y in (low[1], high[1])
         for z in (low[2], high[2])
     ]
-    bearings = [
-        geometry.bearing(*_added(offset, _world(turned, point)))
-        for point in (near, *corners)
-    ]
-    toward = bearings[0][0]
-    turns = [geometry.signed(yaw - toward) for yaw, _ in bearings]
+
+
+def _bearings(
+    offset: Vector, turned: tuple[Vector, Vector, Vector], points: list[Vector]
+) -> list[tuple[int, int]]:
+    """Return the yaw and pitch from a craft to each point in a contact's
+    model axes, the contact's side, up and forward ``turned`` and its
+    position ``offset`` from the craft."""
+    return [geometry.bearing(*_added(offset, _world(turned, at))) for at in points]
+
+
+def _spread(yaws: list[int], toward: int) -> tuple[int, int]:
+    """Return the yaw halfway across yaws and how far they spread either side
+    of it, counted round from toward, a yaw among theirs (the nearest
+    point's); toward and ALL_ROUND when they spread a half turn or more, all
+    the way round the craft."""
+    turns = [geometry.signed(yaw - toward) for yaw in yaws]
     if max(turns) - min(turns) >= geometry.HALF_TURN:
-        yaw, yaw_edge = toward, geometry.QUARTER_TURN
-    else:
-        yaw = (toward + (max(turns) + min(turns)) // 2) % geometry.TURN
-        yaw_edge = (max(turns) - min(turns) + 1) // 2
-    pitches = [pitch for _, pitch in bearings]
-    pitch = (max(pitches) + min(pitches)) // 2
-    return Seen(yaw, yaw_edge, pitch, (max(pitches) - min(pitches) + 1) // 2)
+        return toward, ALL_ROUND
+    middle = (toward + (max(turns) + min(turns)) // 2) % geometry.TURN
+    return middle, (max(turns) - min(turns) + 1) // 2
 
 
 def axes(yaw: int, pitch: int, roll: int) -> tuple[Vector, Vector, Vector]:

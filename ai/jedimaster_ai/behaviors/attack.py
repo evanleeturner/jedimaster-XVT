@@ -771,12 +771,14 @@ def _ordered_on(memory: Memory, tick: int) -> bool:
 
 
 def _clear_of_all(view: CraftView, question: Question, move: weave.Move) -> weave.Move:
-    """Return the weave's move with its yaw turned clear of the bulky craft in
-    its way, the craft's own target among them: a weave aims at nothing, and
-    avoidance skips the target an attack aims at."""
+    """Return the weave's move with its heading turned clear of the bulky
+    craft in its way, the craft's own target among them: a weave aims at
+    nothing, and avoidance skips the target an attack aims at."""
     steer = move.steer
-    yaw = avoidance.clear_yaw(view, question, steer.yaw, steer.pitch, NO_OBJECT)
-    return dataclasses.replace(move, steer=Steer(yaw, steer.pitch, steer.roll))
+    yaw, pitch = avoidance.clear_heading(
+        view, question, steer.yaw, steer.pitch, NO_OBJECT
+    )
+    return dataclasses.replace(move, steer=Steer(yaw, pitch, steer.roll))
 
 
 def _weave_actions(move: weave.Move, interval: int | None) -> Actions:

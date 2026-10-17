@@ -10,11 +10,14 @@ from __future__ import annotations
 
 import pytest
 
+from jedimaster_ai import hull
 from jedimaster_ai import tactics
 from jedimaster_ai.behaviors import avoidance
 from jedimaster_ai.behaviors import Decision
+from jedimaster_ai.behaviors import patrol
 from jedimaster_ai.geometry import angle_between
 from jedimaster_ai.geometry import bearing
+from jedimaster_ai.geometry import HALF_TURN
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.geometry import QUARTER_TURN
 from jedimaster_ai.geometry import sweeps
@@ -31,6 +34,7 @@ ME = 4
 BULKY = 20
 STARSHIP = 4
 FREIGHTER = 3
+CIRCLE = 2
 BULK_FREIGHTER_SIZE = 4960
 FIGHTER_SIZE = 901
 # The nearest two bulky craft of one group started, in the flights measured.
@@ -385,6 +389,177 @@ def test_over_a_big_ships_deck_a_level_heading_is_free(destroyer, steer) -> None
     assert steer(deck, heading=EAST, own_size=FIGHTER_SIZE).actions.steer == EAST
 
 
+def test_over_a_big_ships_deck_a_dive_keeps_its_yaw_and_levels_off(
+    destroyer, steer, caplog
+) -> None:
+    """6,000 over the middle of a Super Star Destroyer's deck, 1,229 over its
+    keep, every yaw enters the keep: the pitches into it run from its far
+    corner, 179,370 off and 71 under level (16,455), to straight down,
+    24,611 and 8,157 either side. A 45-degree dive at any yaw keeps its yaw
+    and takes 24,611 - 8,157 - 1,024 = 15,430, 954 above level."""
+    caplog.set_level("DEBUG")
+    deck = destroyer(-SSD["box_max"][0], z=-(SSD["box_max"][2] + 6000))
+    for yaw in (0, 0x2000, QUARTER_TURN, 0x8000, 0xC000):
+        dive = Steer(yaw, LEVEL + 0x2000, 0)
+        flown = steer(deck, heading=dive, own_size=FIGHTER_SIZE)
+        assert flown.actions.steer == Steer(yaw, 15430, 0)
+    assert (
+        f"avoidance.level object={ME} around={BULKY} distance=6000 "
+        f"clearance={FIGHTER_KEEP} pitch=15430"
+    ) in caplog.text
+    assert "avoidance.steer" not in caplog.text
+
+
+def test_under_a_big_ships_hull_a_climb_levels_off_downward(destroyer, steer) -> None:
+    """6,000 under the floor, the pitches into the keep run from straight up
+    to its far corner, 70 above level (16,314): a 45-degree climb takes
+    8,157 + 8,157 + 1,024 = 17,338, 954 below level."""
+    above = destroyer(-SSD["box_max"][0], z=-SSD["box_min"][2] + 6000)
+    climb = Steer(0x1000, LEVEL - 0x2000, 0)
+    flown = steer(above, heading=climb, own_size=FIGHTER_SIZE)
+    assert flown.actions.steer == Steer(0x1000, 17338, 0)
+
+
+def test_inside_a_big_ships_keep_over_its_deck_a_dive_levels_off(
+    destroyer, steer, caplog
+) -> None:
+    """3,000 over the deck, inside its keep of 4,771, the headings into the
+    keep lie a quarter turn either side of straight down: a dive takes
+    32,768 - 16,384 - 1,024 = 15,360."""
+    caplog.set_level("DEBUG")
+    deck = destroyer(-SSD["box_max"][0], z=-(SSD["box_max"][2] + 3000))
+    dive = Steer(0x1000, LEVEL + 0x2000, 0)
+    flown = steer(deck, heading=dive, own_size=FIGHTER_SIZE)
+    assert flown.actions.steer == Steer(0x1000, 15360, 0)
+    assert "distance=3000 clearance=4771 pitch=15360" in caplog.text
+
+
+def test_a_freighter_in_the_way_of_the_level_off_turns_its_yaw(
+    destroyer, ship, steer
+) -> None:
+    """A bulk freighter 16,000 dead ahead at the craft's height: its ball's
+    edge, 29.2 degrees (5,324), leaves out the 45-degree dive but takes in
+    the level-off's pitch, so at that pitch the craft turns past it, 5,324
+    + 1,024 = 6,348."""
+    deck = destroyer(-SSD["box_max"][0], z=-(SSD["box_max"][2] + 6000))
+    ahead = ship(16000, object_index=21)
+    dive = Steer(0, LEVEL + 0x2000, 0)
+    flown = steer(deck, ahead, heading=dive, own_size=FIGHTER_SIZE)
+    assert flown.actions.steer == Steer(6348, 15430, 0)
+
+
+def test_inside_the_keeps_of_two_hulls_only_the_nearer_levels_it_off(
+    view, destroyer, steer
+) -> None:
+    """3,000 over a Super Star Destroyer's deck and 4,000 under a Star
+    Destroyer's floor, inside both keeps: the nearer, the deck, levels the
+    dive off to 15,360, which climbs into the Star Destroyer's keep, every
+    yaw of it. No yaw clears that, so the yaw is kept; weighed for a yaw
+    turn, the roof's keep would turn the craft away from a yaw a quarter
+    turn off the roof's nearest point, straight up, which names no side."""
+    me = view(object_index=ME, x=0, y=0, z=0, yaw=0, pitch=LEVEL, roll=0)
+    deck = destroyer(-SSD["box_max"][0], z=-(SSD["box_max"][2] + 3000))
+    roof = destroyer(
+        -ISD["box_max"][0],
+        z=-ISD["box_min"][2] + 4000,
+        model=ISD | {"object_index": 22},
+    )
+    looks = hull.seen(me, roof, FIGHTER_KEEP)
+    assert looks.yaw_edge == hull.ALL_ROUND
+    assert angle_between(15360, looks.pitch) < looks.pitch_edge
+    dive = Steer(0x1000, LEVEL + 0x2000, 0)
+    flown = steer(deck, roof, heading=dive, own_size=FIGHTER_SIZE)
+    assert flown.actions.steer == Steer(0x1000, 15360, 0)
+
+
+def test_over_two_decks_the_nearer_levels_the_heading_off(ship, steer) -> None:
+    """6,000 over a flat hull 40,000 wide and 1,000 deep, and 10,000 over a
+    small one under it, 2,000 a side: a 45-degree dive enters both keeps,
+    every yaw of each (the small one's pitches 27,548 and 5,220 either
+    side). The nearer decides, 24,759 - 8,009 - 1,024 = 15,726, which
+    clears both; the small one's edge, 27,548 - 5,220 - 1,024 = 21,304,
+    would still dive at the flat one."""
+    flat = {"box_min": (-20000, -20000, -500), "box_max": (20000, 20000, 500)}
+    small = {"box_min": (-1000, -1000, -1000), "box_max": (1000, 1000, 1000)}
+    level = {"x": 0, "yaw": 0, "pitch": LEVEL, "roll": 0, "genus": STARSHIP}
+    upper = ship(0, z=-6500, **level, **flat)
+    lower = ship(0, z=-11000, object_index=22, **level, **small)
+    dive = Steer(0x1000, LEVEL + 0x2000, 0)
+    flown = steer(upper, lower, heading=dive, own_size=FIGHTER_SIZE)
+    assert flown.actions.steer == Steer(0x1000, 15726, 0)
+
+
+def test_a_patrols_cruise_over_a_big_ships_deck_levels_off(
+    view, contact, destroyer
+) -> None:
+    """A Circle craft 6,000 over the deck cruises to its waypoint 45 degrees
+    down to the east: its steer carries the pitch avoidance levels the dive
+    off to (``avoidance.clear_heading``), which the patrol reads its
+    starship's throttle beside (``patrol.cruise``)."""
+    point = (0x10000, 0, -0x10000)
+    me = view(
+        object_index=ME,
+        x=0,
+        y=0,
+        z=0,
+        yaw=QUARTER_TURN,
+        pitch=LEVEL,
+        roll=0,
+        order_code=CIRCLE,
+        order_codes=(CIRCLE, 0, 0, 0),
+        order_throttle=0x8000,
+        waypoint_mask=1,
+        waypoint_x=(point[0], *[0] * 7),
+        waypoint_y=(point[1], *[0] * 7),
+        waypoint_z=(point[2], *[0] * 7),
+    )
+    own = contact(
+        object_index=ME, genus=0, size=FIGHTER_SIZE, x=0, y=0, z=0, target=NO_OBJECT
+    )
+    model = SSD | {"target": NO_OBJECT}
+    deck = destroyer(-SSD["box_max"][0], z=-(SSD["box_max"][2] + 6000), model=model)
+    question = Question(1000, (me,), (own, deck))
+    yaw, pitch = bearing(*point)
+    leveled = avoidance.clear_heading(me, question, yaw, pitch, NO_OBJECT)
+    assert leveled == (yaw, 15430)
+    assert patrol.think(me, question).actions.steer == Steer(yaw, 15430, 0)
+
+
+def test_over_a_big_ships_deck_it_is_in_the_way_of_a_dive_at_every_yaw(
+    view, contact, destroyer
+) -> None:
+    """The attack's break weighs its heading with ``in_the_way``: over the
+    deck, a dive at any yaw names the ship, which looks as wide as a ball of
+    its distance, 6,000; a level heading is still free."""
+    me = view(object_index=ME, x=0, y=0, z=0, yaw=0, pitch=LEVEL, roll=0)
+    own = contact(object_index=ME, genus=0, size=FIGHTER_SIZE, x=0, y=0, z=0)
+    deck = destroyer(-SSD["box_max"][0], z=-(SSD["box_max"][2] + 6000))
+    question = Question(1000, (me,), (own, deck))
+    for yaw in range(0, TURN, 0x2000):
+        found = avoidance.in_the_way(me, question, yaw, LEVEL + 0x2000, NO_OBJECT)
+        assert found.contact.object_index == BULKY and found.all_round
+        assert found.as_ball == 6000
+    assert avoidance.in_the_way(me, question, 0, LEVEL, NO_OBJECT) is None
+
+
+def test_past_the_pitch_edge_lies_on_the_level_side_within_up_and_down(
+    contact,
+) -> None:
+    """Built by hand, a clearance whose pitch spread is the only way out:
+    level with the craft, the asked pitch's side, up for a level pitch;
+    a spread wider than the way to straight up or down stops there."""
+
+    def ahead(pitch, edge):
+        return avoidance.Obstacle(
+            contact(), 0, 0, 0, hull.ALL_ROUND, pitch, edge, (0, 0, 0), 0
+        )
+
+    assert ahead(LEVEL, 1000).past_pitch(LEVEL + 1) == LEVEL + 2024
+    assert ahead(LEVEL, 1000).past_pitch(LEVEL) == LEVEL - 2024
+    assert ahead(LEVEL + 100, 20000).past_pitch(LEVEL + 200) == 0
+    assert ahead(LEVEL - 100, 20000).past_pitch(LEVEL - 200) == HALF_TURN
+
+
 def test_past_a_hulls_edge_a_heading_passes_at_its_keep(
     view, contact, destroyer
 ) -> None:
@@ -597,3 +772,24 @@ def test_the_turn_in_never_swings_the_nose_across_the_hull(approach) -> None:
     assert flown.actions.steer == heading
     heading, turned = approach(at, point, nose=0xF000)
     assert turned.actions.steer != heading
+
+
+def test_a_carrier_diving_from_over_a_parked_starship_levels_off(
+    approach, caplog
+) -> None:
+    """1,543 over the parked starship's keep (its top 9,359 under the carrier,
+    the keep 4,096 and the carrier's reach 3,720), the dive to fg 9's point
+    under the ship enters the box (least=0), and every yaw enters the keep:
+    the pitches into it run from its far corner, 75,848 off and 214 under
+    level (16,598), to straight down, 24,683 and 8,085 either side. The
+    carrier keeps its yaw and takes 24,683 - 8,085 - 1,024 = 15,574. It once
+    kept the dive: the yaws in the way were a quarter turn either side of
+    yaw 16,384, the yaw straight down, and the dive's lay 17,750 off it."""
+    caplog.set_level("DEBUG")
+    heading, flown = approach((16000, 20000, 25000), FG9_POINT)
+    assert heading == Steer(34134, 25776, 0)
+    assert flown.actions.steer == Steer(34134, 15574, 0)
+    assert "avoidance.way_in object=4 around=8 off=6817 least=0 clear=0" in caplog.text
+    assert (
+        f"avoidance.level object={ME} around=8 distance=9359 clearance=7816 pitch=15574"
+    ) in caplog.text

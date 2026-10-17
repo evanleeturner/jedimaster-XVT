@@ -22,6 +22,17 @@ Purpose:
     heads toward the flank until it is within LOOK_AHEAD of that keep, and
     a starship keeps its own length off another's hull.
 
+    Over or under such a hull every yaw enters its clearance
+    (``hull.ALL_ROUND``), so no turn clears a heading that reaches it there:
+    the craft keeps its yaw and pitches EDGE_PAD past the clearance's pitch
+    edge, up when the hull lies below and down when above
+    (``Obstacle.past_pitch``), flying level across the deck until it is past
+    the hull's edge; only the nearest such hull is cleared so, and the yaw
+    then turns past the others in the way at that pitch, as above. Without
+    it, a craft over a parked starship dived through its deck at a point
+    under it: the yaws in the way were a quarter turn either side of the
+    yaw straight down, which names no side, and the dive's lay outside them.
+
     Where that heading is not free, entering another clearance or reached
     by a turn that swings the nose across a bulky craft whose clearance the
     craft is inside (a fighter between two freighters whose clearances
@@ -48,9 +59,9 @@ Purpose:
     ship to the end of the flight.
 
     ``in_the_way`` is the test itself, for a behavior that weighs a heading
-    before it steers (the attack's break), and ``clear_yaw`` the turn, for
-    one that reads its throttle from the heading it will fly (a starship's
-    patrol).
+    before it steers (the attack's break), and ``clear_heading`` the turn,
+    for one that reads its throttle from the heading it will fly (a
+    starship's patrol).
 
 Invariants:
     - Only a decision that steers changes, and only its steer: a craft left
@@ -69,7 +80,10 @@ Invariants:
       clearance; of several in the way, the nearest part decides.
     - In the way means within the clearance's edge angle in yaw and in
       pitch, apart: the box the attack's aim cone uses too. For a hull the
-      yaw's and the pitch's edges differ (``hull.Seen``).
+      yaw's and the pitch's edges differ (``hull.Seen``); over or under it
+      every yaw is in the way, and only the pitch clears it.
+    - Avoidance changes a heading's pitch only over or under a hull; every
+      other turn keeps the pitch.
 """
 
 from __future__ import annotations
@@ -112,18 +126,40 @@ Vector = hull.Vector
 class Obstacle:
     """A bulky craft in a heading's way: how far its nearest part lies, its
     clearance from there, the yaw halfway across the headings that enter
-    that clearance and how far they spread either side, the offset to its
-    nearest part, and how far off a ball of radius clearance would lie to
-    look as wide (``as_ball``: the distance itself for a freighter's ball,
-    and for any craft whose clearance the craft is inside)."""
+    that clearance and how far they spread either side, the pitch and its
+    spread alike, the offset to its nearest part, and how far off a ball of
+    radius clearance would lie to look as wide (``as_ball``: the distance
+    itself for a freighter's ball, for any craft whose clearance the craft
+    is inside, and for a hull it is over or under)."""
 
     contact: Contact
     distance: int
     clearance: int
     yaw: int
     edge: int
+    pitch: int
+    pitch_edge: int
     offset: tuple[int, int, int]
     as_ball: int
+
+    @property
+    def all_round(self) -> bool:
+        """Whether every yaw enters the clearance: the craft is over or under
+        a starship's or platform's hull (``hull.ALL_ROUND``)."""
+        return self.edge >= hull.ALL_ROUND
+
+    def past_pitch(self, pitch: int) -> int:
+        """Return the pitch EDGE_PAD past the clearance's pitch edge on the
+        level side: up when the clearance lies below the craft, down when
+        above, and on pitch's side when it lies level, up for a level pitch;
+        never past straight up or straight down."""
+        if self.pitch == geometry.LEVEL:
+            up = pitch <= geometry.LEVEL
+        else:
+            up = self.pitch > geometry.LEVEL
+        turn = self.pitch_edge + EDGE_PAD
+        past = self.pitch - turn if up else self.pitch + turn
+        return min(max(past, 0), geometry.HALF_TURN)
 
     def past_edge(self, yaw: int, nose: int) -> int:
         """Return the yaw EDGE_PAD past the clearance's edge on the side the
@@ -162,23 +198,36 @@ def steer_clear(view: CraftView, question: Question, decision: Decision) -> Deci
         target = NO_OBJECT
     if _flies_in(view, question, steer, target, own.size * 3 // 4):
         return decision
-    yaw = clear_yaw(view, question, steer.yaw, steer.pitch, target)
-    if yaw == steer.yaw:
+    yaw, pitch = clear_heading(view, question, steer.yaw, steer.pitch, target)
+    if (yaw, pitch) == (steer.yaw, steer.pitch):
         return decision
-    actions = dataclasses.replace(
-        decision.actions, steer=Steer(yaw, steer.pitch, steer.roll)
-    )
+    actions = dataclasses.replace(decision.actions, steer=Steer(yaw, pitch, steer.roll))
     return dataclasses.replace(decision, actions=actions)
 
 
-def clear_yaw(
+def clear_heading(
     view: CraftView, question: Question, yaw: int, pitch: int, skip: int
-) -> int:
-    """Return the yaw that turns a heading of yaw and pitch clear of the
-    nearest bulky craft in its way, the contact skip aside, or the yaw the
-    search finds when that turn is not free, logging the turn; yaw itself
-    when none is in the way and the turn there is free."""
+) -> tuple[int, int]:
+    """Return the yaw and pitch that turn a heading clear of the bulky craft
+    in its way, the contact skip aside, logging each turn: over or under the
+    nearest hull in the way the pitch past its edge (``Obstacle.
+    past_pitch``); then the yaw past the nearest other in the way at that
+    pitch, or the yaw the search finds when that turn is not free; the
+    heading itself when none is in the way and the turn there is free."""
     near = nearby(view, question, pitch, skip)
+    over = _nearest(o for o in near if o.all_round)
+    if over is not None:
+        pitch = over.past_pitch(pitch)
+        logger.debug(
+            "avoidance.level object=%d around=%d distance=%d clearance=%d pitch=%d",
+            view.object_index,
+            over.contact.object_index,
+            over.distance,
+            over.clearance,
+            pitch,
+        )
+        near = nearby(view, question, pitch, skip)
+    near = [o for o in near if not o.all_round]
     obstacle = _nearest(o for o in near if geometry.angle_between(yaw, o.yaw) < o.edge)
     clear = yaw if obstacle is None else obstacle.past_edge(yaw, view.yaw)
     searched = not _free(view.yaw, clear, near)
@@ -186,7 +235,7 @@ def clear_yaw(
         clear = _search(view.yaw, yaw, near)
         obstacle = _nearest(near)
     if obstacle is None:
-        return yaw
+        return yaw, pitch
     logger.debug(
         "avoidance.steer object=%d around=%d distance=%d clearance=%d yaw=%d "
         "searched=%d",
@@ -197,7 +246,7 @@ def clear_yaw(
         clear,
         int(searched),
     )
-    return clear
+    return clear, pitch
 
 
 def in_the_way(
@@ -253,7 +302,7 @@ def _ball(view: CraftView, contact: Contact, pitch: int) -> Obstacle | None:
     edge = edge_angle(reach, keep)
     if geometry.angle_between(pitch, up) >= edge:
         return None
-    return Obstacle(contact, reach, keep, toward, edge, offset, reach)
+    return Obstacle(contact, reach, keep, toward, edge, up, edge, offset, reach)
 
 
 def _hull(view: CraftView, contact: Contact, keep: int, pitch: int) -> Obstacle | None:
@@ -270,14 +319,21 @@ def _hull(view: CraftView, contact: Contact, keep: int, pitch: int) -> Obstacle 
     looks = hull.seen(view, contact, keep)
     if geometry.angle_between(pitch, looks.pitch) >= looks.pitch_edge:
         return None
-    if near.distance < keep:
+    if near.distance < keep or looks.yaw_edge >= hull.ALL_ROUND:
         as_ball = near.distance
     else:
         # Rounded up: a heading EDGE_PAD past the edge passes at keep, not short.
         as_ball = -(-(keep << 16) // max(geometry.sine(looks.yaw_edge), 1))
-    offset = (near.dx, near.dy, near.dz)
     return Obstacle(
-        contact, near.distance, keep, looks.yaw, looks.yaw_edge, offset, as_ball
+        contact,
+        near.distance,
+        keep,
+        looks.yaw,
+        looks.yaw_edge,
+        looks.pitch,
+        looks.pitch_edge,
+        (near.dx, near.dy, near.dz),
+        as_ball,
     )
 
 

@@ -315,9 +315,43 @@ def test_a_bulky_craft_in_the_way_turns_it_on_its_way_to_the_start_point(
     )
     question = shown(me, hulk)
     straight = toward(START)
-    turned = avoidance.clear_yaw(me, question, straight.yaw, straight.pitch, NO_OBJECT)
-    assert turned != straight.yaw
-    assert attack.think(me, question).actions.steer.yaw == turned
+    turned = avoidance.clear_heading(
+        me, question, straight.yaw, straight.pitch, NO_OBJECT
+    )
+    assert turned[0] != straight.yaw
+    steer = attack.think(me, question).actions.steer
+    assert (steer.yaw, steer.pitch) == turned
+
+
+def test_over_a_big_ships_deck_its_dive_to_the_start_point_levels_off(
+    craft, contact, shown
+) -> None:
+    """The start point lies 45 degrees down to the west, past a Star
+    Destroyer's deck 6,000 below: its steer carries the pitch avoidance
+    levels the dive off to, not the dive (``avoidance.clear_heading``)."""
+    start = (-0x10000, 0, -0x10000)
+    me = craft(books=GIVEN_START["books"], start_point=start)
+    deck = contact(
+        object_index=20,
+        team=1,
+        genus=STARSHIP,
+        size=65396,
+        x=0,
+        y=0,
+        z=-(12570 + 6000),
+        yaw=0,
+        pitch=LEVEL,
+        roll=0,
+        target=NO_OBJECT,
+        box_min=(-19140, -40940, -7132),
+        box_max=(19140, 24456, 12570),
+    )
+    question = shown(me, deck)
+    dive = toward(start)
+    leveled = avoidance.clear_heading(me, question, dive.yaw, dive.pitch, NO_OBJECT)
+    assert leveled[0] == dive.yaw and leveled[1] < LEVEL < dive.pitch
+    steer = attack.think(me, question).actions.steer
+    assert (steer.yaw, steer.pitch) == leveled
 
 
 def test_with_nowhere_to_cruise_it_holds_its_course(craft, ask, caplog) -> None:

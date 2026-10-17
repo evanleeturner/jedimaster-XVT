@@ -178,9 +178,42 @@ def test_inside_a_grown_box_the_headings_spread_a_quarter_turn(me, ship) -> None
 
 
 def test_under_a_box_its_yaws_go_round_and_its_pitches_are_up(me, ship) -> None:
-    """From under it, the yaws to a box go all the way round: a quarter turn
-    either side of the nearest point's; the pitches run from straight up to
-    its near face's corners, 70.5 degrees above level."""
+    """From under it, the yaws to a box go all the way round: every yaw; the
+    pitches run from straight up to its near face's corners, 70.5 degrees
+    above level."""
     seen = hull.seen(me, ship(z=5000, **CUBE), 0)
-    assert seen.yaw_edge == geometry.QUARTER_TURN
+    assert seen.yaw_edge == hull.ALL_ROUND
     assert (seen.pitch - seen.pitch_edge, seen.pitch + seen.pitch_edge) == (0, 3542)
+
+
+def test_over_a_box_its_yaws_go_round_and_its_pitches_are_down(me, ship) -> None:
+    """From over it, as from under: every yaw, and the pitches from its near
+    face's corners, 70.5 degrees below level (the arctangent of 4,000 over
+    1,414, 12,842 off level), to straight down."""
+    seen = hull.seen(me, ship(z=-5000, **CUBE), 0)
+    assert seen.yaw_edge == hull.ALL_ROUND
+    assert (seen.pitch - seen.pitch_edge, seen.pitch + seen.pitch_edge) == (
+        29226,
+        32768,
+    )
+
+
+def test_inside_a_grown_box_over_the_box_its_yaws_go_round(me, ship) -> None:
+    """500 over the box's top, inside it grown by 1,000: every yaw, and a
+    quarter turn either side of straight down."""
+    seen = hull.seen(me, ship(z=-1500, **CUBE), 1000)
+    assert (seen.yaw_edge, seen.pitch, seen.pitch_edge) == (
+        hull.ALL_ROUND,
+        geometry.HALF_TURN,
+        geometry.QUARTER_TURN,
+    )
+
+
+def test_inside_the_box_itself_the_headings_spread_a_quarter_turn(me, ship) -> None:
+    """500 under the box's top, inside the box (a hangar launch): its nearest
+    part is the position, straight down, and a quarter turn either side of
+    it stands, though the box's corners lie all round. Straight down has yaw
+    a quarter turn (``geometry``)."""
+    quarter = geometry.QUARTER_TURN
+    seen = hull.seen(me, ship(z=-500, **CUBE), 1000)
+    assert seen == hull.Seen(quarter, quarter, geometry.HALF_TURN, quarter)

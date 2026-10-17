@@ -78,6 +78,11 @@
       "fields": ["object", "target", "reason", "lock", "lock_state", "coming", "coming_damage", "shots"],
       "text": "Craft {object} holds its warheads at craft {target} ({reason}: the first test that failed of kind, kept, launcher, lock, fresh, limit, caps and aim), its lock at {lock} ticks in state {lock_state}, {coming} homing warheads with {coming_damage} damage already flying at the target; {shots} fired in this attack run"
     },
+    "avoidance.level": {
+      "level": "D",
+      "fields": ["object", "around", "distance", "clearance", "pitch"],
+      "text": "Craft {object}, over or under the hull of craft {around}, {distance} units from its nearest part, with a clearance of {clearance} from there, finds every yaw in the way and pitches to {pitch}, past the clearance's edge on the level side, to fly level across the hull until past its edge"
+    },
     "avoidance.steer": {
       "level": "D",
       "fields": ["object", "around", "distance", "clearance", "yaw", "searched"],

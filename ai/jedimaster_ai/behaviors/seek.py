@@ -87,7 +87,7 @@ def _to_start(view: CraftView, question: Question, own: Contact | None) -> Actio
     else:
         yaw, pitch = geometry.bearing(dx, dy, dz)
         if own is not None:
-            yaw = avoidance.clear_yaw(view, question, yaw, pitch, own.target)
+            yaw, pitch = avoidance.clear_heading(view, question, yaw, pitch, own.target)
         throttle = formation.eased(view, question, patrol.cruise_throttle(view))
         if (
             genus == tactics.GENUS_STARSHIP

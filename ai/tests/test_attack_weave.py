@@ -10,8 +10,10 @@ from __future__ import annotations
 from attack_setup import BULK_FREIGHTER_SIZE
 from attack_setup import FOE
 from attack_setup import FREIGHTER
+from attack_setup import ISD_BOX
 from attack_setup import ME
 from attack_setup import phase_of
+from attack_setup import STARSHIP
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
@@ -25,6 +27,7 @@ from jedimaster_ai.world import Commands
 from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import Question
+from jedimaster_ai.world import Steer
 
 
 def test_an_enemy_on_the_tail_makes_it_weave(craft, foe, ask, caplog) -> None:
@@ -65,6 +68,34 @@ def test_a_weave_steers_clear_of_its_own_bulky_target(craft, foe, ask) -> None:
     )
     assert phase_of(then) == attack.EVADE
     assert then.actions.steer.yaw == clear
+
+
+def test_a_weave_over_a_big_ships_deck_levels_off(craft, foe, ask, contact) -> None:
+    """6,000 over a Star Destroyer's deck, the weave's first swerve (dice
+    seed 1) dives at pitch 20,662, into the keep: the pitches into it run
+    24,771 and 7,997 either side, so the swerve keeps its yaw and takes
+    24,771 - 7,997 - 1,024 = 15,750 (``avoidance.clear_heading``)."""
+    chaser = foe(object_index=12, y=-0x2000, target=ME)
+    target = foe(x=0x4000, y=0x1000)
+    alone = ask(craft(random_seed=1), target, chaser).actions.steer
+    assert alone.pitch == 20662
+    deck = contact(
+        object_index=20,
+        team=1,
+        genus=STARSHIP,
+        size=65396,
+        x=0,
+        y=0,
+        z=-(ISD_BOX["box_max"][2] + 6000),
+        yaw=0,
+        pitch=LEVEL,
+        roll=0,
+        target=NO_OBJECT,
+        **ISD_BOX,
+    )
+    over = ask(craft(random_seed=1), target, chaser, deck)
+    assert phase_of(over) == attack.EVADE
+    assert over.actions.steer == Steer(alone.yaw, 15750, alone.roll)
 
 
 def test_a_weave_flies_on_and_ends_when_the_tail_is_clear(

@@ -25,7 +25,7 @@ Purpose:
       never more than full;
     - a starship STARSHIP_TURN or more off its course to the waypoint has
       throttle 0. The course is read past the bulky craft in its way
-      (``avoidance.clear_yaw``), so a starship stopped to turn round another
+      (``avoidance.clear_heading``), so a starship stopped to turn round another
       moves on once it faces the way round, and never waits on it for good.
 
     With no waypoint on, the craft stops where it is and counts one round, as
@@ -220,7 +220,7 @@ def cruise(
         return Actions(throttle=0)
     yaw, pitch = geometry.bearing(*_offset(view, view.waypoint(route.waypoint)))
     if own is not None:
-        yaw = avoidance.clear_yaw(view, question, yaw, pitch, own.target)
+        yaw, pitch = avoidance.clear_heading(view, question, yaw, pitch, own.target)
     throttle = formation.eased(view, question, cruise_throttle(view))
     if (
         genus == tactics.GENUS_STARSHIP
