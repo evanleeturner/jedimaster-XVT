@@ -15,6 +15,7 @@ from jedimaster_ai import notebook
 from jedimaster_ai import warheads
 from jedimaster_ai.behaviors import attack
 from jedimaster_ai.geometry import LEVEL
+from jedimaster_ai.world import Books
 from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import Lock
 from jedimaster_ai.world import Steer
@@ -48,11 +49,22 @@ def test_a_declared_lock_fires_a_guided_warhead(craft, foe, ask, caplog) -> None
     assert decision.actions.warhead == Warhead(0)
     assert decision.actions.target == FOE
     assert (
-        f"attack.warhead object={ME} target={FOE} launcher=0 type=144 lock=708 "
-        "coming=0 shots=1" in caplog.text
+        f"attack.warhead object={ME} target={FOE} launcher=0 paired=0 type=144 "
+        "lock=708 coming=0 shots=1" in caplog.text
     )
     memory = memory_of(decision)
     assert (memory.shots, memory.fresh, memory.held) == (1, 1, warheads.Held.NONE)
+
+
+def test_a_hurt_top_pilots_guided_pair_shows_on_its_line(craft, foe, ask, caplog):
+    caplog.set_level("INFO")
+    hurt = LOCKED | {"books": Books.TARGETS_LEFT | Books.HURT}
+    decision = ask(craft(**hurt), foe(), target=FOE)
+    assert decision.actions.warhead == Warhead(0, paired=True)
+    assert (
+        f"attack.warhead object={ME} target={FOE} launcher=0 paired=1 type=144 "
+        "lock=708 coming=0 shots=1" in caplog.text
+    )
 
 
 def test_a_warhead_fires_with_the_target_off_the_cannons_cone(craft, foe, ask) -> None:
@@ -190,12 +202,23 @@ def test_with_its_nose_on_the_point_a_jedi_fires_unguided(
     assert decision.actions.steer == Steer(LEAD_YAW, LEVEL, 0)
     assert decision.actions.warhead == Warhead(0)
     assert (
-        f"attack.unguided object={ME} target={FOE} launcher=0 type=143 lock=0 "
-        "ticks=575 miss=0 shots=1" in caplog.text
+        f"attack.unguided object={ME} target={FOE} launcher=0 paired=0 type=143 "
+        "lock=0 ticks=575 miss=0 shots=1" in caplog.text
     )
     assert "attack.warhead " not in caplog.text
     memory = memory_of(decision)
     assert (memory.shots, memory.fresh, memory.held) == (1, 0, warheads.Held.NONE)
+
+
+def test_a_hurt_jedis_unguided_pair_shows_on_its_line(craft, foe, ask, caplog):
+    caplog.set_level("INFO")
+    hurt = UNGUIDED | {"yaw": LEAD_YAW, "books": Books.TARGETS_LEFT | Books.HURT}
+    decision = ask(craft(**hurt), foe(**CORVETTE))
+    assert decision.actions.warhead == Warhead(0, paired=True)
+    assert (
+        f"attack.unguided object={ME} target={FOE} launcher=0 paired=1 type=143 "
+        "lock=0 ticks=575 miss=0 shots=1" in caplog.text
+    )
 
 
 def test_while_its_launcher_reloads_a_jedi_steers_at_the_ship(craft, foe, ask) -> None:

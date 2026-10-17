@@ -382,11 +382,12 @@ def _warhead(
     shots = memory.shots + 1
     if choice.lead is None:
         logger.info(
-            "attack.warhead object=%d target=%d launcher=%d type=%d lock=%d "
-            "coming=%d shots=%d",
+            "attack.warhead object=%d target=%d launcher=%d paired=%d type=%d "
+            "lock=%d coming=%d shots=%d",
             view.object_index,
             target.object_index,
             launcher,
+            choice.warhead.paired,
             view.warhead_type[launcher],
             view.lock_ticks,
             target.warheads_coming,
@@ -394,11 +395,12 @@ def _warhead(
         )
     else:
         logger.info(
-            "attack.unguided object=%d target=%d launcher=%d type=%d lock=%d "
-            "ticks=%d miss=%d shots=%d",
+            "attack.unguided object=%d target=%d launcher=%d paired=%d type=%d "
+            "lock=%d ticks=%d miss=%d shots=%d",
             view.object_index,
             target.object_index,
             launcher,
+            choice.warhead.paired,
             view.warhead_type[launcher],
             view.lock_ticks,
             choice.lead.ticks,

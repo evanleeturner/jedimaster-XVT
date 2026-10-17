@@ -65,13 +65,13 @@
     },
     "attack.unguided": {
       "level": "I",
-      "fields": ["object", "target", "launcher", "type", "lock", "ticks", "miss", "shots"],
-      "text": "Craft {object} fired an unguided warhead of type {type} from launcher {launcher} at craft {target}, aimed ahead to meet it in {ticks} ticks with its nose line {miss} units from the meeting point, its lock at {lock} ticks; {shots} fired in this attack run"
+      "fields": ["object", "target", "launcher", "paired", "type", "lock", "ticks", "miss", "shots"],
+      "text": "Craft {object} fired an unguided warhead of type {type} from launcher {launcher} (both slots at once: {paired}) at craft {target}, aimed ahead to meet it in {ticks} ticks with its nose line {miss} units from the meeting point, its lock at {lock} ticks; {shots} fired in this attack run"
     },
     "attack.warhead": {
       "level": "I",
-      "fields": ["object", "target", "launcher", "type", "lock", "coming", "shots"],
-      "text": "Craft {object} fired a guided warhead of type {type} from launcher {launcher} at craft {target}, its lock at {lock} ticks, {coming} homing warheads already flying at the target; {shots} fired in this attack run"
+      "fields": ["object", "target", "launcher", "paired", "type", "lock", "coming", "shots"],
+      "text": "Craft {object} fired a guided warhead of type {type} from launcher {launcher} (both slots at once: {paired}) at craft {target}, its lock at {lock} ticks, {coming} homing warheads already flying at the target; {shots} fired in this attack run"
     },
     "attack.warhead_held": {
       "level": "D",
