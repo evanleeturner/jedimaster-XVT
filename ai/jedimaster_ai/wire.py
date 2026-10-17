@@ -56,11 +56,13 @@ from .world import OrderMove
 from .world import Question
 from .world import STATICS_MAX
 from .world import Steer
+from .world import Tracer
+from .world import TRACERS_MAX
 from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 20
+VERSION = 21
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -191,9 +193,30 @@ CONTACT_LAYOUT = (
     ("boarder", "H", 1),
     ("weapon_inhibit_timer", "H", 1),
     ("pulses_coming", "B", 1),
+    ("yaw_turned", "h", 1),
+    ("pitch_turned", "h", 1),
+    ("speed_changed", "h", 1),
+    ("turn_ticks", "H", 1),
 )
 CONTACT_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in CONTACT_LAYOUT)
+)
+# A tracer's fields in the engine's order, after the tracer count and its zero.
+TRACER_LAYOUT = (
+    ("object_index", "H", 1),
+    ("source", "H", 1),
+    ("object_type", "B", 1),
+    ("x", "i", 1),
+    ("y", "i", 1),
+    ("z", "i", 1),
+    ("yaw", "H", 1),
+    ("pitch", "H", 1),
+    ("speed", "H", 1),
+    ("age", "H", 1),
+    ("life_left", "H", 1),
+)
+TRACER_FIELDS = struct.Struct(
+    "<" + "".join(code * count for _, code, count in TRACER_LAYOUT)
 )
 U8 = struct.Struct("<B")
 U16 = struct.Struct("<H")
@@ -344,10 +367,22 @@ def read_question(body: bytes) -> Question:
         )
     static_count, static_zero = CONTACT_HEAD.unpack_from(body, contacts_end)
     statics_at = contacts_end + CONTACT_HEAD.size
-    expected = statics_at + static_count * CONTACT_FIELDS.size
-    if static_zero != 0 or static_count > STATICS_MAX or len(body) != expected:
+    statics_end = statics_at + static_count * CONTACT_FIELDS.size
+    if (
+        static_zero != 0
+        or static_count > STATICS_MAX
+        or len(body) < statics_end + CONTACT_HEAD.size
+    ):
         raise WireError(
             f"a question with {static_count} statics (zero={static_zero}) "
+            f"holds {len(body)} bytes, too few or too many"
+        )
+    tracer_count, tracer_zero = CONTACT_HEAD.unpack_from(body, statics_end)
+    tracers_at = statics_end + CONTACT_HEAD.size
+    expected = tracers_at + tracer_count * TRACER_FIELDS.size
+    if tracer_zero != 0 or tracer_count > TRACERS_MAX or len(body) != expected:
+        raise WireError(
+            f"a question with {tracer_count} tracers (zero={tracer_zero}) "
             f"holds {len(body)} bytes, not {expected}"
         )
     craft = []
@@ -360,9 +395,13 @@ def read_question(body: bytes) -> Question:
     )
     statics = tuple(
         _contact_from(CONTACT_FIELDS.unpack_from(body, offset))
-        for offset in range(statics_at, expected, CONTACT_FIELDS.size)
+        for offset in range(statics_at, statics_end, CONTACT_FIELDS.size)
     )
-    return Question(tick, tuple(craft), contacts, statics, mission_version)
+    tracers = tuple(
+        Tracer(**_fields_from(TRACER_LAYOUT, TRACER_FIELDS.unpack_from(body, offset)))
+        for offset in range(tracers_at, expected, TRACER_FIELDS.size)
+    )
+    return Question(tick, tuple(craft), contacts, statics, mission_version, tracers)
 
 
 def question_bytes(question: Question) -> bytes:
@@ -386,6 +425,9 @@ def question_bytes(question: Question) -> bytes:
     body += CONTACT_HEAD.pack(len(question.statics), 0)
     for contact in question.statics:
         body += CONTACT_FIELDS.pack(*_values_of(CONTACT_LAYOUT, contact))
+    body += CONTACT_HEAD.pack(len(question.tracers), 0)
+    for tracer in question.tracers:
+        body += TRACER_FIELDS.pack(*_values_of(TRACER_LAYOUT, tracer))
     return LENGTH.pack(len(body)) + bytes(body)
 
 

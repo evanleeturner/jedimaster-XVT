@@ -344,6 +344,16 @@ static const struct xvt_snapshot_field g_craft_data_fields[] = {
 	CRAFT_DATA_FIELD(turret_target_states),
 	CRAFT_DATA_FIELD(ai_notebook),
 	CRAFT_DATA_FIELD(ai_rank),
+	CRAFT_DATA_FIELD(ai_seen.tick),
+	CRAFT_DATA_FIELD(ai_seen.signature),
+	CRAFT_DATA_FIELD(ai_seen.yaw),
+	CRAFT_DATA_FIELD(ai_seen.pitch),
+	CRAFT_DATA_FIELD(ai_seen.speed),
+	CRAFT_DATA_FIELD(ai_seen.yaw_turned),
+	CRAFT_DATA_FIELD(ai_seen.pitch_turned),
+	CRAFT_DATA_FIELD(ai_seen.speed_changed),
+	CRAFT_DATA_FIELD(ai_seen.turn_ticks),
+	CRAFT_DATA_FIELD(ai_seen.seen),
 	CRAFT_DATA_FIELD(unused3f2),
 };
 #undef CRAFT_DATA_FIELD

@@ -193,17 +193,44 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	at = put_u16(at, contact->boarder);
 	at = put_u16(at, contact->weapon_inhibit_timer);
 	*at++ = contact->pulses_coming;
-	return at;
+	at = put_u16(at, (uint16_t)contact->yaw_turned);
+	at = put_u16(at, (uint16_t)contact->pitch_turned);
+	at = put_u16(at, (uint16_t)contact->speed_changed);
+	return put_u16(at, contact->turn_ticks);
+}
+
+static uint8_t *put_tracer(uint8_t *at, const struct ai_wire_tracer *tracer)
+{
+	at = put_u16(at, tracer->object_index);
+	at = put_u16(at, tracer->source);
+	*at++ = tracer->object_type;
+	at = put_u32(at, (uint32_t)tracer->x);
+	at = put_u32(at, (uint32_t)tracer->y);
+	at = put_u32(at, (uint32_t)tracer->z);
+	at = put_u16(at, tracer->yaw);
+	at = put_u16(at, tracer->pitch);
+	at = put_u16(at, tracer->speed);
+	at = put_u16(at, tracer->age);
+	return put_u16(at, tracer->life_left);
+}
+
+size_t ai_wire_question_bytes_with_tracers(int craft_count, int contact_count,
+					   int static_count, int tracer_count)
+{
+	size_t crafts = (size_t)craft_count * AI_WIRE_CRAFT_VIEW_BYTES;
+	size_t contacts = (size_t)contact_count * AI_WIRE_CONTACT_BYTES;
+	size_t statics = (size_t)static_count * AI_WIRE_CONTACT_BYTES;
+	size_t tracers = (size_t)tracer_count * AI_WIRE_TRACER_BYTES;
+	return AI_WIRE_HEAD_BYTES + crafts + AI_WIRE_CONTACT_HEAD_BYTES +
+	       contacts + AI_WIRE_CONTACT_HEAD_BYTES + statics +
+	       AI_WIRE_CONTACT_HEAD_BYTES + tracers;
 }
 
 size_t ai_wire_question_bytes(int craft_count, int contact_count,
 			      int static_count)
 {
-	size_t crafts = (size_t)craft_count * AI_WIRE_CRAFT_VIEW_BYTES;
-	size_t contacts = (size_t)contact_count * AI_WIRE_CONTACT_BYTES;
-	size_t statics = (size_t)static_count * AI_WIRE_CONTACT_BYTES;
-	return AI_WIRE_HEAD_BYTES + crafts + AI_WIRE_CONTACT_HEAD_BYTES +
-	       contacts + AI_WIRE_CONTACT_HEAD_BYTES + statics;
+	return ai_wire_question_bytes_with_tracers(craft_count, contact_count,
+						   static_count, 0);
 }
 
 size_t ai_wire_write_question(uint8_t *out, size_t capacity,
@@ -212,6 +239,7 @@ size_t ai_wire_write_question(uint8_t *out, size_t capacity,
 	int count = question->craft_count;
 	int contacts = question->contact_count;
 	int statics = question->static_count;
+	int tracers = question->tracer_count;
 	if (count < 0 || count > UINT16_MAX) {
 		return 0;
 	}
@@ -221,7 +249,11 @@ size_t ai_wire_write_question(uint8_t *out, size_t capacity,
 	if (statics < 0 || statics > AI_WIRE_STATICS_MAX) {
 		return 0;
 	}
-	size_t total = ai_wire_question_bytes(count, contacts, statics);
+	if (tracers < 0 || tracers > AI_WIRE_TRACERS_MAX) {
+		return 0;
+	}
+	size_t total = ai_wire_question_bytes_with_tracers(count, contacts,
+							   statics, tracers);
 	if (total > capacity) {
 		return 0;
 	}
@@ -244,6 +276,11 @@ size_t ai_wire_write_question(uint8_t *out, size_t capacity,
 	at = put_u16(at, 0);
 	for (int index = 0; index < statics; ++index) {
 		at = put_contact(at, &question->statics[index]);
+	}
+	at = put_u16(at, (unsigned int)tracers);
+	at = put_u16(at, 0);
+	for (int index = 0; index < tracers; ++index) {
+		at = put_tracer(at, &question->tracers[index]);
 	}
 	return total;
 }

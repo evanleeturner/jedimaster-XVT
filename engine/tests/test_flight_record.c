@@ -413,6 +413,149 @@ static void check_step(void)
 		      "speed=2750");
 }
 
+enum { TRACER_SLOTS = 14 };
+
+static struct object_record g_tr_objects[TRACER_SLOTS];
+static struct mobile_object g_tr_mobiles[TRACER_SLOTS];
+static struct craft_data g_tr_craft[TRACER_SLOTS];
+
+/* Slots 0 to 3 are craft: 0 a Sith Lord, 1 a craft player 3 flies (rank 5),
+ * 2 a computer craft (rank 2), 3 a Sith Apprentice. Slots 4 to 13 are shot
+ * slots, each a cannon bolt of a type the engine's table holds. Even slot 4:
+ * the Lord's, 3 ticks old. Odd slot 5: the Lord's, 3 ticks old. Even slot 6:
+ * the player craft's, 5 ticks old. Even slot 8: the computer craft's. Even
+ * slot 10: the Lord's, 40 ticks old. Even slot 12: the Apprentice's. Slot 13:
+ * a torpedo of the Lord's. */
+static void build_tracers(void)
+{
+	memset(g_tr_objects, 0, sizeof g_tr_objects);
+	memset(g_tr_mobiles, 0, sizeof g_tr_mobiles);
+	memset(g_tr_craft, 0, sizeof g_tr_craft);
+	for (int slot = 0; slot < TRACER_SLOTS; ++slot) {
+		g_tr_objects[slot].mobj = &g_tr_mobiles[slot];
+		g_tr_objects[slot].player_owner_idx = -1;
+	}
+	g_object_table = g_tr_objects;
+	g_active_region_object_slot_start = 0;
+	g_active_region_craft_object_slot_end = 4;
+	g_projectile_object_slot_start = 4;
+	g_projectile_object_slot_end = TRACER_SLOTS;
+	static const unsigned char ranks[4] = {7, 5, 2, 6};
+	for (int slot = 0; slot < 4; ++slot) {
+		g_tr_objects[slot].object_type = 5;
+		g_tr_mobiles[slot].p_craft = &g_tr_craft[slot];
+		g_tr_craft[slot].ai_rank = ranks[slot];
+		g_tr_craft[slot].object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	}
+	g_tr_objects[1].player_owner_idx = 3;
+	static const struct {
+		int slot, type, source, age;
+	} shots[] = {{4, 137, 0, 3}, {5, 137, 0, 3},   {6, 138, 1, 5},
+		     {8, 137, 2, 4}, {10, 137, 0, 40}, {12, 137, 3, 2},
+		     {13, 143, 0, 2}};
+	for (unsigned i = 0; i < sizeof shots / sizeof shots[0]; ++i) {
+		int slot = shots[i].slot;
+		g_tr_objects[slot].object_type = (uint8_t)shots[i].type;
+		g_tr_objects[slot].world_x = 1000 * slot;
+		g_tr_objects[slot].world_y = -2000 * slot;
+		g_tr_objects[slot].world_z = 30 * slot;
+		g_tr_objects[slot].yaw = (uint16_t)(0x100 * slot);
+		g_tr_objects[slot].pitch = (uint16_t)(0x20 * slot);
+		g_tr_mobiles[slot].source_obj_idx = (uint16_t)shots[i].source;
+		g_tr_mobiles[slot].speed = (uint16_t)(3000 + slot);
+		g_tr_mobiles[slot].lifetime_timer =
+			(uint16_t)(laser_get_projectile_lifetime_ticks(
+					   shots[i].type) -
+				   shots[i].age);
+	}
+}
+
+/* Ages every shot by ticks, as the engine's lifetime timer does. */
+static void age_tracers(int ticks)
+{
+	for (int slot = 4; slot < TRACER_SLOTS; ++slot) {
+		g_tr_mobiles[slot].lifetime_timer =
+			(uint16_t)(g_tr_mobiles[slot].lifetime_timer - ticks);
+	}
+}
+
+/* A tracer is a cannon bolt in an even shot slot, fired by a Sith Lord or a
+ * player's craft, logged once at the first beat after its birth while a Lord
+ * flies: here slots 4 and 6, in slot order. Left out: the odd slot, a
+ * computer craft's or an Apprentice's bolt, a bolt 40 ticks old and a
+ * torpedo. */
+static void check_tracer_lines(void)
+{
+	build_tracers();
+	g_line_count = 0;
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	xvt_flight_record_warhead_beat(8, 16);
+	XVT_ASSERT_INT_EQ(g_line_count, 3);
+	/* The torpedo's own warhead line comes first. */
+	check_line(0, "world.warhead_track tick=16 object=13 signature=0 "
+		      "type=143 source=0 target=-1 homing=-1 x=13000 "
+		      "y=-26000 z=390 yaw=3328 pitch=416 roll=0 speed=3013");
+	check_line(1, "world.tracer_track tick=16 object=4 source=0 player=-1 "
+		      "type=137 x=4000 y=-8000 z=120 yaw=1024 pitch=128 "
+		      "speed=3004 age=3");
+	check_line(2, "world.tracer_track tick=16 object=6 source=1 player=3 "
+		      "type=138 x=6000 y=-12000 z=180 yaw=1536 pitch=192 "
+		      "speed=3006 age=5");
+}
+
+/* At the next beat the same bolts are 16 ticks older and write nothing; a
+ * bolt born between two beats writes at the beat after it. */
+static void check_tracer_written_once(void)
+{
+	build_tracers();
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	age_tracers(16);
+	g_line_count = 0;
+	xvt_flight_record_tracers(32);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+	/* Fifteen ticks old is still the first beat; sixteen is not. */
+	build_tracers();
+	age_tracers(15 - 3);
+	g_line_count = 0;
+	xvt_flight_record_tracers(32);
+	XVT_ASSERT_INT_EQ(g_line_count, 1);
+	check_line(0, "world.tracer_track tick=32 object=4 source=0 player=-1 "
+		      "type=137 x=4000 y=-8000 z=120 yaw=1024 pitch=128 "
+		      "speed=3004 age=15");
+}
+
+/* With no living Sith Lord nothing is written, however many bolts fly: the
+ * Lord at another rank, breaking up or exploding, gone from its slot, or
+ * outside the craft slots; and nothing with DEBUG off. */
+static void check_tracers_need_a_living_lord(void)
+{
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	build_tracers();
+	g_tr_craft[0].ai_rank = 6;
+	g_line_count = 0;
+	xvt_flight_record_tracers(16);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+	build_tracers();
+	g_tr_craft[0].object_kind = CRAFT_OBJECT_KIND_BREAKING_UP;
+	xvt_flight_record_tracers(16);
+	g_tr_craft[0].object_kind = CRAFT_OBJECT_KIND_EXPLODING;
+	xvt_flight_record_tracers(16);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+	build_tracers();
+	g_tr_objects[0].object_type = 0;
+	xvt_flight_record_tracers(16);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+	build_tracers();
+	g_active_region_craft_object_slot_end = 0;
+	xvt_flight_record_tracers(16);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+	build_tracers();
+	xvt_log_set_level(AERON_LOG_INFO);
+	xvt_flight_record_tracers(16);
+	xvt_flight_record_warhead_beat(8, 16);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+}
+
 int main(void)
 {
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
@@ -424,5 +567,8 @@ int main(void)
 	check_warhead_lines();
 	check_warhead_beat();
 	check_step();
+	check_tracer_lines();
+	check_tracer_written_once();
+	check_tracers_need_a_living_lord();
 	return 0;
 }

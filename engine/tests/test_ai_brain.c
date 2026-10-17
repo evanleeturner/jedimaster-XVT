@@ -22,6 +22,7 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/ai/ai_wire.h"
+#include "xvt_runtime/runtime/sith.h"
 
 enum {
 	SLOT_COUNT = 40,
@@ -35,7 +36,9 @@ enum {
 			    AI_WIRE_CONTACT_HEAD_BYTES +
 			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES +
 			    AI_WIRE_CONTACT_HEAD_BYTES +
-			    AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES,
+			    AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES +
+			    AI_WIRE_CONTACT_HEAD_BYTES +
+			    AI_WIRE_TRACERS_MAX * AI_WIRE_TRACER_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
 	/* Where what a boarder sees starts, the 69 bytes before the notebook:
@@ -440,7 +443,7 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ(get_u32(contact + 54), 0);
 	/* Never hit by any team, so no shooter. */
 	XVT_ASSERT_INT_EQ(get_u16(contact + 58), UINT16_MAX);
-	XVT_ASSERT_INT_EQ(AI_WIRE_CONTACT_BYTES, 91);
+	XVT_ASSERT_INT_EQ(AI_WIRE_CONTACT_BYTES, 99);
 	g_object_type_table[0x21].max_bounds_extent = saved_size;
 	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
 }
@@ -710,6 +713,11 @@ static void check_notebook_only_answer(void)
 	memcpy(before.ai_notebook, craft->ai_notebook,
 	       sizeof before.ai_notebook);
 	before.ai_controller.think_timer = TEST_INTERVAL;
+	/* The step's contact view kept its first sight, the only other
+	 * change. */
+	XVT_ASSERT_INT_EQ(craft->ai_seen.seen, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_seen.tick, TEST_TICK);
+	before.ai_seen = craft->ai_seen;
 	XVT_ASSERT_TRUE(memcmp(&before, craft, sizeof before) == 0);
 }
 
@@ -1392,6 +1400,10 @@ static void check_statics(void)
 	/* A static has no weapon inhibit timer and no pulses coming. */
 	XVT_ASSERT_INT_EQ(get_u16(first + 88), 0);
 	XVT_ASSERT_INT_EQ(first[90], 0);
+	/* A static has no turn: its four turn numbers are 0. */
+	for (int byte = 91; byte < AI_WIRE_CONTACT_BYTES; ++byte) {
+		XVT_ASSERT_INT_EQ(first[byte], 0);
+	}
 	/* The second listed static is slot 33, of another group, disabled; the
 	 * third is slot 34. */
 	const uint8_t *second = first + AI_WIRE_CONTACT_BYTES;
@@ -1443,9 +1455,10 @@ static void check_contact_box_and_roll(void)
 		MEETING_TYPE = 0x38,
 		PAST_TABLE_TYPE = 201,
 		TYPE_COUNT = 8,
-		/* The box starts 31 bytes before the contact's end: 24 of box,
-		 * the roll, the boarder, the weapon inhibit timer and the pulses. */
-		BOX = AI_WIRE_CONTACT_BYTES - 31,
+		/* The box starts 39 bytes before the contact's end: 24 of box,
+		 * the roll, the boarder, the weapon inhibit timer, the pulses
+		 * and the 8 bytes of turn. */
+		BOX = AI_WIRE_CONTACT_BYTES - 39,
 		FIRST_STATIC = 30,
 	};
 	static const int types[TYPE_COUNT] = {
@@ -2292,6 +2305,242 @@ static void check_drop_off_action(void)
 			  AI_ACTIVITY_DEPLOYING_CRAFT);
 }
 
+/* Where a contact's four turn numbers start. */
+enum { CONTACT_TURN = AI_WIRE_CONTACT_BYTES - 8 };
+
+static int get_i16(const uint8_t *at) { return (int16_t)get_u16(at); }
+
+/* One engine step at tick: every craft due again, one question asked and
+ * kept as call 0. */
+static void step_at(int tick)
+{
+	g_game_time = tick;
+	g_fake.calls = 0;
+	for (int slot = 0; slot < SLOT_COUNT; ++slot) {
+		g_test_craft[slot].ai_controller.think_timer = 0;
+	}
+	ai_brain_think_due_craft();
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+}
+
+/* The contact index of the question kept as call 0, which asked about
+ * views craft. */
+static const uint8_t *question_contact(int views, int index)
+{
+	return g_fake.question[0] + AI_WIRE_HEAD_BYTES +
+	       (size_t)views * AI_WIRE_CRAFT_VIEW_BYTES +
+	       AI_WIRE_CONTACT_HEAD_BYTES +
+	       (size_t)index * AI_WIRE_CONTACT_BYTES;
+}
+
+static void place_craft_motion(int slot, int yaw, int pitch, int speed)
+{
+	g_test_objects[slot].yaw = (uint16_t)yaw;
+	g_test_craft[slot].pitch = (uint16_t)pitch;
+	g_test_mobiles[slot].speed = (uint16_t)speed;
+}
+
+/* Whether the contact in the kept question shows these four turn numbers. */
+static void check_turn(const uint8_t *contact, int yaw, int pitch, int speed,
+		       int ticks)
+{
+	XVT_ASSERT_INT_EQ(get_i16(contact + CONTACT_TURN), yaw);
+	XVT_ASSERT_INT_EQ(get_i16(contact + CONTACT_TURN + 2), pitch);
+	XVT_ASSERT_INT_EQ(get_i16(contact + CONTACT_TURN + 4), speed);
+	XVT_ASSERT_INT_EQ(get_u16(contact + CONTACT_TURN + 6), ticks);
+}
+
+/* A contact's turn is how its craft moved since the previous engine step
+ * that showed it: yaw and pitch as signed differences mod 65,536, the speed
+ * difference and the ticks between. First sight, a new craft in a used slot
+ * and a clock that went back show 0s; a step on the same tick shows the
+ * numbers the last step showed and keeps that step's sample. The two craft
+ * move by different amounts in every field, so a swapped pair of fields
+ * cannot pass. */
+static void check_contact_turn(void)
+{
+	fresh_world();
+	g_fake.echo = 1;
+	due_craft(1);
+	due_craft(2);
+	place_craft_motion(1, 65500, 5000, 300);
+	place_craft_motion(2, 1000, 0, 500);
+
+	step_at(1000);
+	check_turn(question_contact(2, 0), 0, 0, 0, 0);
+	check_turn(question_contact(2, 1), 0, 0, 0, 0);
+
+	place_craft_motion(1, 100, 4000, 345);
+	place_craft_motion(2, 1700, 65000, 450);
+	step_at(1004);
+	check_turn(question_contact(2, 0), 136, -1000, 45, 4);
+	check_turn(question_contact(2, 1), 700, -536, -50, 4);
+
+	/* A step on the same tick: the same numbers, and the sample stays the
+	 * one from tick 1004. */
+	place_craft_motion(1, 3000, 1, 1);
+	step_at(1004);
+	check_turn(question_contact(2, 0), 136, -1000, 45, 4);
+	check_turn(question_contact(2, 1), 700, -536, -50, 4);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].ai_seen.tick, 1004);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].ai_seen.yaw, 100);
+
+	/* The next step measures from that sample, not from the 3000 look. */
+	place_craft_motion(1, 200, 4010, 355);
+	step_at(1010);
+	check_turn(question_contact(2, 0), 100, 10, 10, 6);
+	check_turn(question_contact(2, 1), 0, 0, 0, 6);
+
+	/* A new craft in craft 1's slot shows 0s; craft 2 still measures. */
+	g_test_objects[1].object_signature = 0x555;
+	place_craft_motion(1, 9, 9, 9);
+	place_craft_motion(2, 1701, 65003, 454);
+	step_at(1012);
+	check_turn(question_contact(2, 0), 0, 0, 0, 0);
+	check_turn(question_contact(2, 1), 1, 3, 4, 2);
+
+	/* A clock that went back shows 0s and measures on from there. */
+	step_at(500);
+	check_turn(question_contact(2, 0), 0, 0, 0, 0);
+	place_craft_motion(1, 19, 29, 39);
+	step_at(504);
+	check_turn(question_contact(2, 0), 10, 20, 30, 4);
+
+	/* The ticks between two steps stop at 65,535. */
+	step_at(504 + 70000);
+	check_turn(question_contact(2, 0), 0, 0, 0, 65535);
+}
+
+/* Which fields a shot's slot gets sent: ai_tracer_slot_is_tracer's choices
+ * and a Sith Lord's firing. */
+static void place_shot(int slot, int type, int source, int lifetime_timer,
+		       int salt)
+{
+	struct object_record *object = &g_test_objects[slot];
+	object->object_type = (uint8_t)type;
+	object->world_x = 1000 * salt + 1;
+	object->world_y = -2000 * salt - 2;
+	object->world_z = 3000 * salt + 3;
+	object->yaw = (uint16_t)(0x1000 + salt * 0x11);
+	object->pitch = (uint16_t)(0x2000 + salt * 0x13);
+	g_test_mobiles[slot].family = 1;
+	g_test_mobiles[slot].source_obj_idx = (uint16_t)source;
+	g_test_mobiles[slot].speed = (uint16_t)(2500 + salt);
+	g_test_mobiles[slot].lifetime_timer = (uint16_t)lifetime_timer;
+}
+
+/* The tracer section of the kept question: where its count is, for a
+ * question about views craft and contacts contacts and no statics. */
+static const uint8_t *question_tracers(int views, int contacts)
+{
+	return g_fake.question[0] + AI_WIRE_HEAD_BYTES +
+	       (size_t)views * AI_WIRE_CRAFT_VIEW_BYTES +
+	       AI_WIRE_CONTACT_HEAD_BYTES +
+	       (size_t)contacts * AI_WIRE_CONTACT_BYTES +
+	       AI_WIRE_CONTACT_HEAD_BYTES;
+}
+
+/* A tracer is a cannon bolt in an even shot slot fired by a craft at the Sith
+ * Lord rank. Not sent: the odd slot beside it, a rank 6 craft's or a player's
+ * bolt, a warhead or a missile, a type that is no cannon's, a bolt whose
+ * firer is no craft of the region. Sent in slot order with the bolt's place
+ * and facing, its age and the ticks it has left, which add up to its type's
+ * life. */
+static void check_tracers(void)
+{
+	fresh_world();
+	g_fake.echo = 1;
+	g_active_region_craft_object_slot_end = 4;
+	g_projectile_object_slot_start = 8;
+	g_projectile_object_slot_end = 40;
+	due_craft(1)->ai_rank = XVT_SITH_LORD_LEVEL;
+	due_craft(2)->ai_rank = XVT_SITH_APPRENTICE_LEVEL;
+	due_craft(3)->ai_rank = 5;
+	g_test_objects[3].player_owner_idx = 0;
+	XVT_ASSERT_TRUE(g_projectile_type_data.warhead_class[143 - 137] != 0);
+	XVT_ASSERT_TRUE(g_projectile_type_data.warhead_class[144 - 137] != 0);
+	place_shot(12, 137, 1, 100, 1);
+	place_shot(13, 137, 1, 100, 2);
+	place_shot(14, 137, 2, 100, 3);
+	place_shot(16, 137, 3, 100, 4);
+	place_shot(18, 143, 1, 100, 5);
+	place_shot(20, 138, 1, 50, 6);
+	place_shot(22, 144, 1, 100, 7);
+	place_shot(24, 145, 1, 70, 8);
+	place_shot(26, 148, 1, 100, 9);
+	place_shot(28, 137, 0, 100, 10);
+	place_shot(30, 137, 9, 100, 11);
+
+	step_at(1000);
+
+	const uint8_t *head = question_tracers(2, 3);
+	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
+			  ai_wire_question_bytes_with_tracers(2, 3, 0, 3));
+	XVT_ASSERT_INT_EQ(get_u16(head), 3);
+	XVT_ASSERT_INT_EQ(get_u16(head + 2), 0);
+	static const int slots[3] = {12, 20, 24};
+	static const int types[3] = {137, 138, 145};
+	static const int timers[3] = {100, 50, 70};
+	for (int index = 0; index < 3; ++index) {
+		const uint8_t *tracer = head + AI_WIRE_CONTACT_HEAD_BYTES +
+					(size_t)index * AI_WIRE_TRACER_BYTES;
+		const struct object_record *shot =
+			&g_test_objects[slots[index]];
+		XVT_ASSERT_INT_EQ(get_u16(tracer), slots[index]);
+		XVT_ASSERT_INT_EQ(get_u16(tracer + 2), 1);
+		XVT_ASSERT_INT_EQ(tracer[4], types[index]);
+		XVT_ASSERT_INT_EQ((int32_t)get_u32(tracer + 5), shot->world_x);
+		XVT_ASSERT_INT_EQ((int32_t)get_u32(tracer + 9), shot->world_y);
+		XVT_ASSERT_INT_EQ((int32_t)get_u32(tracer + 13), shot->world_z);
+		XVT_ASSERT_INT_EQ(get_u16(tracer + 17), shot->yaw);
+		XVT_ASSERT_INT_EQ(get_u16(tracer + 19), shot->pitch);
+		XVT_ASSERT_INT_EQ(get_u16(tracer + 21),
+				  g_test_mobiles[slots[index]].speed);
+		XVT_ASSERT_INT_EQ(get_u16(tracer + 25), timers[index]);
+		XVT_ASSERT_INT_EQ(
+			get_u16(tracer + 23) + get_u16(tracer + 25),
+			laser_get_projectile_lifetime_ticks(types[index]));
+		XVT_ASSERT_TRUE(get_u16(tracer + 23) > 0);
+	}
+
+	/* No Lord flies: no tracer, and the section still holds its count. */
+	g_test_craft[1].ai_rank = 5;
+	step_at(1004);
+	head = question_tracers(2, 3);
+	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
+			  ai_wire_question_bytes(2, 3, 0));
+	XVT_ASSERT_INT_EQ(get_u16(head), 0);
+	XVT_ASSERT_INT_EQ(get_u16(head + 2), 0);
+}
+
+/* Sixteen tracers are the most a question holds, the first sixteen in slot
+ * order. */
+static void check_tracers_are_capped_at_sixteen(void)
+{
+	fresh_world();
+	g_fake.echo = 1;
+	g_active_region_craft_object_slot_end = 4;
+	g_projectile_object_slot_start = 4;
+	g_projectile_object_slot_end = 40;
+	due_craft(1)->ai_rank = XVT_SITH_LORD_LEVEL;
+	for (int slot = 4; slot < 40; slot += 2) {
+		place_shot(slot, 137, 1, 100, slot);
+	}
+
+	step_at(1000);
+
+	const uint8_t *head = question_tracers(1, 1);
+	XVT_ASSERT_INT_EQ(get_u16(head), AI_WIRE_TRACERS_MAX);
+	for (int index = 0; index < AI_WIRE_TRACERS_MAX; ++index) {
+		XVT_ASSERT_INT_EQ(get_u16(head + AI_WIRE_CONTACT_HEAD_BYTES +
+					  (size_t)index * AI_WIRE_TRACER_BYTES),
+				  4 + 2 * index);
+	}
+	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
+			  ai_wire_question_bytes_with_tracers(
+				  1, 1, 0, AI_WIRE_TRACERS_MAX));
+}
+
 int main(void)
 {
 	check_stat_level();
@@ -2335,6 +2584,9 @@ int main(void)
 	check_pair_joins();
 	check_second_target_type();
 	check_no_board_without_the_action();
+	check_contact_turn();
+	check_tracers();
+	check_tracers_are_capped_at_sixteen();
 	ai_brain_set_exchange(NULL);
 	return 0;
 }

@@ -119,7 +119,17 @@
  * whose target it is, else 0xFFFF; 0xFFFF for a static), u16 weapon inhibit
  * timer (the ticks left on the craft's weapon fire inhibit timer, 0 when none
  * runs) and u8 pulses coming (the magnetic and ion pulses among the homing
- * warheads coming, at most 255, never more than warheads coming).
+ * warheads coming, at most 255, never more than warheads coming), then how the
+ * craft is turning: i16 yaw turned, i16 pitch turned (each the signed
+ * difference of the angle from the one the contact showed at the craft's
+ * previous engine step, mod 65,536: yaw 65,500 to 100 is +136), i16 speed
+ * changed (speed now minus speed then) and u16 turn ticks (the ticks between
+ * the two steps). The engine shows its contacts once per step, so this is the
+ * turn over the last engine step, a few ticks, and every question of a step
+ * shows the same numbers. At first sight, for a craft that took a used slot
+ * and for a static all four are 0. At a step with no ticks since the
+ * previous one the contact shows the four numbers it showed last, so 0 never
+ * reads as flying straight.
  *
  * After the last contact: u16 static count, u16 zero, and one static per
  * static object that counts as a target, at most AI_WIRE_STATICS_MAX, in
@@ -131,6 +141,15 @@
  * attacker and hit by 0xFFFF, its object kind 0, its weapon inhibit timer and
  * pulses coming 0; its box and roll are given as a craft's are. Its object
  * index is its slot in the object table, which no contact has.
+ *
+ * After the last static: u16 tracer count, u16 zero, and one tracer per cannon
+ * bolt of a Sith Lord's (a craft at XVT_SITH_LORD_LEVEL) in an even projectile
+ * slot, in slot order, at most AI_WIRE_TRACERS_MAX, each AI_WIRE_TRACER_BYTES
+ * long: u16 object index (its projectile slot), u16 source (the craft that
+ * fired it), u8 object type, i32 x, i32 y, i32 z, u16 yaw, u16 pitch, u16
+ * speed, u16 age (its type's life in ticks minus its lifetime timer) and u16
+ * life left (its lifetime timer). None when no Lord flies. A bolt flies
+ * straight along its yaw and pitch.
  *
  * An answer (kind 2) holds one craft answer per craft, in the question's
  * order: u16 object index, the new notebook, u8 action count, then each
@@ -214,7 +233,7 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 20,
+	AI_WIRE_VERSION = 21,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
@@ -226,12 +245,15 @@ enum ai_wire_constant {
 	AI_WIRE_POINT_AXES = 3,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
-	AI_WIRE_CONTACT_BYTES = 91,
+	AI_WIRE_CONTACT_BYTES = 99,
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
 	/* The static object slots; the static target mask has a bit for each. */
 	AI_WIRE_STATICS_MAX = 64,
+	/* The tracer shots a question holds, and the bytes of each. */
+	AI_WIRE_TRACERS_MAX = 16,
+	AI_WIRE_TRACER_BYTES = 27,
 	AI_WIRE_CANNON_GROUPS = 2,
 	AI_WIRE_WARHEAD_LAUNCHERS = 2,
 	/* Weapon slots a craft has, and so turrets one answer may aim. */
@@ -517,6 +539,26 @@ struct ai_wire_contact {
 	uint16_t boarder;
 	uint16_t weapon_inhibit_timer;
 	uint8_t pulses_coming;
+	int16_t yaw_turned;
+	int16_t pitch_turned;
+	int16_t speed_changed;
+	uint16_t turn_ticks;
+};
+
+/* One tracer shot: a cannon bolt of a Sith Lord's in an even projectile slot
+ * (ai_tracer_slot_is_tracer). */
+struct ai_wire_tracer {
+	uint16_t object_index;
+	uint16_t source;
+	uint8_t object_type;
+	int32_t x;
+	int32_t y;
+	int32_t z;
+	uint16_t yaw;
+	uint16_t pitch;
+	uint16_t speed;
+	uint16_t age;
+	uint16_t life_left;
 };
 
 /* One question: the craft due to think and every contact, at one tick. */
@@ -529,6 +571,8 @@ struct ai_wire_question {
 	int static_count;
 	const struct ai_wire_contact *statics;
 	uint16_t mission_version;
+	int tracer_count;
+	const struct ai_wire_tracer *tracers;
 };
 
 /* One craft's answer as read. Bit (1 << kind) of actions is set for each
@@ -600,9 +644,13 @@ enum ai_wire_result {
 };
 
 /* Bytes in a question about craft_count craft with contact_count contacts and
- * static_count statics, the length field included. */
+ * static_count statics and no tracers, the length field included. */
 size_t ai_wire_question_bytes(int craft_count, int contact_count,
 			      int static_count);
+
+/* The same with tracer_count tracers. */
+size_t ai_wire_question_bytes_with_tracers(int craft_count, int contact_count,
+					   int static_count, int tracer_count);
 
 /* Writes the question into out. Returns the bytes written,
  * ai_wire_question_bytes of its counts, or 0 and writes nothing when the

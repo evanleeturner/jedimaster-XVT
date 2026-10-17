@@ -124,6 +124,8 @@ def test_wire_constants_match() -> None:
         "CONTACT_BYTES": wire.CONTACT_FIELDS.size,
         "CONTACTS_MAX": world.CONTACTS_MAX,
         "STATICS_MAX": world.STATICS_MAX,
+        "TRACERS_MAX": world.TRACERS_MAX,
+        "TRACER_BYTES": wire.TRACER_FIELDS.size,
         "CANNON_GROUPS": world.CANNON_GROUPS,
         "WARHEAD_LAUNCHERS": world.WARHEAD_LAUNCHERS,
         "WEAPON_SLOTS": world.WEAPON_SLOTS,

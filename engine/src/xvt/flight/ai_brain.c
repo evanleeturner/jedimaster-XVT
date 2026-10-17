@@ -20,6 +20,7 @@
 #include "xvt/flight/ai_countermeasures.h"
 #include "xvt/flight/ai_dropoff.h"
 #include "xvt/flight/ai_formation.h"
+#include "xvt/flight/ai_tracer.h"
 #include "xvt/flight/ai_warheads.h"
 #include "xvt/flight/ai_waypoints.h"
 #include "xvt/flight/craft.h"
@@ -133,6 +134,8 @@ struct ai_brain_batch {
 	struct ai_wire_contact contacts[AI_WIRE_CONTACTS_MAX];
 	int static_count;
 	struct ai_wire_contact statics[AI_WIRE_STATICS_MAX];
+	int tracer_count;
+	struct ai_wire_tracer tracers[AI_WIRE_TRACERS_MAX];
 };
 
 static ai_brain_exchange_fn g_ai_brain_exchange;
@@ -257,6 +260,55 @@ static void ai_brain_view_box(uint8_t object_type,
 	contact->box_max[2] = (int32_t)largest->z;
 }
 
+/* Writes the contact's turn numbers and keeps the craft's sight of them. The
+ * contact must hold the craft's signature, yaw, pitch and speed. The turn is
+ * the difference from the craft's last sight (craft->ai_seen): yaw and pitch
+ * mod 65,536 read signed, the speed difference, and the ticks between the two
+ * sights, at most 65,535. A first sight, and a craft whose signature differs
+ * from the last sight's (a new craft in a used slot), shows 0 in all four,
+ * and so does a sight before the last one's tick (a restarted clock). A sight
+ * on the same tick shows the four numbers the last sight showed and keeps
+ * that sight, so a second look in one step never reads as flying straight.
+ * The history lives in the craft record, which rides saves and rewinds. */
+static void ai_brain_view_turn(uint16_t object_index, uint32_t tick,
+			       struct ai_wire_contact *contact)
+{
+	struct ai_seen *seen =
+		&g_object_table[object_index].mobj->p_craft->ai_seen;
+	int32_t now = (int32_t)tick;
+
+	if (seen->seen == 0 || seen->signature != contact->object_signature ||
+	    now < seen->tick) {
+		seen->yaw_turned = 0;
+		seen->pitch_turned = 0;
+		seen->speed_changed = 0;
+		seen->turn_ticks = 0;
+	} else if (now > seen->tick) {
+		int32_t elapsed = now - seen->tick;
+		seen->yaw_turned =
+			(int16_t)(uint16_t)(contact->yaw - seen->yaw);
+		seen->pitch_turned =
+			(int16_t)(uint16_t)(contact->pitch - seen->pitch);
+		seen->speed_changed =
+			(int16_t)(uint16_t)(contact->speed - seen->speed);
+		seen->turn_ticks =
+			elapsed > UINT16_MAX ? UINT16_MAX : (uint16_t)elapsed;
+	}
+	if (seen->seen == 0 || seen->signature != contact->object_signature ||
+	    now != seen->tick) {
+		seen->seen = 1;
+		seen->tick = now;
+		seen->signature = contact->object_signature;
+		seen->yaw = contact->yaw;
+		seen->pitch = contact->pitch;
+		seen->speed = contact->speed;
+	}
+	contact->yaw_turned = seen->yaw_turned;
+	contact->pitch_turned = seen->pitch_turned;
+	contact->speed_changed = seen->speed_changed;
+	contact->turn_ticks = seen->turn_ticks;
+}
+
 /* Writes what the pilot program is told about the object in object_index, a
  * craft in the active region: its target is its player's target when a
  * player flies it, else its AI target; its size is its object type's, and
@@ -266,8 +318,9 @@ static void ai_brain_view_box(uint8_t object_type,
  * the field's 16 bits read unsigned as the flight code counts it down. Its
  * flags say whether its current order holds it still or waits for boarding,
  * and its boarder is the craft carrying it or the lowest-numbered craft on a
- * boarding order aimed at it. */
-static void ai_brain_view_contact(uint16_t object_index,
+ * boarding order aimed at it. Its four turn numbers come from
+ * ai_brain_view_turn. */
+static void ai_brain_view_contact(uint16_t object_index, uint32_t tick,
 				  struct ai_wire_contact *contact)
 {
 	const struct object_record *object = &g_object_table[object_index];
@@ -321,11 +374,12 @@ static void ai_brain_view_contact(uint16_t object_index,
 	contact->size = ai_brain_view_size(object->object_type);
 	ai_brain_view_box(object->object_type, contact);
 	ai_warheads_view_contact(object_index, contact);
+	ai_brain_view_turn(object_index, tick, contact);
 }
 
 /* Fills the batch's contacts: each craft in the active region's craft slots,
  * by the walk ai_brain_think_due_craft makes, at most AI_WIRE_CONTACTS_MAX. */
-static void ai_brain_view_contacts(struct ai_brain_batch *batch)
+static void ai_brain_view_contacts(struct ai_brain_batch *batch, uint32_t tick)
 {
 	batch->contact_count = 0;
 	for (uint16_t object_index =
@@ -338,7 +392,7 @@ static void ai_brain_view_contacts(struct ai_brain_batch *batch)
 		if (object->object_type == 0 || object->mobj->family != 0) {
 			continue;
 		}
-		ai_brain_view_contact(object_index,
+		ai_brain_view_contact(object_index, tick,
 				      &batch->contacts[batch->contact_count]);
 		++batch->contact_count;
 	}
@@ -399,6 +453,54 @@ static void ai_brain_view_statics(struct ai_brain_batch *batch)
 		ai_brain_view_static((uint16_t)slot,
 				     &batch->statics[batch->static_count]);
 		++batch->static_count;
+	}
+}
+
+/* Writes what the pilot program is told about the tracer shot in slot: its
+ * place, heading and speed, the craft that fired it, and its age and the
+ * ticks it has left (its type's life, laser_get_projectile_lifetime_ticks,
+ * is both added). */
+static void ai_brain_view_tracer(int slot, struct ai_wire_tracer *tracer)
+{
+	const struct object_record *object = &g_object_table[slot];
+	const struct mobile_object *shot = object->mobj;
+	uint16_t life =
+		laser_get_projectile_lifetime_ticks(object->object_type);
+
+	tracer->object_index = (uint16_t)slot;
+	tracer->source = shot->source_obj_idx;
+	tracer->object_type = object->object_type;
+	tracer->x = object->world_x;
+	tracer->y = object->world_y;
+	tracer->z = object->world_z;
+	tracer->yaw = object->yaw;
+	tracer->pitch = object->pitch;
+	tracer->speed = shot->speed;
+	tracer->age = life > shot->lifetime_timer
+			      ? (uint16_t)(life - shot->lifetime_timer)
+			      : 0;
+	tracer->life_left = shot->lifetime_timer;
+}
+
+/* Fills the batch's tracers: each tracer shot (ai_tracer_slot_is_tracer)
+ * whose source is a craft at XVT_SITH_LORD_LEVEL, in slot order, at most
+ * AI_WIRE_TRACERS_MAX; none while no Lord flies. */
+static void ai_brain_view_tracers(struct ai_brain_batch *batch)
+{
+	batch->tracer_count = 0;
+	for (int slot = g_projectile_object_slot_start;
+	     slot < g_projectile_object_slot_end &&
+	     batch->tracer_count < AI_WIRE_TRACERS_MAX;
+	     ++slot) {
+		if (!ai_tracer_slot_is_tracer(slot) ||
+		    !ai_tracer_craft_has_rank(
+			    g_object_table[slot].mobj->source_obj_idx,
+			    XVT_SITH_LORD_LEVEL)) {
+			continue;
+		}
+		ai_brain_view_tracer(slot,
+				     &batch->tracers[batch->tracer_count]);
+		++batch->tracer_count;
 	}
 }
 
@@ -904,7 +1006,9 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
 			 AI_WIRE_CONTACT_HEAD_BYTES +
 			 AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES +
 			 AI_WIRE_CONTACT_HEAD_BYTES +
-			 AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES];
+			 AI_WIRE_STATICS_MAX * AI_WIRE_CONTACT_BYTES +
+			 AI_WIRE_CONTACT_HEAD_BYTES +
+			 AI_WIRE_TRACERS_MAX * AI_WIRE_TRACER_BYTES];
 	static uint8_t answer[AI_WIRE_HEAD_BYTES +
 			      AI_BRAIN_QUESTION_CRAFT *
 				      AI_WIRE_CRAFT_ANSWER_BYTES_MAX];
@@ -917,7 +1021,9 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
 					       batch->contacts,
 					       batch->static_count,
 					       batch->statics,
-					       g_mission_file_version};
+					       g_mission_file_version,
+					       batch->tracer_count,
+					       batch->tracers};
 	size_t question_length =
 		ai_wire_write_question(question, sizeof question, &asked);
 	size_t answer_length = g_ai_brain_exchange(question, question_length,
@@ -1046,8 +1152,9 @@ void ai_brain_think_due_craft(void)
 	uint32_t tick = (uint32_t)g_game_time;
 	ai_books_finish_jumps();
 	ai_brain_name_lost_leaders();
-	ai_brain_view_contacts(&batch);
+	ai_brain_view_contacts(&batch, tick);
 	ai_brain_view_statics(&batch);
+	ai_brain_view_tracers(&batch);
 	for (uint16_t object_index =
 		     (uint16_t)g_active_region_object_slot_start;
 	     object_index < g_active_region_craft_object_slot_end;

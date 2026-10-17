@@ -372,8 +372,20 @@ def test_debug_records_a_contacts_inhibit_timer_and_pulses(
     hit = contact(weapon_inhibit_timer=300, pulses_coming=2)
     think(Question(1000, (view(),), (hit,), (), 14))
     (line,) = [line for line in caplog.text.splitlines() if "think.contact" in line]
-    assert line.endswith("boarder=65535 weapon_inhibit_timer=300 pulses_coming=2")
+    assert "boarder=65535 weapon_inhibit_timer=300 pulses_coming=2 " in line
     assert "statics=0 mission_version=14" in caplog.text
+
+
+def test_debug_records_how_a_contact_turns(view, contact, caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    turning = contact(
+        yaw_turned=-1234, pitch_turned=567, speed_changed=-89, turn_ticks=4
+    )
+    think(Question(1000, (view(),), (turning,)))
+    (line,) = [line for line in caplog.text.splitlines() if "think.contact" in line]
+    assert line.endswith(
+        "yaw_turned=-1234 pitch_turned=567 speed_changed=-89 turn_ticks=4"
+    )
 
 
 def test_debug_records_the_timer_evaded_and_ion_actions(caplog) -> None:

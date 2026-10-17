@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 
+#include "xvt/flight/ai_tracer.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
@@ -123,6 +124,55 @@ void xvt_flight_record_warheads(int tick)
 	}
 }
 
+/* The player flying the craft in slot: the player's index, or -1 when none
+ * flies it. Gives -2 when the slot is no craft of the active region. Sets
+ * *lord to whether the craft is at the Sith Lord rank. */
+static int xvt_flight_record_tracer_firer(int slot, int *lord)
+{
+	*lord = 0;
+	if (slot < g_active_region_object_slot_start ||
+	    slot >= g_active_region_craft_object_slot_end ||
+	    xvt_flight_record_craft(slot) == NULL ||
+	    g_object_table[slot].mobj->family != 0) {
+		return -2;
+	}
+	*lord = ai_tracer_craft_has_rank(slot, XVT_SITH_LORD_LEVEL);
+	return g_object_table[slot].player_owner_idx;
+}
+
+void xvt_flight_record_tracers(int tick)
+{
+	if (!xvt_log_enabled(AERON_LOG_DEBUG) || !ai_tracer_lord_alive()) {
+		return;
+	}
+	for (int slot = g_projectile_object_slot_start;
+	     slot < g_projectile_object_slot_end; ++slot) {
+		if (!ai_tracer_slot_is_tracer(slot)) {
+			continue;
+		}
+		const struct object_record *object = &g_object_table[slot];
+		const struct mobile_object *mobj = object->mobj;
+		int lord;
+		int player = xvt_flight_record_tracer_firer(
+			mobj->source_obj_idx, &lord);
+		int life = laser_get_projectile_lifetime_ticks(
+			object->object_type);
+		int age = life - (int)mobj->lifetime_timer;
+		if ((!lord && player < 0) || age < 0 ||
+		    age >= XVT_WARHEAD_TRACK_TICKS) {
+			continue;
+		}
+		XVT_LOG_DEBUG(
+			"world.tracer_track tick=%d object=%d source=%d "
+			"player=%d type=%u x=%d y=%d z=%d yaw=%u pitch=%u "
+			"speed=%u age=%d",
+			tick, slot, (int)mobj->source_obj_idx, player,
+			object->object_type, object->world_x, object->world_y,
+			object->world_z, object->yaw, object->pitch,
+			mobj->speed, age);
+	}
+}
+
 /* Whether a step from from_tick to to_tick crossed or landed on a multiple
  * of beat. */
 static int xvt_flight_record_crossed(int from_tick, int to_tick, int beat)
@@ -136,6 +186,7 @@ void xvt_flight_record_warhead_beat(int from_tick, int to_tick)
 	if (xvt_flight_record_crossed(from_tick, to_tick,
 				      XVT_WARHEAD_TRACK_TICKS)) {
 		xvt_flight_record_warheads(to_tick);
+		xvt_flight_record_tracers(to_tick);
 	}
 }
 

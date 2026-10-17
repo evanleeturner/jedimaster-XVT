@@ -128,7 +128,8 @@ def _log_contact(contact: Contact) -> None:
         "kind=%d flags=%d x=%d y=%d z=%d yaw=%d pitch=%d speed=%d target=%d "
         "attacker=%d front=%d rear=%d hull_damage=%d hull=%d activity=%d size=%d hit_by=%d "
         "min_x=%d min_y=%d min_z=%d max_x=%d max_y=%d max_z=%d roll=%d boarder=%d "
-        "weapon_inhibit_timer=%d pulses_coming=%d",
+        "weapon_inhibit_timer=%d pulses_coming=%d yaw_turned=%d pitch_turned=%d "
+        "speed_changed=%d turn_ticks=%d",
         contact.object_index,
         contact.object_signature,
         contact.object_type,
@@ -162,6 +163,10 @@ def _log_contact(contact: Contact) -> None:
         contact.boarder,
         contact.weapon_inhibit_timer,
         contact.pulses_coming,
+        contact.yaw_turned,
+        contact.pitch_turned,
+        contact.speed_changed,
+        contact.turn_ticks,
     )
 
 

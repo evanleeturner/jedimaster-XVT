@@ -137,7 +137,11 @@ static struct ai_wire_contact contact_with_distinct_bytes(void)
 					  0x8180,
 					  0x8382,
 					  0x8584,
-					  0x86};
+					  0x86,
+					  -300,
+					  0x1D1C,
+					  -2,
+					  0x8887};
 	return contact;
 }
 
@@ -150,13 +154,28 @@ static struct ai_wire_contact static_with_distinct_bytes(void)
 	object.flags = 0x08;
 	object.weapon_inhibit_timer = 0;
 	object.pulses_coming = 0;
+	object.yaw_turned = 0;
+	object.pitch_turned = 0;
+	object.speed_changed = 0;
+	object.turn_ticks = 0;
 	return object;
+}
+
+/* Two tracers whose every field differs. */
+static void tracers_with_distinct_bytes(struct ai_wire_tracer *tracers)
+{
+	tracers[0] = (struct ai_wire_tracer){
+		0x00A0, 0x0107, 0x8B,	-9,	0x6C6B6A69, 0x2D2C2B2A,
+		0x9190, 0x9392, 0x9594, 0x9796, 0x9998};
+	tracers[1] = (struct ai_wire_tracer){
+		0x00BE, 0x0203, 0x8C,	0x3D3C3B3A, -10,   0x4D4C4B4A,
+		0xA1A0, 0xA3A2, 0xA5A4, 0xA7A6,	    0xA9A8};
 }
 
 static void check_question_bytes(void)
 {
 	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 419] = {
-		0xB1, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x14, 0x00,
+		0xFB, 0x02, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x15, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x0E, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
@@ -211,7 +230,8 @@ static void check_question_bytes(void)
 		0x71, 0x72, 0x73, 0x74, 0xFA, 0xFF, 0xFF, 0xFF, 0x75, 0x76,
 		0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0xF9, 0xFF, 0xFF, 0xFF,
 		0x7C, 0x7D, 0x7E, 0x7F, 0x78, 0x79, 0x7A, 0x7B, 0x80, 0x81,
-		0x82, 0x83, 0x84, 0x85, 0x86};
+		0x82, 0x83, 0x84, 0x85, 0x86, 0xD4, 0xFE, 0x1C, 0x1D, 0xFE,
+		0xFF, 0x87, 0x88};
 	static const uint8_t expected_statics[AI_WIRE_CONTACT_HEAD_BYTES +
 					      AI_WIRE_CONTACT_BYTES] = {
 		0x01, 0x00, 0x00, 0x00, 0x71, 0x72, 0x43, 0x44, 0x45, 0x46,
@@ -223,16 +243,31 @@ static void check_question_bytes(void)
 		0x71, 0x72, 0x73, 0x74, 0xFA, 0xFF, 0xFF, 0xFF, 0x75, 0x76,
 		0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0xF9, 0xFF, 0xFF, 0xFF,
 		0x7C, 0x7D, 0x7E, 0x7F, 0x78, 0x79, 0x7A, 0x7B, 0x80, 0x81,
-		0x82, 0x83, 0x00, 0x00, 0x00};
+		0x82, 0x83, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00};
+	static const uint8_t expected_tracers[AI_WIRE_CONTACT_HEAD_BYTES +
+					      2 * AI_WIRE_TRACER_BYTES] = {
+		0x02, 0x00, 0x00, 0x00, 0xA0, 0x00, 0x07, 0x01, 0x8B, 0xF7,
+		0xFF, 0xFF, 0xFF, 0x69, 0x6A, 0x6B, 0x6C, 0x2A, 0x2B, 0x2C,
+		0x2D, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+		0x99, 0xBE, 0x00, 0x03, 0x02, 0x8C, 0x3A, 0x3B, 0x3C, 0x3D,
+		0xF6, 0xFF, 0xFF, 0xFF, 0x4A, 0x4B, 0x4C, 0x4D, 0xA0, 0xA1,
+		0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9};
 	struct ai_wire_craft_view view = view_with_distinct_bytes();
 	struct ai_wire_contact contact = contact_with_distinct_bytes();
 	struct ai_wire_contact object = static_with_distinct_bytes();
-	struct ai_wire_question question = {TEST_TICK, 1, &view,   1,
-					    &contact,  1, &object, 14};
+	struct ai_wire_tracer tracers[2];
+	tracers_with_distinct_bytes(tracers);
+	struct ai_wire_question question = {
+		TEST_TICK, 1, &view, 1, &contact, 1, &object, 14, 2, tracers};
 	uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
 		    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES +
-		    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES];
-	XVT_ASSERT_INT_EQ(ai_wire_question_bytes(1, 1, 1), sizeof out);
+		    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES +
+		    AI_WIRE_CONTACT_HEAD_BYTES + 2 * AI_WIRE_TRACER_BYTES];
+	XVT_ASSERT_INT_EQ(ai_wire_question_bytes_with_tracers(1, 1, 1, 2),
+			  sizeof out);
+	XVT_ASSERT_INT_EQ(ai_wire_question_bytes(1, 1, 1),
+			  sizeof out - sizeof expected_tracers + 4);
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
 			  sizeof out);
 	for (size_t byte = 0; byte < sizeof expected; ++byte) {
@@ -251,6 +286,12 @@ static void check_question_bytes(void)
 	for (size_t byte = 0; byte < sizeof expected_statics; ++byte) {
 		XVT_ASSERT_INT_EQ(statics[byte], expected_statics[byte]);
 	}
+	const uint8_t *tracer_bytes = statics + sizeof expected_statics;
+	for (size_t byte = 0; byte < sizeof expected_tracers; ++byte) {
+		XVT_ASSERT_INT_EQ(tracer_bytes[byte], expected_tracers[byte]);
+	}
+	XVT_ASSERT_INT_EQ(tracer_bytes + sizeof expected_tracers - out,
+			  sizeof out);
 }
 
 static void check_question_refusals(void)
@@ -266,9 +307,11 @@ static void check_question_refusals(void)
 	static uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
 			   AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES +
 			   AI_WIRE_CONTACT_HEAD_BYTES +
-			   65 * AI_WIRE_CONTACT_BYTES];
+			   65 * AI_WIRE_CONTACT_BYTES +
+			   AI_WIRE_CONTACT_HEAD_BYTES];
 	const size_t base = AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
 			    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES +
+			    AI_WIRE_CONTACT_HEAD_BYTES +
 			    AI_WIRE_CONTACT_HEAD_BYTES;
 	memset(out, 0xEE, sizeof out);
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, base - 1, &question), 0);
@@ -295,13 +338,13 @@ static void check_question_refusals(void)
 	question.contacts = many;
 	question.contact_count = 32;
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
-			  20 + 4 + 32 * AI_WIRE_CONTACT_BYTES + 4);
+			  20 + 4 + 32 * AI_WIRE_CONTACT_BYTES + 4 + 4);
 	question.contacts = &contact;
 	/* No craft due and no contacts: the header and the two counts. */
 	question.contact_count = 0;
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
-			  20 + 4 + 4);
-	XVT_ASSERT_INT_EQ(out[0], 20 + 4 + 4 - 4);
+			  20 + 4 + 4 + 4);
+	XVT_ASSERT_INT_EQ(out[0], 20 + 4 + 4 + 4 - 4);
 	/* Statics: 64 are the most, 65 or fewer than 0 are refused. */
 	question.static_count = -1;
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
@@ -311,11 +354,34 @@ static void check_question_refusals(void)
 			  0);
 	question.static_count = 64;
 	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
-			  20 + 4 + 4 + 64 * AI_WIRE_CONTACT_BYTES);
+			  20 + 4 + 4 + 64 * AI_WIRE_CONTACT_BYTES + 4);
 	const uint8_t *last = out + 20 + 4 + 4 + 63 * AI_WIRE_CONTACT_BYTES;
 	XVT_ASSERT_INT_EQ(last[0], 0x71);
 	XVT_ASSERT_INT_EQ(last[9], 0x08);
 	XVT_ASSERT_INT_EQ(out[20 + 4], 64);
+	/* Tracers: 16 are the most, 17 or fewer than 0 are refused. */
+	struct ai_wire_tracer many_tracers[17];
+	tracers_with_distinct_bytes(many_tracers);
+	for (int index = 2; index < 17; ++index) {
+		many_tracers[index] = many_tracers[index % 2];
+	}
+	question.static_count = 0;
+	question.tracers = many_tracers;
+	question.tracer_count = -1;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  0);
+	question.tracer_count = 17;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  0);
+	question.tracer_count = 16;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  20 + 4 + 4 + 4 + 16 * AI_WIRE_TRACER_BYTES);
+	const uint8_t *tail = out + 20 + 4 + 4;
+	XVT_ASSERT_INT_EQ(tail[0], 16);
+	XVT_ASSERT_INT_EQ(tail[1], 0);
+	XVT_ASSERT_INT_EQ(tail[2], 0);
+	XVT_ASSERT_INT_EQ(tail[3], 0);
+	XVT_ASSERT_INT_EQ(tail[4], 0xA0);
 }
 
 /* An answer built byte by byte; finish_answer sets its length field. */

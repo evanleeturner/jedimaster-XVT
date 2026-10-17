@@ -400,9 +400,13 @@ struct craft_data {
 	 * view sends it as the skill level. It sits before unused3f2 so the world checksums cover
 	 * it. */
 	uint8_t ai_rank;
+	/* The craft's last sight as a contact and the turn the contact last
+	 * showed; only ai_brain_view_contact writes it. It sits before
+	 * unused3f2 so the world checksums cover it. */
+	struct ai_seen ai_seen;
 	/* No game code reads or writes it; the world checksums subtract its
 	 * size from the record bytes they sum. */
-	uint8_t unused3f2[43];
+	uint8_t unused3f2[22];
 	/* Objects tied to the turrets. No code points one at an object: every
 	 * write clears, rebases or restores one, so they stay NULL. */
 	struct object_record *turret_object_links[16];

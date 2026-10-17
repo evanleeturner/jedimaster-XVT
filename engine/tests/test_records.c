@@ -251,6 +251,16 @@ static const struct field k_craft_fields[] = {
 	CRAFT_FIELD(effective_ai_object_signature),
 	CRAFT_FIELD(turret_target_states),
 	CRAFT_FIELD(ai_rank),
+	CRAFT_FIELD(ai_seen.tick),
+	CRAFT_FIELD(ai_seen.signature),
+	CRAFT_FIELD(ai_seen.yaw),
+	CRAFT_FIELD(ai_seen.pitch),
+	CRAFT_FIELD(ai_seen.speed),
+	CRAFT_FIELD(ai_seen.yaw_turned),
+	CRAFT_FIELD(ai_seen.pitch_turned),
+	CRAFT_FIELD(ai_seen.speed_changed),
+	CRAFT_FIELD(ai_seen.turn_ticks),
+	CRAFT_FIELD(ai_seen.seen),
 	CRAFT_FIELD(unused3f2),
 };
 

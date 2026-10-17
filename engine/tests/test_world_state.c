@@ -869,6 +869,126 @@ static void check_ai_rank_in_save_image_and_checksums(void)
 	XVT_ASSERT_TRUE(live_before != live_after);
 }
 
+/* Gives seen a value different in every field. */
+static void set_ai_seen(struct ai_seen *seen, int salt)
+{
+	*seen = (struct ai_seen){.tick = 100000 + salt,
+				 .signature = (uint16_t)(0x200 + salt),
+				 .yaw = (uint16_t)(0x1000 + salt),
+				 .pitch = (uint16_t)(0x2000 + salt),
+				 .speed = (uint16_t)(0x3000 + salt),
+				 .yaw_turned = (int16_t)(-300 - salt),
+				 .pitch_turned = (int16_t)(400 + salt),
+				 .speed_changed = (int16_t)(-50 - salt),
+				 .turn_ticks = (uint16_t)(7 + salt),
+				 .seen = 1};
+}
+
+/* A craft's last sight and the turn its contact last showed ride a world save
+ * and an image, and each of the ten values moves the region sums the network
+ * compares and the live checksum. */
+static void check_ai_seen_in_save_image_and_checksums(void)
+{
+	notebook_world();
+	for (int craft = 0; craft < 8; ++craft) {
+		set_ai_seen(&g_big_craft[craft].ai_seen, craft);
+	}
+	uint8_t *saved_buffer = g_world_state_buffer;
+	g_world_state_buffer = g_image;
+	xvt_snapshot_save();
+	for (int craft = 0; craft < 8; ++craft) {
+		memset(&g_big_craft[craft].ai_seen, 0xEE,
+		       sizeof g_big_craft[craft].ai_seen);
+	}
+	xvt_snapshot_restore();
+	for (int craft = 0; craft < 8; ++craft) {
+		struct ai_seen want;
+		set_ai_seen(&want, craft);
+		XVT_ASSERT_TRUE(
+			g_big_craft[craft].ai_seen.tick == want.tick &&
+			g_big_craft[craft].ai_seen.signature ==
+				want.signature &&
+			g_big_craft[craft].ai_seen.yaw == want.yaw &&
+			g_big_craft[craft].ai_seen.pitch == want.pitch &&
+			g_big_craft[craft].ai_seen.speed == want.speed &&
+			g_big_craft[craft].ai_seen.yaw_turned ==
+				want.yaw_turned &&
+			g_big_craft[craft].ai_seen.pitch_turned ==
+				want.pitch_turned &&
+			g_big_craft[craft].ai_seen.speed_changed ==
+				want.speed_changed &&
+			g_big_craft[craft].ai_seen.turn_ticks ==
+				want.turn_ticks &&
+			g_big_craft[craft].ai_seen.seen == want.seen);
+	}
+	g_world_state_buffer = saved_buffer;
+
+	size_t written = xvt_snapshot_encode(g_image, g_capacity);
+	XVT_ASSERT_TRUE(written > 0);
+	for (int craft = 0; craft < 8; ++craft) {
+		memset(&g_big_craft[craft].ai_seen, 0xEE,
+		       sizeof g_big_craft[craft].ai_seen);
+	}
+	XVT_ASSERT_INT_EQ(xvt_snapshot_decode(g_image, written), 1);
+	for (int craft = 0; craft < 8; ++craft) {
+		struct ai_seen want;
+		set_ai_seen(&want, craft);
+		XVT_ASSERT_INT_EQ(g_big_craft[craft].ai_seen.tick, want.tick);
+		XVT_ASSERT_INT_EQ(g_big_craft[craft].ai_seen.turn_ticks,
+				  want.turn_ticks);
+		XVT_ASSERT_INT_EQ(g_big_craft[craft].ai_seen.seen, want.seen);
+	}
+
+	/* Each value alone moves the region sums and the live checksum. */
+	unsigned before[16];
+	unsigned after[16];
+	unsigned lengths[16];
+	written = xvt_snapshot_encode(g_image, g_capacity);
+	xvt_snapshot_checksum_image(g_image, written, before, lengths);
+	int live_before = xvt_snapshot_live_checksum();
+	for (int field = 0; field < 10; ++field) {
+		struct ai_seen *seen = &g_big_craft[5].ai_seen;
+		struct ai_seen saved = *seen;
+		switch (field) {
+		case 0:
+			++seen->tick;
+			break;
+		case 1:
+			++seen->signature;
+			break;
+		case 2:
+			++seen->yaw;
+			break;
+		case 3:
+			++seen->pitch;
+			break;
+		case 4:
+			++seen->speed;
+			break;
+		case 5:
+			++seen->yaw_turned;
+			break;
+		case 6:
+			++seen->pitch_turned;
+			break;
+		case 7:
+			++seen->speed_changed;
+			break;
+		case 8:
+			++seen->turn_ticks;
+			break;
+		default:
+			seen->seen = 0;
+			break;
+		}
+		written = xvt_snapshot_encode(g_image, g_capacity);
+		xvt_snapshot_checksum_image(g_image, written, after, lengths);
+		XVT_ASSERT_TRUE(memcmp(before, after, sizeof before) != 0);
+		XVT_ASSERT_TRUE(live_before != xvt_snapshot_live_checksum());
+		*seen = saved;
+	}
+}
+
 int main(void)
 {
 	check_calculate_size();
@@ -893,6 +1013,7 @@ int main(void)
 	check_notebooks_survive_save_and_image();
 	check_notebook_bytes_move_checksums();
 	check_ai_rank_in_save_image_and_checksums();
+	check_ai_seen_in_save_image_and_checksums();
 	free(g_dup);
 	free(g_image);
 	return 0;

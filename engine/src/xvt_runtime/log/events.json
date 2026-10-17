@@ -7182,6 +7182,11 @@
       "level": "D",
       "fields": ["tick", "object", "signature", "type", "source", "target", "homing", "x", "y", "z", "yaw", "pitch", "roll", "speed"],
       "text": "At tick {tick}, the shot in slot {object} (identity stamp {signature}, object type {type}; warheads and countermeasures, never laser bolts), fired by object {source}, was in flight at {x} {y} {z} with heading {yaw}, pitch {pitch} and roll {roll} in 65,536ths of a turn, speed {speed}; it aimed at object {target} (-1 none) with homing tier {homing} (0 does not home, -1 no guidance record); written every 16 ticks, 64 ms"
+    },
+    "world.tracer_track": {
+      "level": "D",
+      "fields": ["tick", "object", "source", "player", "type", "x", "y", "z", "yaw", "pitch", "speed", "age"],
+      "text": "At tick {tick}, the cannon shot in slot {object} (a tracer: an even shot slot; object type {type}), fired by object {source} (flown by player {player}, -1 for a computer craft), was {age} ticks old at {x} {y} {z} with heading {yaw} and pitch {pitch} in 65,536ths of a turn, speed {speed}; it flies straight, so this one line gives its path; written once, at the first 16-tick beat after its birth, while a Sith Lord flies, for a Sith Lord's shots and a player's"
     }
   }
 }

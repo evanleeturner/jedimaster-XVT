@@ -36,6 +36,25 @@ struct ai_order_progress {
 	uint8_t goal_progress[4];
 };
 
+/* What the engine last saw of a craft when it showed the craft as a contact
+ * (ai_brain_view_contact), kept in the craft record so a rewind and a
+ * network restore bring it back: the craft's signature, yaw, pitch and speed
+ * and the tick of that sight, and beside them the four turn numbers the
+ * contact last showed (yaw, pitch and speed change, and the ticks they cover).
+ * seen is 0 until the first sight. */
+struct ai_seen {
+	int32_t tick;
+	uint16_t signature;
+	uint16_t yaw;
+	uint16_t pitch;
+	uint16_t speed;
+	int16_t yaw_turned;
+	int16_t pitch_turned;
+	int16_t speed_changed;
+	uint16_t turn_ticks;
+	uint8_t seen;
+};
+
 /* Stored as uint8_t in the binary. Values index the maneuver dispatch tables. */
 typedef uint8_t ai_maneuver_mode;
 

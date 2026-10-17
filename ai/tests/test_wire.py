@@ -33,6 +33,7 @@ from jedimaster_ai.world import NOTEBOOK_BYTES
 from jedimaster_ai.world import OrderMove
 from jedimaster_ai.world import Question
 from jedimaster_ai.world import Steer
+from jedimaster_ai.world import Tracer
 from jedimaster_ai.world import Turret
 from jedimaster_ai.world import Warhead
 
@@ -76,6 +77,7 @@ DISTINCT_CONTACT = Contact(
     0x68676665, 0x69, 0x6D6C6B6A, 0x6E, 0x7271706F, 0x7473,
     box_min=(-6, 0x78777675, 0x7C7B7A79), box_max=(-7, 0x7F7E7D7C, 0x7B7A7978),
     roll=0x8180, boarder=0x8382, weapon_inhibit_timer=0x8584, pulses_coming=0x86,
+    yaw_turned=-300, pitch_turned=0x1D1C, speed_changed=-2, turn_ticks=0x8887,
 )  # fmt: skip
 # static_with_distinct_bytes in the C test: the contact's bytes, a static's
 # object index and flag.
@@ -85,7 +87,22 @@ DISTINCT_STATIC = dataclasses.replace(
     flags=0x08,
     weapon_inhibit_timer=0,
     pulses_coming=0,
+    yaw_turned=0,
+    pitch_turned=0,
+    speed_changed=0,
+    turn_ticks=0,
 )
+# tracers_with_distinct_bytes in the C test.
+DISTINCT_TRACERS = (
+    Tracer(
+        0x00A0, 0x0107, 0x8B, -9, 0x6C6B6A69, 0x2D2C2B2A, 0x9190, 0x9392, 0x9594,
+        0x9796, 0x9998,
+    ),
+    Tracer(
+        0x00BE, 0x0203, 0x8C, 0x3D3C3B3A, -10, 0x4D4C4B4A, 0xA1A0, 0xA3A2, 0xA5A4,
+        0xA7A6, 0xA9A8,
+    ),
+)  # fmt: skip
 
 
 def _c_bytes(text: str, name: str) -> bytes:
@@ -102,11 +119,17 @@ def engine_question_bytes() -> bytes:
         + DISTINCT.notebook
         + _c_bytes(text, "expected_contacts")
         + _c_bytes(text, "expected_statics")
+        + _c_bytes(text, "expected_tracers")
     )
 
 
 DISTINCT_QUESTION = Question(
-    TEST_TICK, (DISTINCT,), (DISTINCT_CONTACT,), (DISTINCT_STATIC,), 14
+    TEST_TICK,
+    (DISTINCT,),
+    (DISTINCT_CONTACT,),
+    (DISTINCT_STATIC,),
+    14,
+    DISTINCT_TRACERS,
 )
 
 
@@ -261,7 +284,7 @@ def test_question_shorter_than_its_header_is_refused() -> None:
 def test_question_of_the_wrong_length_is_refused(cut: int) -> None:
     body = engine_question_bytes()[4:]
     body = body[:cut] if cut < 0 else body + b"\0"
-    with pytest.raises(wire.WireError, match="1 statics"):
+    with pytest.raises(wire.WireError, match="2 tracers"):
         wire.read_question(body)
 
 
@@ -472,18 +495,68 @@ def test_answer_naming_what_the_question_showed_is_read() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    ("cut", "match"),
-    [(-1, "1 statics"), (1, "1 statics")],
-    ids=["static short", "static long"],
-)
-def test_question_with_a_static_of_the_wrong_length_is_refused(
-    cut: int, match: str
-) -> None:
+def statics_end_of(body: bytes) -> int:
+    """Return where the engine question's one static ends in the body."""
+    views_end = wire.HEADER.size + wire.CRAFT_VIEW_BYTES
+    contacts_end = views_end + wire.CONTACT_HEAD.size + wire.CONTACT_FIELDS.size
+    return contacts_end + wire.CONTACT_HEAD.size + wire.CONTACT_FIELDS.size
+
+
+def test_question_cut_inside_its_statics_is_refused() -> None:
     body = engine_question_bytes()[4:]
-    body = body[:cut] if cut < 0 else body + b"\0"
-    with pytest.raises(wire.WireError, match=match):
+    with pytest.raises(wire.WireError, match="1 statics"):
+        wire.read_question(body[: statics_end_of(body) - 1])
+
+
+def test_question_cut_just_after_its_statics_is_refused() -> None:
+    body = engine_question_bytes()[4:]
+    with pytest.raises(wire.WireError, match="1 statics"):
+        wire.read_question(body[: statics_end_of(body)])
+
+
+def tracer_head_at(body: bytes) -> int:
+    """Return where the engine question's tracer count is in the body."""
+    return statics_end_of(body)
+
+
+def test_question_with_too_many_tracers_is_refused() -> None:
+    tracers = tuple(
+        dataclasses.replace(DISTINCT_TRACERS[0], object_index=160 + 2 * index)
+        for index in range(17)
+    )
+    body = wire.question_bytes(Question(TEST_TICK, (), (), (), 14, tracers))[4:]
+    with pytest.raises(wire.WireError, match="17 tracers"):
         wire.read_question(body)
+
+
+def test_question_with_the_most_tracers_is_read() -> None:
+    tracers = tuple(
+        dataclasses.replace(DISTINCT_TRACERS[0], object_index=160 + 2 * index)
+        for index in range(world.TRACERS_MAX)
+    )
+    question = Question(TEST_TICK, (), (), (), 14, tracers)
+    assert wire.read_question(wire.question_bytes(question)[4:]) == question
+
+
+def test_question_with_a_nonzero_tracer_zero_word_is_refused() -> None:
+    body = bytearray(engine_question_bytes()[4:])
+    body[tracer_head_at(bytes(body)) + 2] = 1
+    with pytest.raises(wire.WireError, match="zero=1"):
+        wire.read_question(bytes(body))
+
+
+def test_question_with_a_tracer_count_past_its_bytes_is_refused() -> None:
+    body = bytearray(engine_question_bytes()[4:])
+    body[tracer_head_at(bytes(body))] = 3
+    with pytest.raises(wire.WireError, match="3 tracers"):
+        wire.read_question(bytes(body))
+
+
+def test_a_question_with_no_tracers_reads_none() -> None:
+    question = dataclasses.replace(DISTINCT_QUESTION, tracers=())
+    read = wire.read_question(wire.question_bytes(question)[4:])
+    assert read.tracers == ()
+    assert read == question
 
 
 def test_question_with_too_many_contacts_is_refused() -> None:
@@ -574,7 +647,7 @@ def test_a_question_carries_the_model_box_and_the_roll(contact) -> None:
     )
     question = Question(1, (), (boxed,), (dataclasses.replace(boxed, roll=0x2000),))
     message = wire.question_bytes(question)
-    assert len(message) == 4 + wire.HEADER.size + 2 * (4 + 91)
+    assert len(message) == 4 + wire.HEADER.size + 2 * (4 + 99) + 4
     read = wire.read_question(message[wire.LENGTH.size :])
     assert read == question
     assert read.contacts[0].box_min == (-3000, -162468, -7)
@@ -593,7 +666,7 @@ def test_a_question_carries_the_timer_the_pulses_and_the_version(
     )
     question = Question(1, (), (hit,), (), 14)
     message = wire.question_bytes(question)
-    assert len(message) == 4 + wire.HEADER.size + 2 * 4 + 91
+    assert len(message) == 4 + wire.HEADER.size + 3 * 4 + 99
     read = wire.read_question(message[wire.LENGTH.size :])
     assert read == question
     assert read.contacts[0].weapon_inhibit_timer == timer
@@ -915,3 +988,17 @@ def test_drop_off_is_never_sent_with_a_depart_a_dock_or_a_board() -> None:
 def test_drop_off_is_one_or_zero(value: int) -> None:
     with pytest.raises(ValueError, match="drop_off"):
         Actions(drop_off=value)
+
+
+def test_a_question_carries_the_turn_of_a_contact_and_none_for_a_static(
+    contact,
+) -> None:
+    turning = contact(
+        yaw_turned=-1234, pitch_turned=567, speed_changed=-89, turn_ticks=4
+    )
+    question = Question(1, (), (turning,), (contact(),))
+    read = wire.read_question(wire.question_bytes(question)[wire.LENGTH.size :])
+    assert read.contacts[0] == turning
+    assert (read.contacts[0].yaw_turned, read.contacts[0].pitch_turned) == (-1234, 567)
+    assert (read.contacts[0].speed_changed, read.contacts[0].turn_ticks) == (-89, 4)
+    assert read.statics[0].turn_ticks == 0

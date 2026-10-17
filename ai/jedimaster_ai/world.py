@@ -32,6 +32,8 @@ WEAPON_SLOTS = 16
 CONTACTS_MAX = 32
 # The static object slots; the static target mask has a bit for each.
 STATICS_MAX = 64
+# The tracer shots a question holds at most: a Lord's even other-shot slots.
+TRACERS_MAX = 16
 # The fastest speed an arrival may set: the 1997 AI's speed out of hyperspace.
 ARRIVAL_SPEED_MAX = 3600
 # A flight group's order slots, 0 to 3, and the axes of a point.
@@ -520,6 +522,16 @@ class Contact:
     ``pulses_coming`` counts the homing magnetic and ion pulses among
     ``warheads_coming``, at most 255. Both come with wire version 19
     and read 0 before it.
+
+    ``yaw_turned``, ``pitch_turned`` and ``speed_changed`` are how far the
+    craft's yaw, pitch and speed moved over ``turn_ticks`` ticks, signed (a
+    yaw from 65,500 to 100 turned +136). The engine shows its contacts once
+    per engine step, so this is the turn over the last engine step, a few
+    ticks, not since the craft's last question, and every question of a step
+    shows the same numbers. At a step with no ticks since the one before, the
+    four numbers are the last step's, never 0. All four read 0 at first
+    sight, for a craft that took a used slot, and for a static. They come
+    with wire version 21 and read 0 before it.
     """
 
     object_index: int
@@ -553,6 +565,10 @@ class Contact:
     boarder: int = NO_OBJECT
     weapon_inhibit_timer: int = 0
     pulses_coming: int = 0
+    yaw_turned: int = 0
+    pitch_turned: int = 0
+    speed_changed: int = 0
+    turn_ticks: int = 0
 
     @property
     def player_flown(self) -> bool:
@@ -571,6 +587,31 @@ class Contact:
 
 
 @dataclasses.dataclass(frozen=True)
+class Tracer:
+    """A Sith Lord's cannon shot the engine marks as a tracer: one in an even
+    projectile slot, so every machine marks the same shots. They come with
+    wire version 21.
+
+    ``object_index`` is its projectile slot and ``source`` the craft that
+    fired it; ``object_type`` its shot type. It flies straight along its
+    ``yaw`` and ``pitch`` at ``speed``, the shot's own speed and its
+    firer's; ``age`` is the ticks it has flown and ``life_left`` the ticks
+    before it ends."""
+
+    object_index: int
+    source: int
+    object_type: int
+    x: int
+    y: int
+    z: int
+    yaw: int
+    pitch: int
+    speed: int
+    age: int
+    life_left: int
+
+
+@dataclasses.dataclass(frozen=True)
 class Question:
     """The craft due to think at one reference step, in the engine's order,
     every contact the step shows, and the static objects that count as
@@ -579,13 +620,18 @@ class Question:
     ``mission_version`` is the version of the mission file that is flown:
     12 for the retail X-wing vs. TIE Fighter missions, 14 for most of
     Balance of Power's. It comes with wire version 19 and reads 0
-    before it."""
+    before it.
+
+    ``tracers`` are the tracer shots of every Sith Lord in the region, in
+    slot order, none when no Lord flies; empty before the engine sends
+    them."""
 
     tick: int
     craft: tuple[CraftView, ...]
     contacts: tuple[Contact, ...] = ()
     statics: tuple[Contact, ...] = ()
     mission_version: int = 0
+    tracers: tuple[Tracer, ...] = ()
 
 
 def engine_flies(view: CraftView) -> bool:

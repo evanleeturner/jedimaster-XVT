@@ -25,10 +25,21 @@ void xvt_flight_record_point(int tick);
  * Only the shot slots are read. Writes nothing with DEBUG off. */
 void xvt_flight_record_warheads(int tick);
 
+/* With DEBUG lines on and a craft at the Sith Lord rank flying (not breaking
+ * up or exploding), writes one world.tracer_track line for each tracer shot
+ * (ai_tracer_slot_is_tracer) born in the last XVT_WARHEAD_TRACK_TICKS ticks
+ * whose firer is a Sith Lord or a player's craft, in slot order: its slot,
+ * firer, the firer's player (-1 for none), type, position, facing, speed and
+ * age. A bolt flies straight, so the line that follows its birth gives its
+ * whole path; at each beat it is written once. Writes nothing with DEBUG off.
+ * xvt_flight_record_warhead_beat calls it after the warhead lines. */
+void xvt_flight_record_tracers(int tick);
+
 /* Writes the warhead lines (as xvt_flight_record_warheads) with to_tick as
  * the tick when a step from from_tick to to_tick (0 <= from_tick) crossed or
- * landed on a multiple of XVT_WARHEAD_TRACK_TICKS. A step that crosses two
- * beats writes once. Writes nothing otherwise or with DEBUG off. */
+ * landed on a multiple of XVT_WARHEAD_TRACK_TICKS, then the tracer lines (as
+ * xvt_flight_record_tracers). A step that crosses two beats writes once.
+ * Writes nothing otherwise or with DEBUG off. */
 void xvt_flight_record_warhead_beat(int from_tick, int to_tick);
 
 /* The record for a step of a flight that does not confirm world messages
