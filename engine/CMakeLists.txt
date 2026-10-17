@@ -65,6 +65,7 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/flight/ai_brain.c
     src/xvt/flight/ai_commands.c
     src/xvt/flight/ai_countermeasures.c
+    src/xvt/flight/ai_mines.c
     src/xvt/flight/ai_dropoff.c
     src/xvt/flight/ai_formation.c
     src/xvt/flight/ai_warheads.c

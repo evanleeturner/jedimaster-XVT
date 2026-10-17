@@ -39,10 +39,6 @@ int16_t ai_brain_order_targets_match_object(uint16_t object_index);
 int ai_brain_order_gives_plan_on_target(int object_index,
 					int leader_plan_name_index,
 					int target_object_index);
-int16_t ai_brain_find_mine_target(int16_t target1_type, uint16_t target1,
-				  int16_t target1_or_target2,
-				  int16_t target2_type, uint16_t target2,
-				  int16_t require_clear_sweep);
 uint16_t ai_brain_effective_skill(struct craft_data *craft);
 uint16_t ai_brain_find_mothership(int16_t mothership_flight_group_idx);
 /* The object the computer-flown craft is attacking: its AI target, unless it

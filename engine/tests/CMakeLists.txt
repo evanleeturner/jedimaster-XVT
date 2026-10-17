@@ -401,6 +401,10 @@ add_test(NAME ai_commands COMMAND test_ai_commands)
 # launches: src/xvt/flight/ai_countermeasures.c.
 xvt_add_engine_test(test_ai_countermeasures test_ai_countermeasures.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_countermeasures.c")
 add_test(NAME ai_countermeasures COMMAND test_ai_countermeasures)
+# A mine's target search: the nearest targetable object that matches its flight group's order:
+# src/xvt/flight/ai_mines.c.
+xvt_add_engine_test(test_ai_mines test_ai_mines.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_mines.c")
+add_test(NAME ai_mines COMMAND test_ai_mines)
 # A computer craft's formation place in its view, and the formation books its activity keeps:
 # src/xvt/flight/ai_formation.c.
 xvt_add_engine_test(test_ai_formation test_ai_formation.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_formation.c")

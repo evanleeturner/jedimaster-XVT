@@ -103,6 +103,16 @@
       "fields": ["object", "kind", "launched", "seconds", "left", "predicted"],
       "text": "Craft {object} was told to launch its countermeasure of type {kind} (1 chaff, 2 flare); launched is {launched}, 0 when the craft was not active, its countermeasure system did not work, it had none left, chaff was still running or a flare was cooling down; it now has {seconds} simulated seconds of chaff and {left} countermeasures left ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.mine_target_found": {
+      "level": "D",
+      "fields": ["target", "range", "mine", "undisabled", "x", "y", "z", "predicted"],
+      "text": "Mine {mine} at {x}, {y}, {z} found object {target} as its nearest target, {range} away by the rough distance; undisabled is {undisabled}, 1 when the mine is a Mine Type B, which takes a craft only while it has working subsystems ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.mine_decoy_refused": {
+      "level": "D",
+      "fields": ["target", "mine", "range", "predicted"],
+      "text": "Mine {mine} did not take object {target} as a target: its decoy beam is on and it is {range} away by the flight geometry's rough distance, past the decoy range of 65,536 ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.craft_self_destruct": {
       "level": "D",
       "fields": ["object", "units", "started", "timer", "predicted"],

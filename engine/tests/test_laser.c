@@ -1244,6 +1244,49 @@ static void check_mine_countdown(void)
 	XVT_ASSERT_INT_EQ(mine->type_specific_byte[1], 10);
 }
 
+/* A mine fires at a craft that matches its flight group's first order, 0x8000
+ * away, when its countdown runs out: one shot in the other-shots range, an
+ * ion turbo laser from a Mine Type B, else a rebel turbo laser (flight group
+ * 0 is on IFF 0). A craft of another flight group draws no shot. */
+static void check_mine_fires_at_matching_craft(void)
+{
+	fresh_world();
+	struct object_record *mine = &g_test_objects[MINE];
+	mine->object_type = CRAFT_SPECIES_MINE_TYPE_A;
+	mine->genus_id = CRAFT_GENUS_MINE;
+	mine->type_specific_word = 1023;
+	g_mission_flight_groups[0].fg.orders[0].target1_type = 1;
+	g_mission_flight_groups[0].fg.orders[0].target1 = 1;
+	g_mission_flight_groups[0].fg.orders[0].target1_or_target2 = 1;
+	struct object_record *target = &g_test_objects[TARGET_CRAFT];
+	target->object_type = TEST_XWING;
+	target->genus_id = CRAFT_GENUS_STARFIGHTER;
+	target->flight_group_idx = 0;
+	target->world_x = 0x8000;
+	target->mobj->prev_world_x = 0x8000; /* Not moving. */
+	g_test_craft[TARGET_CRAFT].object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	g_test_craft[TARGET_CRAFT].working_subsystems = 1;
+	g_elapsed_ticks = 6;
+	mine->type_specific_byte[1] = 3;
+	laser_update_mine_weapon_fire(MINE);
+	XVT_ASSERT_INT_EQ(shots_in_other_range(), 0);
+
+	target->flight_group_idx = 1;
+	mine->type_specific_byte[1] = 3;
+	laser_update_mine_weapon_fire(MINE);
+	XVT_ASSERT_INT_EQ(shots_in_other_range(), 1);
+	XVT_ASSERT_INT_EQ(g_test_objects[OTHER_SHOT_START].object_type,
+			  PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER);
+
+	g_test_objects[OTHER_SHOT_START].object_type = 0;
+	mine->object_type = CRAFT_SPECIES_MINE_TYPE_B;
+	mine->type_specific_byte[1] = 3;
+	laser_update_mine_weapon_fire(MINE);
+	XVT_ASSERT_INT_EQ(shots_in_other_range(), 1);
+	XVT_ASSERT_INT_EQ(g_test_objects[OTHER_SHOT_START].object_type,
+			  PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER);
+}
+
 /* Known failure overdrive_message_to_local_player, issue #181: messages and
  * sounds go to the player a call names, and the overdrive message about a
  * craft belongs to the player flying it, as the beam and chaff messages
@@ -1345,5 +1388,6 @@ int main(int argc, char **argv)
 	check_computer_craft_counts_lock();
 	check_step_chaff_countdown();
 	check_mine_countdown();
+	check_mine_fires_at_matching_craft();
 	return 0;
 }

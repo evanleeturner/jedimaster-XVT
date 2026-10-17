@@ -1098,23 +1098,6 @@ int ai_brain_order_gives_plan_on_target(int object_index,
 	return 0;
 }
 
-/* A mine's target search: the nearest targetable object that matches the
- * targets. Answers 0xFFFF, no target, until the pilot program answers, so
- * mines hold fire. */
-int16_t ai_brain_find_mine_target(int16_t target1_type, uint16_t target1,
-				  int16_t target1_or_target2,
-				  int16_t target2_type, uint16_t target2,
-				  int16_t require_clear_sweep)
-{
-	(void)target1_type;
-	(void)target1;
-	(void)target1_or_target2;
-	(void)target2_type;
-	(void)target2;
-	(void)require_clear_sweep;
-	return -1;
-}
-
 /* Returns the AI skill the craft flies with: the skill in the character data of
  * the object effective_ai_object_link points to, while that object still has the
  * saved signature and has character data, else the craft's own ai_skill. Clears

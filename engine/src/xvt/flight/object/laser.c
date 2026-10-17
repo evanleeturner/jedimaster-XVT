@@ -8,6 +8,7 @@
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai_brain.h"
+#include "xvt/flight/ai_mines.h"
 #include "xvt/flight/ai_warheads.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
@@ -2862,22 +2863,21 @@ void laser_warnplayer(uint16_t projectile_guidance_idx)
 
 /* Lets the mine in static slot mine_obj_idx fire while it works
  * (type_specific_word not 0). Each call takes half of g_elapsed_ticks off its
- * countdown in type_specific_byte[1]; when that runs out the countdown is
- * reset to 236 (two simulated seconds) and the mine looks for the nearest
- * target matching its flight group's first order, targets 1 and 2 and then
- * targets 3 and 4, through ai_brain_find_mine_target (a Mine Type B asks for
- * a target that is not disabled); that door answers no target until the
- * pilot program answers, so mines hold fire now. It fires only at a
- * target closer than 0x10000 world units, aiming ahead of a moving one by
- * its last step's motion times the expected flight steps (plus a random 0
- * to 3, less 1), from a point 150 world units out (170 for mines after
- * Type B) on the side facing the target; a Mine Type C or later does not
- * fire at a target more than an eighth of a turn below the horizontal. Aim
- * error is likelier at longer range and against targets faster than 187
- * (the speed term is 16 bits and wraps from 700 up). The shot is an ion turbo
- * laser from a Mine Type B, else an imperial (IFF 1 or 4) or rebel turbo
- * laser, at half its type's speed and twice its life, with no homing.
- * Writes g_worldLoc* and the trig2 outputs. */
+ * countdown in type_specific_byte[1]; when that runs out the countdown is reset
+ * to 236 (two simulated seconds) and the mine looks for the nearest target
+ * matching its flight group's first order, targets 1 and 2 and then targets 3
+ * and 4, through ai_mines_find_target (a Mine Type B takes a craft only while
+ * it has working subsystems; the nearest match within 0x10000 wins). It fires
+ * only at a target closer than 0x10000 world units, aiming ahead of a moving
+ * one by its last step's motion times the expected flight steps (plus a random
+ * 0 to 3, less 1), from a point 150 world units out (170 for mines after Type
+ * B) on the side facing the target; a Mine Type C or later does not fire at a
+ * target more than an eighth of a turn below the horizontal. Aim error is
+ * likelier at longer range and against targets faster than 187 (the speed term
+ * is 16 bits and wraps from 700 up). The shot is an ion turbo laser from a Mine
+ * Type B, else an imperial (IFF 1 or 4) or rebel turbo laser, at half its
+ * type's speed and twice its life, with no homing. Writes g_worldLoc* and the
+ * trig2 outputs. */
 // FUNCTION: XVT 0x446C60
 void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 {
@@ -2924,7 +2924,8 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 	int mine_z = g_object_table[mine_obj_idx].world_z;
 	uint16_t flight_group_idx =
 		g_object_table[mine_obj_idx].flight_group_idx;
-	uint16_t target_ref = ai_brain_find_mine_target(
+	uint16_t target_ref = ai_mines_find_target(
+		mine_obj_idx,
 		g_mission_flight_groups[flight_group_idx]
 			.fg.orders[0]
 			.target1_type,
@@ -2935,10 +2936,10 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 		g_mission_flight_groups[flight_group_idx]
 			.fg.orders[0]
 			.target2_type,
-		g_mission_flight_groups[flight_group_idx].fg.orders[0].target2,
-		0);
+		g_mission_flight_groups[flight_group_idx].fg.orders[0].target2);
 	if (target_ref == UINT16_MAX) {
-		target_ref = ai_brain_find_mine_target(
+		target_ref = ai_mines_find_target(
+			mine_obj_idx,
 			g_mission_flight_groups[flight_group_idx]
 				.fg.orders[0]
 				.secondary_target_types[0],
@@ -2953,8 +2954,7 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 				.secondary_target_types[1],
 			g_mission_flight_groups[flight_group_idx]
 				.fg.orders[0]
-				.secondary_targets[1],
-			0);
+				.secondary_targets[1]);
 	}
 	if (target_ref == UINT16_MAX) {
 		return;
