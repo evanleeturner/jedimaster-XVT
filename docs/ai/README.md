@@ -447,7 +447,7 @@ every capital ship, at every level.
 ## Open AI issues
 
 <!-- ai-issues:start -->
-On 2026-10-17 (UTC) the label `ai` was on 18 open issues and 39 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
+On 2026-10-17 (UTC) the label `ai` was on 17 open issues and 40 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
 
 - [#2](https://github.com/evanleeturner/jedimaster-XVT/issues/2): Research: enemy pilots that fight as a pack
 - [#3](https://github.com/evanleeturner/jedimaster-XVT/issues/3): Research: "Jev", a language-model commander for the enemy side
@@ -464,7 +464,6 @@ On 2026-10-17 (UTC) the label `ai` was on 18 open issues and 39 closed ones. Thi
 - [#297](https://github.com/evanleeturner/jedimaster-XVT/issues/297): Below about 31 frames a second, unlocked timing slows six mission timers: arrivals, goal checks and messages come late
 - [#298](https://github.com/evanleeturner/jedimaster-XVT/issues/298): Host aborted once with heap corruption in a network game (free(): corrupted unsorted chunks); a replay did not crash
 - [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301): Shift+B resupply is always refused
-- [#306](https://github.com/evanleeturner/jedimaster-XVT/issues/306): Three more engine rules read the removed 1997 pilot's maneuver, so they never act for computer-flown craft
 - [#313](https://github.com/evanleeturner/jedimaster-XVT/issues/313): A computer craft does not swerve away from a homing warhead coming at it
 - [#314](https://github.com/evanleeturner/jedimaster-XVT/issues/314): A computer craft with every system dead keeps trying to jump to hyperspace
 <!-- ai-issues:end -->
@@ -479,9 +478,9 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 104 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 122 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 10,164 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Commits that changed the pilot program | 105 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 123 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 10,165 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
 | Lines of Python in its tests | 16,688 | the `.py` files in `ai/tests/`, counted with `wc -l` |
 | Test functions in those tests | 1,016 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 24 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
