@@ -284,6 +284,29 @@ def test_a_craft_no_longer_waiting_to_be_boarded_stops_showing_it(view, line) ->
     assert said.activity == Activity.NONE
 
 
+@pytest.mark.parametrize(
+    "line", [Activity.FLYING_TO_RENDEZVOUS, Activity.WAITING_FOR_BOARDING_CRAFT]
+)
+def test_a_craft_no_longer_on_rendezvous_stops_showing_its_line(view, line) -> None:
+    craft = view(order_code=OrderCode.HOLD_STEADY, activity=line)
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert said.activity == Activity.NONE
+
+
+def test_a_craft_at_its_rendezvous_point_stops_and_keeps_its_line(view) -> None:
+    craft = view(
+        order_code=OrderCode.RENDEZVOUS,
+        order_codes=(OrderCode.RENDEZVOUS, 0, 0, 0),
+        order_variable1=2,
+        throttle=40000,
+        books=Books.RENDEZVOUS_POINT,
+        rendezvous_point=(-5, 6, 7),
+        activity=Activity.WAITING_FOR_BOARDING_CRAFT,
+    )
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert (said.throttle, said.activity) == (0, Activity.WAITING_FOR_BOARDING_CRAFT)
+
+
 def test_a_craft_waiting_to_be_boarded_stops_and_keeps_its_line(view) -> None:
     craft = view(
         order_code=OrderCode.AWAIT_BOARDING,

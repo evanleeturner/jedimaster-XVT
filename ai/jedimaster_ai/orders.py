@@ -8,7 +8,10 @@ Purpose:
 
 Invariants:
     - Every order code maps to drift until its behavior is written. Written:
-      Attack (``behaviors.attack``), Hold Steady and its six copies
+      Attack and Attack Escorts (``behaviors.attack``: the engine names
+      Attack Escorts' targets, the craft that escort a group the order
+      names), Rendezvous (``behaviors.rendezvous``), Hold Steady and its six
+      copies
       (``behaviors.hold``), Go Home and SS Go Home (``behaviors.home``),
       Circle, Circle and Evade, SS Patrol Loop and SS Patrol and Attack
       (``behaviors.patrol``), Kamikaze (``behaviors.kamikaze``), SS Launch
@@ -45,6 +48,7 @@ from .behaviors import home
 from .behaviors import kamikaze
 from .behaviors import patrol
 from .behaviors import protect
+from .behaviors import rendezvous
 from .behaviors import selfdestruct
 from .behaviors import starship
 from .behaviors import waiting
@@ -117,6 +121,8 @@ BEHAVIORS: t.Mapping[int, Behavior] = types.MappingProxyType(
     | {
         OrderCode.GO_HOME: home.think,
         OrderCode.ATTACK: attack.think,
+        OrderCode.ATTACK_ESCORTS: attack.think,
+        OrderCode.RENDEZVOUS: rendezvous.think,
         OrderCode.SS_GO_HOME: home.think,
         OrderCode.CIRCLE: patrol.think,
         OrderCode.CIRCLE_AND_EVADE: patrol.think,

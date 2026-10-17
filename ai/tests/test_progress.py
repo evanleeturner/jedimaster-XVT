@@ -19,6 +19,7 @@ from jedimaster_ai.behaviors import board
 from jedimaster_ai.behaviors import boarded
 from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.behaviors import dropoff
+from jedimaster_ai.behaviors import rendezvous
 from jedimaster_ai.behaviors import waiting
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.world import Actions
@@ -98,6 +99,7 @@ def test_a_follower_never_moves_its_slot(view) -> None:
 @pytest.mark.parametrize(
     "code",
     [
+        OrderCode.ATTACK_ESCORTS,
         OrderCode.PROTECT,
         OrderCode.ESCORT,
         OrderCode.DISABLE,
@@ -171,6 +173,30 @@ AWAITING = {
 }
 
 
+def test_rendezvous_ends_when_the_rendezvous_behavior_says_so() -> None:
+    assert progress.GOALS[OrderCode.RENDEZVOUS] is rendezvous.done
+
+
+# A Rendezvous leader to be boarded twice, on slot 0 of a group with orders in
+# slots 0 and 1, its point where it flies (VIEW's position) unless moved.
+RENDEZVOUS = {
+    "order_code": OrderCode.RENDEZVOUS,
+    "order_codes": (OrderCode.RENDEZVOUS, OrderCode.ATTACK, 0, 0),
+    "order_variable1": 2,
+    "books": Books.RENDEZVOUS_POINT,
+    "rendezvous_point": (-5, 6, 7),
+}
+
+
+def test_rendezvous_moves_on_once_boarded_variable1_times_at_its_point(view) -> None:
+    craft = view(**RENDEZVOUS, order_progress=(2, 0, 0, 0))
+    assert progress.decide(craft) == progress.Progress(move=OrderMove(1, 2))
+    once = view(**RENDEZVOUS, order_progress=(1, 0, 0, 0))
+    assert progress.decide(once) == progress.STAY
+    away = RENDEZVOUS | {"rendezvous_point": (-5, 6 + rendezvous.NEAR, 7)}
+    assert progress.decide(view(**away, order_progress=(2, 0, 0, 0))) == progress.STAY
+
+
 def test_await_boarding_moves_on_once_boarded_variable1_times(view) -> None:
     craft = view(**AWAITING, order_progress=(2, 0, 0, 0))
     assert progress.decide(craft) == progress.Progress(move=OrderMove(1, 2))
@@ -210,7 +236,7 @@ def test_a_slot_already_marked_3_moves_on(view) -> None:
 
 
 def test_an_order_with_no_goal_test_is_never_done(view) -> None:
-    craft = view(**DONE_ATTACK | {"order_code": OrderCode.RENDEZVOUS})
+    craft = view(**DONE_ATTACK | {"order_code": OrderCode.HOLD_STEADY})
     assert progress.decide(craft) == progress.STAY
 
 

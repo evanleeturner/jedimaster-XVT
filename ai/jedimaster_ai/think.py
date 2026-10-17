@@ -45,6 +45,7 @@ from .behaviors import countermeasures
 from .behaviors import dropoff
 from .behaviors import home
 from .behaviors import kamikaze
+from .behaviors import rendezvous
 from .behaviors import selfdestruct
 from .behaviors import turrets
 from .behaviors import wait
@@ -108,6 +109,7 @@ def think(
                 decision = boarded.ended(view, decision)
                 decision = selfdestruct.ended(view, decision)
                 decision = kamikaze.ended(view, decision)
+                decision = rendezvous.ended(view, decision)
             if arrival.is_leaving_hangar(view):
                 decision = arrival.leave_hangar(view, decision)
             decision = avoidance.steer_clear(view, question, decision)

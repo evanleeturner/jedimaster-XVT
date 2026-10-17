@@ -176,7 +176,7 @@ def test_a_hangar_exit_flies_its_order_from_its_first_think(arriving, contact) -
 
 
 def test_a_hangar_exit_with_nothing_to_do_keeps_its_own_throttle(arriving) -> None:
-    craft = arriving(Activity.LEAVING_HANGAR, order_code=OrderCode.RENDEZVOUS)
+    craft = arriving(Activity.LEAVING_HANGAR, order_code=OrderCode.NULL)
     answer = think(Question(START_TICK, (craft,), ())).craft[0]
     assert answer.actions == Actions(activity=Activity.NONE)
 

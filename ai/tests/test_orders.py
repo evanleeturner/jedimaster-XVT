@@ -17,6 +17,7 @@ from jedimaster_ai.behaviors import home
 from jedimaster_ai.behaviors import kamikaze
 from jedimaster_ai.behaviors import patrol
 from jedimaster_ai.behaviors import protect
+from jedimaster_ai.behaviors import rendezvous
 from jedimaster_ai.behaviors import selfdestruct
 from jedimaster_ai.behaviors import starship
 from jedimaster_ai.behaviors import waiting
@@ -29,6 +30,8 @@ def test_each_order_has_its_behavior_and_every_other_order_drifts() -> None:
     expected[orders.OrderCode.GO_HOME] = home.think
     expected[orders.OrderCode.SS_GO_HOME] = home.think
     expected[orders.OrderCode.ATTACK] = attack.think
+    expected[orders.OrderCode.ATTACK_ESCORTS] = attack.think
+    expected[orders.OrderCode.RENDEZVOUS] = rendezvous.think
     for code in (2, 3, 21, 26):
         expected[orders.OrderCode(code)] = patrol.think
     expected[orders.OrderCode.PROTECT] = protect.think

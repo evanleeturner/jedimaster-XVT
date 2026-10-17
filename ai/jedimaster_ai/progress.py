@@ -42,6 +42,7 @@ from .behaviors import boarded
 from .behaviors import Decision
 from .behaviors import dropoff
 from .behaviors import patrol
+from .behaviors import rendezvous
 from .behaviors import waiting
 from .orders import OrderCode
 from .world import Books
@@ -76,18 +77,21 @@ def _all_launched(view: CraftView) -> bool:
 
 
 # Each order's goal test, True once the goal is met, by the 1997 leader
-# plans. Attack, Protect, Escort, Disable, SS Protect, SS Protect 2, SS Patrol
-# and Attack and SS Patrol and Disable: no target left, now or in a group
-# still to arrive, by the engine's 1997 count. Circle, Circle and Evade and SS
+# plans. Attack, Attack Escorts, Protect, Escort, Disable, SS Protect, SS
+# Protect 2, SS Patrol and Attack and SS Patrol and Disable: no target left,
+# now or in a group still to arrive, by the engine's 1997 count. Circle, Circle and Evade and SS
 # Patrol Loop: their rounds reached the order's variable1. Wait and Wait 2:
 # the order's time is up. SS Await Return: every group that goes home into
 # the craft's group is back. SS Launch: every group that comes out of the
 # craft's group has arrived with no waves left. Drop Off: its group is
 # delivered, or there is nothing to deliver (``dropoff.done``). Disabled and
 # Await Boarding: the boardings counted for the order reached its variable1.
+# Rendezvous: it waits at its point and its boardings reached variable1
+# (``rendezvous.done``).
 GOALS: t.Mapping[int, t.Callable[[CraftView], bool]] = types.MappingProxyType(
     {
         OrderCode.ATTACK: _no_target_left,
+        OrderCode.ATTACK_ESCORTS: _no_target_left,
         OrderCode.PROTECT: _no_target_left,
         OrderCode.ESCORT: _no_target_left,
         OrderCode.DISABLE: _no_target_left,
@@ -105,6 +109,7 @@ GOALS: t.Mapping[int, t.Callable[[CraftView], bool]] = types.MappingProxyType(
         OrderCode.DROP_OFF: dropoff.done,
         OrderCode.DISABLED: boarded.done,
         OrderCode.AWAIT_BOARDING: boarded.done,
+        OrderCode.RENDEZVOUS: rendezvous.done,
     }
 )
 
