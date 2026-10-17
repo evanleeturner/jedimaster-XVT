@@ -78,6 +78,11 @@
       "fields": ["object", "target", "reason", "lock", "lock_state", "coming", "coming_damage", "shots"],
       "text": "Craft {object} holds its warheads at craft {target} ({reason}: the first test that failed of kind, kept, launcher, lock, fresh, limit, caps and aim), its lock at {lock} ticks in state {lock_state}, {coming} homing warheads with {coming_damage} damage already flying at the target; {shots} fired in this attack run"
     },
+    "attack.warhead_unmade": {
+      "level": "D",
+      "fields": ["object", "target", "launcher"],
+      "text": "Craft {object} asked launcher {launcher} for a warhead at craft {target} and the engine made none (its launcher wait is not running, so the craft counts no shot and may ask again)"
+    },
     "avoidance.level": {
       "level": "D",
       "fields": ["object", "around", "distance", "clearance", "pitch"],
@@ -242,6 +247,11 @@
       "level": "I",
       "fields": ["object", "target", "launcher", "type", "lock", "coming", "shots"],
       "text": "Craft {object} on a Kamikaze order fired a guided warhead of type {type} from launcher {launcher} at craft {target}, its lock at {lock} ticks, {coming} homing warheads already flying at the target; {shots} fired in this dive"
+    },
+    "kamikaze.warhead_unmade": {
+      "level": "D",
+      "fields": ["object", "target", "launcher"],
+      "text": "Craft {object} on a Kamikaze order asked launcher {launcher} for a warhead at craft {target} and the engine made none (its launcher wait is not running, so the craft counts no shot and may ask again)"
     },
     "notebook.unreadable": {
       "level": "W",

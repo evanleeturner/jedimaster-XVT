@@ -366,6 +366,14 @@ def launcher_ready(view: CraftView, launcher: int) -> bool:
     return view.launcher_cooldown[launcher] == 0 and view.warheads_left[launcher] > 0
 
 
+def made(view: CraftView, launcher: int) -> bool:
+    """Return whether the engine made the warhead a look asked launcher for:
+    its cooldown is running. The engine starts the wait only when it made a
+    warhead (or the launcher was empty, which a look that asked never sees),
+    and the next look comes far inside it."""
+    return view.launcher_cooldown[launcher] > 0
+
+
 def locked_on(view: CraftView, question: Question, target: Contact) -> bool:
     """Return whether the engine declared the craft's lock on the target:
     the lock is declared and the craft's own contact names the target, so

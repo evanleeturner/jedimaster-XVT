@@ -49,7 +49,8 @@ The scratch bytes, little-endian: the route (``patrol.ROUTE_BYTES``), the
 weave's state (``weave.STATE_BYTES``), u16 the target's index and u16 its
 signature, u8 the warheads fired in this dive, u8 1 while a shot at a
 starfighter or transport waits for the lock to lapse, else 0, u8 1 while the
-weave flies an evade command, else 0; the rest zero.
+weave flies an evade command, else 0, u8 the launcher a look asked a warhead
+of plus 1 until the next look settles it (0 none); the rest zero.
 
 Invariants:
     - It never turns away from its target: no clearance breaks a dive.
@@ -95,7 +96,7 @@ CRUISE = 0
 DIVE = 1
 EVADE = 2
 
-_DIVE = struct.Struct("<HHBBB")
+_DIVE = struct.Struct("<HHBBBB")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -109,6 +110,7 @@ class Memory:
     shots: int = 0
     fresh: int = 0
     ordered: int = 0
+    pending: int = 0
 
     @classmethod
     def read(cls, scratch: bytes) -> Memory:
@@ -124,7 +126,12 @@ class Memory:
         """Return the memory as scratch bytes."""
         packed = self.route.write() + self.weave.write()
         packed += _DIVE.pack(
-            self.target, self.signature, self.shots, self.fresh, self.ordered
+            self.target,
+            self.signature,
+            self.shots,
+            self.fresh,
+            self.ordered,
+            self.pending,
         )
         return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
@@ -159,6 +166,9 @@ def _flown(view: CraftView, question: Question) -> Decision:
     memory = Memory.read(book.scratch)
     if memory.route.slot != view.order_slot:
         memory = Memory(route=patrol.Route(slot=view.order_slot))
+    if memory.pending:
+        memory = _settle(view, question, memory)
+        book = dataclasses.replace(book, scratch=memory.write())
     if view.commands & Commands.EVADE:
         return _evade_ordered(view, question, book, memory)
     if book.phase == EVADE and memory.weave.flying:
@@ -269,12 +279,39 @@ def _warhead(
         target.warheads_coming,
         shots,
     )
-    fresh = 1 if warheads.needs_fresh_lock(target) else memory.fresh
     return (
         choice.warhead,
-        dataclasses.replace(memory, shots=shots, fresh=fresh),
+        dataclasses.replace(memory, pending=launcher + 1),
         choice.held,
     )
+
+
+def _settle(view: CraftView, question: Question, memory: Memory) -> Memory:
+    """Return the memory with the shot the last look asked for settled: made,
+    when the launcher's wait is running, counted and its fresh-lock flag set;
+    else dropped, with a line, so the craft may ask again."""
+    launcher = memory.pending - 1
+    if not warheads.made(view, launcher):
+        logger.debug(
+            "kamikaze.warhead_unmade object=%d target=%d launcher=%d",
+            view.object_index,
+            memory.target,
+            launcher,
+        )
+        return dataclasses.replace(memory, pending=0)
+    fresh = memory.fresh
+    target = next(
+        (
+            contact
+            for contact in question.contacts
+            if contact.object_index == memory.target
+            and contact.object_signature == memory.signature
+        ),
+        None,
+    )
+    if target is not None and warheads.needs_fresh_lock(target):
+        fresh = 1
+    return dataclasses.replace(memory, shots=memory.shots + 1, fresh=fresh, pending=0)
 
 
 def _cruise(

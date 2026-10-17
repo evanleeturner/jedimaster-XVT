@@ -66,8 +66,9 @@ u16 yaw and u16 pitch a break holds, u32 the tick to look again for a
 nearer target, then the weave's state (``weave.STATE_BYTES``), then u8 1
 while the weave flies an evade command, else 0; then u8 the warheads fired
 in this attack run, u8 1 while a shot at a starfighter or transport waits
-for the lock to lapse, else 0, and u8 the last reason the craft held its
-warheads (``warheads.Held``); then the route ``seek`` flies
+for the lock to lapse, else 0, u8 the last reason the craft held its
+warheads (``warheads.Held``), and u8 the launcher a look asked a warhead of
+plus 1 until the next look settles it (0 none); then the route ``seek`` flies
 (``patrol.ROUTE_BYTES``); the rest zero. In SEEK only the weave's and the
 route's bytes are kept, so a weave's rest outlasts the search and the
 route outlasts every phase.
@@ -178,7 +179,7 @@ FIGHT_BACK_HULL = (3, 4)
 
 _SCRATCH = struct.Struct("<HHHHI")
 _ORDERED = struct.Struct("<B")
-_WARHEADS = struct.Struct("<BBB")
+_WARHEADS = struct.Struct("<BBBB")
 _U32_MAX = 0xFFFFFFFF
 
 
@@ -196,6 +197,7 @@ class Memory:
     shots: int = 0
     fresh: int = 0
     held: int = warheads.Held.NONE
+    pending: int = 0
     # patrol imports this module, so its Route is made at call time.
     route: patrol.Route = dataclasses.field(default_factory=lambda: patrol.Route())
 
@@ -218,7 +220,7 @@ class Memory:
             self.target, self.signature, self.yaw, self.pitch, self.look_again
         )
         packed += self.weave.write() + _ORDERED.pack(self.ordered)
-        packed += _WARHEADS.pack(self.shots, self.fresh, self.held)
+        packed += _WARHEADS.pack(self.shots, self.fresh, self.held, self.pending)
         packed += self.route.write()
         return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
@@ -256,6 +258,9 @@ def fight(
     memory = Memory.read(book.scratch)
     if book.phase == SEEK:
         memory = Memory(weave=memory.weave, route=memory.route)
+    if memory.pending:
+        memory = _settle(view, question, memory)
+        book = dataclasses.replace(book, scratch=memory.write())
     if memory.fresh and view.lock_state != Lock.DECLARED:
         memory = dataclasses.replace(memory, fresh=0)
     tier = tactics.skill_tier(view)
@@ -407,10 +412,29 @@ def _warhead(
             choice.lead.miss,
             shots,
         )
-    fresh = 1 if warheads.needs_fresh_lock(target) else memory.fresh
     return choice, dataclasses.replace(
-        memory, shots=shots, fresh=fresh, held=warheads.Held.NONE
+        memory, pending=launcher + 1, held=warheads.Held.NONE
     )
+
+
+def _settle(view: CraftView, question: Question, memory: Memory) -> Memory:
+    """Return the memory with the shot the last look asked for settled: made,
+    when the launcher's wait is running, counted and its fresh-lock flag set;
+    else dropped, with a line, so the craft may ask again."""
+    launcher = memory.pending - 1
+    target = _remembered(question.contacts, memory)
+    if not warheads.made(view, launcher):
+        logger.debug(
+            "attack.warhead_unmade object=%d target=%d launcher=%d",
+            view.object_index,
+            memory.target,
+            launcher,
+        )
+        return dataclasses.replace(memory, pending=0)
+    fresh = memory.fresh
+    if target is not None and warheads.needs_fresh_lock(target):
+        fresh = 1
+    return dataclasses.replace(memory, shots=memory.shots + 1, fresh=fresh, pending=0)
 
 
 def _break_course(

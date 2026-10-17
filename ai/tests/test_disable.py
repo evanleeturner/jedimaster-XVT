@@ -220,7 +220,7 @@ def test_a_warhead_fires_while_the_shield_outlasts_the_salvo(craft, foe, ask) ->
     me = craft(**LOCKED)
     fired = ask(me, foe(front_shield=3001), target=FOE)
     assert fired.actions.warhead == Warhead(0)
-    assert memory_of(fired).shots == 1
+    assert memory_of(fired).pending == 1
     assert ask(me, foe(front_shield=3000), target=FOE).actions.warhead is None
 
 

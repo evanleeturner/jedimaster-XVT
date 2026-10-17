@@ -62,6 +62,9 @@ CRUISER_BOX = {"box_min": (-2846, -9106, -1076), "box_max": (2845, 9343, 2030)}
 # Tier 2's burst at the target's 0x3000 units: pairs, five shots.
 BURST = CannonGroup(LinkMode.PAIRS, 5)
 HALF = 0x8000
+# A launcher whose wait runs: the engine made the warhead the last look asked
+# for.
+MADE = {"launcher_cooldown": (456, 0)}
 # A craft whose engine declared its lock, with one launcher of the named
 # warhead ready; its lock ticks past the count needed, so the log can tell
 # the two apart.
@@ -358,7 +361,7 @@ def test_it_fires_a_space_bomb_at_a_starship_as_it_dives(
     target = foe(genus=STARSHIP, hull_strength=5000)
     decision = ask(bomber, target, target=FOE)
     assert decision.actions.warhead == Warhead(0)
-    assert memory_of(decision).shots == 1
+    assert (memory_of(decision).shots, memory_of(decision).pending) == (0, 1)
     assert (
         f"kamikaze.warhead object={ME} target={FOE} launcher=0 "
         f"type={warheads.SPACE_BOMB} lock=720 coming=0 shots=1"
@@ -382,8 +385,11 @@ def test_a_shot_at_a_starfighter_waits_for_the_lock_to_lapse(craft, foe, ask) ->
     fighter = foe(hull_strength=5000)
     first = ask(craft(**missile), fighter, target=FOE)
     assert first.actions.warhead == Warhead(0)
-    assert memory_of(first).fresh == 1
-    held = ask(craft(**missile, notebook=first.notebook), fighter, target=FOE)
+    assert memory_of(first).fresh == 0
+    made = {**missile, **MADE, "notebook": first.notebook}
+    settled = ask(craft(**made), fighter, target=FOE)
+    assert memory_of(settled).fresh == 1
+    held = ask(craft(**missile, notebook=settled.notebook), fighter, target=FOE)
     assert held.actions.warhead is None
     lapsed = craft(**(missile | {"lock_state": 0}), notebook=held.notebook)
     assert memory_of(ask(lapsed, fighter, target=FOE)).fresh == 0
@@ -394,9 +400,72 @@ def test_a_new_dive_counts_its_warheads_again(craft, foe, ask) -> None:
     target = foe(genus=STARSHIP, hull_strength=5000)
     other = foe(object_index=OTHER, y=0x5000, genus=STARSHIP)
     first = ask(bomber, target, other, target=FOE)
-    assert memory_of(first).shots == 1
-    later = craft(notebook=first.notebook)
+    assert memory_of(first).pending == 1
+    made = craft(
+        **LOCKED | MADE, warhead_type=(warheads.SPACE_BOMB, 0), notebook=first.notebook
+    )
+    settled = ask(made, target, other, target=FOE)
+    assert memory_of(settled).shots == 1
+    later = craft(notebook=settled.notebook)
     assert memory_of(ask(later, other)).shots == 0
+
+
+def test_the_asking_look_counts_nothing_and_the_next_counts_once_made(
+    craft, foe, ask
+) -> None:
+    bomber = craft(**LOCKED, warhead_type=(warheads.SPACE_BOMB, 0))
+    target = foe(genus=STARSHIP, hull_strength=5000)
+    first = ask(bomber, target, target=FOE)
+    assert (memory_of(first).shots, memory_of(first).pending) == (0, 1)
+    made = craft(
+        **LOCKED | MADE, warhead_type=(warheads.SPACE_BOMB, 0), notebook=first.notebook
+    )
+    second = ask(made, target, target=FOE)
+    assert (memory_of(second).shots, memory_of(second).pending) == (1, 0)
+
+
+def test_a_look_with_no_wait_counts_none_logs_it_and_fires_again(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    bomber = craft(**LOCKED, warhead_type=(warheads.SPACE_BOMB, 0))
+    target = foe(genus=STARSHIP, hull_strength=5000)
+    first = ask(bomber, target, target=FOE)
+    again = ask(
+        craft(**LOCKED, warhead_type=(warheads.SPACE_BOMB, 0), notebook=first.notebook),
+        target,
+        target=FOE,
+    )
+    assert f"kamikaze.warhead_unmade object={ME} target={FOE} launcher=0" in caplog.text
+    assert memory_of(again).shots == 0
+    assert again.actions.warhead is not None
+
+
+def test_an_unmade_shot_is_forgotten_when_the_craft_then_holds(craft, foe, ask) -> None:
+    bomber = craft(**LOCKED, warhead_type=(warheads.SPACE_BOMB, 0))
+    target = foe(genus=STARSHIP, hull_strength=5000)
+    first = ask(bomber, target, target=FOE)
+    lapsed = craft(
+        **LOCKED | {"lock_state": Lock.COUNTING},
+        warhead_type=(warheads.SPACE_BOMB, 0),
+        notebook=first.notebook,
+    )
+    held = ask(lapsed, target, target=FOE)
+    assert held.actions.warhead is None
+    assert (memory_of(held).shots, memory_of(held).pending) == (0, 0)
+
+
+def test_a_new_target_drops_the_shot_the_last_look_asked_for(craft, foe, ask) -> None:
+    bomber = craft(**LOCKED, warhead_type=(warheads.SPACE_BOMB, 0))
+    target = foe(genus=STARSHIP, hull_strength=5000)
+    other = foe(object_index=OTHER, y=0x5000, genus=STARSHIP)
+    first = ask(bomber, target, other, target=FOE)
+    gone = craft(
+        **LOCKED | MADE, warhead_type=(warheads.SPACE_BOMB, 0), notebook=first.notebook
+    )
+    second = ask(gone, other, target=OTHER)
+    assert memory_of(second).target == OTHER
+    assert (memory_of(second).shots, memory_of(second).fresh) == (0, 0)
 
 
 @pytest.fixture

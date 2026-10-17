@@ -34,12 +34,19 @@ LOCKED = {
 }
 
 
+# A launcher whose wait runs: the engine made the warhead the last look asked
+# for, and this look comes 16 ticks after it.
+MADE = {"launcher_cooldown": (456, 0)}
+
+
 def memory_of(decision) -> attack.Memory:
     return attack.Memory.read(notebook.decode(decision.notebook).scratch)
 
 
 def test_the_memory_keeps_the_runs_shots_fresh_mark_and_reason() -> None:
-    memory = attack.Memory(target=FOE, signature=3, ordered=1, shots=5, fresh=1, held=6)
+    memory = attack.Memory(
+        target=FOE, signature=3, ordered=1, shots=5, fresh=1, held=6, pending=1
+    )
     assert attack.Memory.read(memory.write()) == memory
 
 
@@ -53,7 +60,57 @@ def test_a_declared_lock_fires_a_guided_warhead(craft, foe, ask, caplog) -> None
         "lock=708 coming=0 shots=1" in caplog.text
     )
     memory = memory_of(decision)
-    assert (memory.shots, memory.fresh, memory.held) == (1, 1, warheads.Held.NONE)
+    assert (memory.shots, memory.fresh, memory.pending) == (0, 0, 1)
+    assert memory.held == warheads.Held.NONE
+
+
+def test_the_next_look_counts_the_shot_once_the_launcher_waits(craft, foe, ask) -> None:
+    first = ask(craft(**LOCKED), foe(), target=FOE)
+    made = LOCKED | MADE | {"notebook": first.notebook}
+    memory = memory_of(ask(craft(**made), foe(), target=FOE, tick=1016))
+    assert (memory.shots, memory.fresh, memory.pending) == (1, 1, 0)
+
+
+def test_the_next_look_counts_nothing_when_the_engine_made_none(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    first = ask(craft(**LOCKED), foe(), target=FOE)
+    unmade = LOCKED | {"notebook": first.notebook}
+    again = ask(craft(**unmade), foe(), target=FOE, tick=1016)
+    assert f"attack.warhead_unmade object={ME} target={FOE} launcher=0" in caplog.text
+    memory = memory_of(again)
+    assert (memory.shots, memory.fresh) == (0, 0)
+    assert again.actions.warhead == Warhead(0)
+    assert memory.pending == 1
+
+
+def test_an_unmade_shot_is_forgotten_when_the_craft_then_holds(craft, foe, ask) -> None:
+    first = ask(craft(**LOCKED), foe(), target=FOE)
+    lapsed = LOCKED | {"lock_state": Lock.COUNTING, "notebook": first.notebook}
+    held = ask(craft(**lapsed), foe(), target=FOE, tick=1016)
+    assert held.actions.warhead is None
+    assert (memory_of(held).shots, memory_of(held).pending) == (0, 0)
+
+
+def test_a_sith_lords_quick_look_settles_the_shot_the_same(craft, foe, ask) -> None:
+    sith = LOCKED | {"skill_level": 6}
+    first = ask(craft(**sith), foe(), target=FOE)
+    later = 1000 + attack.FIGHT_INTERVALS[4]
+    made = sith | MADE | {"notebook": first.notebook}
+    memory = memory_of(ask(craft(**made), foe(), target=FOE, tick=later))
+    assert (memory.shots, memory.fresh, memory.pending) == (1, 1, 0)
+
+
+def test_a_new_target_drops_the_shot_the_last_look_asked_for(craft, foe, ask) -> None:
+    first = ask(craft(**LOCKED), foe(), target=FOE)
+    nearer = foe(object_index=FOE + 1, object_signature=1, y=0x2000)
+    later = 1000 + attack.LOOK_AGAIN_TICKS[2]
+    changes = LOCKED | MADE | {"notebook": first.notebook, "order_target_mask": 0b110}
+    decision = ask(craft(**changes), foe(), nearer, target=FOE + 1, tick=later)
+    memory = memory_of(decision)
+    assert memory.target == FOE + 1
+    assert (memory.shots, memory.fresh, memory.pending) == (0, 0, 0)
 
 
 def test_a_hurt_top_pilots_guided_pair_shows_on_its_line(craft, foe, ask, caplog):
@@ -77,13 +134,16 @@ def test_after_a_shot_at_a_fighter_the_lock_must_lapse_and_the_run_is_done(
     craft, foe, ask
 ) -> None:
     first = ask(craft(**LOCKED), foe(), target=FOE)
-    held = ask(craft(**LOCKED, notebook=first.notebook), foe(), target=FOE, tick=1016)
+    made = LOCKED | MADE | {"notebook": first.notebook}
+    settled = ask(craft(**made), foe(), target=FOE, tick=1016)
+    assert memory_of(settled).fresh == 1
+    held = ask(craft(**LOCKED, notebook=settled.notebook), foe(), target=FOE, tick=1488)
     assert held.actions.warhead is None
     assert memory_of(held).held == warheads.Held.FRESH
     counting = LOCKED | {"lock_state": Lock.COUNTING, "notebook": held.notebook}
-    lapsed = ask(craft(**counting), foe(), target=FOE, tick=1032)
+    lapsed = ask(craft(**counting), foe(), target=FOE, tick=1504)
     assert memory_of(lapsed).fresh == 0
-    again = ask(craft(**LOCKED, notebook=lapsed.notebook), foe(), target=FOE, tick=1048)
+    again = ask(craft(**LOCKED, notebook=lapsed.notebook), foe(), target=FOE, tick=1520)
     assert again.actions.warhead is None
     assert memory_of(again).held == warheads.Held.CAPS
 
@@ -93,22 +153,27 @@ def test_a_big_ship_takes_six_shots_in_one_run(craft, foe, ask) -> None:
     changes = LOCKED | {"warheads_left": (9, 0)}
     fired = []
     for step in range(8):
-        decision = ask(craft(**changes), ship, target=FOE, tick=1000 + 16 * step)
+        tick = 1000 + 500 * step
+        decision = ask(craft(**changes), ship, target=FOE, tick=tick)
         fired.append(decision.actions.warhead is not None)
-        changes = changes | {"notebook": decision.notebook}
+        waiting = changes | MADE | {"notebook": decision.notebook}
+        settled = ask(craft(**waiting), ship, target=FOE, tick=tick + 16)
+        changes = changes | {"notebook": settled.notebook}
     assert fired == [True] * 6 + [False] * 2
     assert memory_of(decision).held == warheads.Held.CAPS
+    assert memory_of(settled).shots == 6
 
 
 def test_a_run_starts_again_after_a_break(craft, foe, ask) -> None:
     first = ask(craft(**LOCKED), foe(), target=FOE)
-    counting = LOCKED | {"lock_state": Lock.COUNTING, "notebook": first.notebook}
+    counting = LOCKED | MADE | {"lock_state": Lock.COUNTING, "notebook": first.notebook}
     broke = ask(craft(**counting), foe(y=0x800), target=FOE, tick=1016)
     assert phase_of(broke) == attack.BREAK
     back = ask(craft(**LOCKED, notebook=broke.notebook), foe(), target=FOE, tick=1032)
     assert phase_of(back) == attack.ATTACK
     assert back.actions.warhead == Warhead(0)
-    assert memory_of(back).shots == 1
+    assert memory_of(back).shots == 0
+    assert memory_of(back).pending == 1
 
 
 def test_a_new_target_starts_a_new_run(craft, foe, ask) -> None:
@@ -207,7 +272,8 @@ def test_with_its_nose_on_the_point_a_jedi_fires_unguided(
     )
     assert "attack.warhead " not in caplog.text
     memory = memory_of(decision)
-    assert (memory.shots, memory.fresh, memory.held) == (1, 0, warheads.Held.NONE)
+    assert (memory.shots, memory.fresh, memory.pending) == (0, 0, 1)
+    assert memory.held == warheads.Held.NONE
 
 
 def test_a_hurt_jedis_unguided_pair_shows_on_its_line(craft, foe, ask, caplog):
@@ -254,9 +320,12 @@ def test_a_jedi_fires_six_unguided_shots_in_a_run_then_steers_at_the_ship(
     changes = UNGUIDED | {"yaw": LEAD_YAW}
     fired = []
     for step in range(8):
-        decision = ask(craft(**changes), foe(**CORVETTE), tick=1000 + 16 * step)
+        tick = 1000 + 500 * step
+        decision = ask(craft(**changes), foe(**CORVETTE), tick=tick)
         fired.append(decision.actions.warhead is not None)
-        changes = changes | {"notebook": decision.notebook}
+        waiting = changes | MADE | {"notebook": decision.notebook}
+        settled = ask(craft(**waiting), foe(**CORVETTE), tick=tick + 16)
+        changes = changes | {"notebook": settled.notebook}
     assert fired == [True] * 6 + [False] * 2
     assert memory_of(decision).held == warheads.Held.CAPS
     assert decision.actions.steer == Steer(0, LEVEL, 0)
