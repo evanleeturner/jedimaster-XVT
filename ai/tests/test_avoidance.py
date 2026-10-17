@@ -118,7 +118,7 @@ def test_the_nose_picks_the_side_so_the_turn_never_crosses_the_frigate(
     """The behavior's heading lies a little left of the bulky dead ahead
     and the nose a little right: the craft goes round the right, the side
     its nose is on; the left edge would swing its nose across the bulky
-    (AI5e's Y-wing in raw10). With the nose dead on, the heading's side."""
+    (the Y-wing in raw10). With the nose dead on, the heading's side."""
     bulky = ship(16000)
     clockwise = avoidance.edge_angle(16000, keep_of(bulky)) + avoidance.EDGE_PAD
     left = Steer(TURN - 0x200, LEVEL, 0)
@@ -237,10 +237,10 @@ def test_a_break_steers_clear_of_its_target_too(freighter, steer) -> None:
     """Inside its target's clearance, a craft breaks off eastward from a
     freighter to its west, and another freighter north-east lies in that
     way. Going round that one on the nose's side would point it back toward
-    its target (yaw 64,886, AI5e-2's answer); the target counts while the
-    heading asked does not aim at it, so it turns on round, away from both.
-    A heading aimed at the target is the behavior's (AI5e-3: in the gap
-    toy, breaks turned into their own target)."""
+    its target (yaw 64,886, an earlier draft's answer); the target counts
+    while the heading asked does not aim at it, so it turns on round, away
+    from both. A heading aimed at the target is the behavior's (in an
+    earlier draft, breaks turned into their own target in the gap toy)."""
     target, beside = freighter(9, -6000, 0), freighter(10, 8000, 5000)
     east = Steer(QUARTER_TURN, LEVEL, 0)
     turned = steer(target, beside, heading=east, target=9).actions.steer.yaw
@@ -255,7 +255,7 @@ def test_the_turn_back_to_a_target_goes_the_long_way_round_a_neighbour(
 ) -> None:
     """Inside a neighbour's clearance, a craft turns back toward its target
     beyond it; the shortest way swings its nose across the neighbour (the
-    escort network game's bombers 9 and 10, AI5e-3's fourth cause), so it
+    escort network game's bombers 9 and 10, the fourth cause found), so it
     turns the long way, a quarter turn at a time. A neighbour outside its
     clearance is no wall: the heading is kept."""
     target = freighter(9, -7000, -5000)
@@ -273,7 +273,7 @@ def test_between_two_the_craft_takes_the_widest_pass(freighter, steer) -> None:
     of a turn off the nose: a turn out either way swings the nose across
     one, so it flies on between them, on the heading whose nearer pass is
     widest (3,278 and 3,335 units), not halfway between their bearings
-    (2,693 from the nearer: AI5e-3's draft ranked by angle and grazed the
+    (2,693 from the nearer: an earlier draft ranked by angle and grazed the
     nearer freighter in the gap toy)."""
     nearer, farther = freighter(9, 3000, 3000), freighter(10, -5000, 5000)
     assert steer(nearer, farther).actions.steer.yaw == 0xF800
@@ -286,12 +286,12 @@ def test_a_nose_dead_on_a_craft_it_is_inside_turns_out_past_both(
     inside, a second freighter to the right: going round the first on the
     heading's side would point it at the second (yaw 17,408); the search
     turns it left, out past both edges. A wall dead on the nose blocks
-    neither way (AI5e-3's draft found no heading at all)."""
+    neither way (an earlier draft found no heading at all)."""
     ahead, right = freighter(10, 0, 5000), freighter(11, 7000, 0)
     assert steer(ahead, right).actions.steer.yaw == 0xBC00
 
 
-# ---- A starship's or platform's hull (ruling 94) ----
+# ---- A starship's or platform's hull ----
 
 # Retail boxes (``test_hull.py``'s source) and sizes (``test_tactics.py``).
 ISD = {
@@ -579,7 +579,7 @@ def test_past_a_hulls_edge_a_heading_passes_at_its_keep(
 
 
 # Retail 8xicw12's parked hangar starship (type 53, flight group 8) and its two
-# Drop Off carriers' points, as the W4-0c landing flight logged them (issue
+# Drop Off carriers' points, as a Drop Off test flight logged them (issue
 # #311): fg 9's point lies 6,817 under its box, fg 10's 3,033 off it, under it
 # and past its side, both inside its keep of 4,096 and a carrier's reach.
 PARKED = {
@@ -647,7 +647,7 @@ def approach(view, contact):
 def test_a_drop_off_carrier_flies_straight_in_under_a_parked_starship(
     approach, caplog
 ) -> None:
-    """Where the W4-0c landing flight's carrier for fg 9 first turned off
+    """Where the Drop Off test flight's carrier for fg 9 first turned off
     toward the parked starship's keep, its straight line to its point keeps
     6,603 off the box, past its reach of 3,720: it flies in. Without the
     drop point booked it turns aside, as every carrier did."""

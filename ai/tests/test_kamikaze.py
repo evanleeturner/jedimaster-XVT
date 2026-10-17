@@ -3,9 +3,9 @@
 The craft flies at the origin facing +y (yaw 0), level, at tier 2, thinking
 at Attack's interval, its first cannon group ion cannons and its second
 lasers; contact 0 is its own, contact 1 its order's target, a starfighter
-ahead and in range. Rulings K1 (warheads as 1997), K2 (the waypoints and a
-weave with no target) and K3 (avoidance turns it round every bulky craft
-but its target) each have a test. Where a test needs it, Attack flies the
+ahead and in range. Three rules each have a test: warheads as 1997's, the
+waypoints and a weave with no target, and avoidance turning it round every
+bulky craft but its target. Where a test needs it, Attack flies the
 same question first, to show the situation breaks off or fires.
 """
 

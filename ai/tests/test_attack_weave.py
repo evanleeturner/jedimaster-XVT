@@ -49,7 +49,7 @@ def test_a_weave_steers_clear_of_its_own_bulky_target(craft, foe, ask) -> None:
     outside its clearance but within the look past it, where the weave's
     first swerve points (dice seed 1). The swerve turns past the clearance's
     edge, on the nose's side, at the start and at the next think; avoidance
-    alone would skip the target (AI5e's Y-wing in raw10)."""
+    alone would skip the target (the Y-wing in raw10)."""
     freighter = foe(x=9239, y=3827, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
     chaser = foe(object_index=12, y=-0x2000, target=ME)
     toward = geometry.bearing(9239, 3827, 0)[0]

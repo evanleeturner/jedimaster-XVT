@@ -450,7 +450,7 @@ def test_debug_records_the_new_view_values_and_the_statics(
 )
 def test_a_docking_craft_is_left_to_the_engine(view, changes) -> None:
     """While the engine docks it, nothing a dock reads is sent, nor an order
-    move (ruling L2-1)."""
+    move."""
     give = OrderCode.BOARD_AND_GIVE_CARGO
     fields = {"order_code": give, "order_codes": (give, give, 0, 0), "board_phase": 3}
     said = answered(Question(1, (view(**(fields | changes)),))).craft[0].actions

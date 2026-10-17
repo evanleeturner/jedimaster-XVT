@@ -4,13 +4,13 @@ board point and dock.
 The craft flies at the origin facing +y (yaw 0), level, on a Give order
 that asks one boarding; contact 0 is its own, contacts 1 and 2 the craft its
 order names. The craft to board sits parked 32,768 units ahead, a model of
-size 0, so its clearance is 4,096. Rulings C1 (Python flies the approach),
-C2 (full throttle past 16,384), C6 (craft only), C8 (each order's looking
-line) and C9 (the lower object index keeps a craft) each have a test; the
-1997 search (``old:pai.c:802-939``) is fenced test by test. Round L2 adds
-the dock: the board action at the point, nothing else sent while the engine
-docks (ruling L2-1), the look after it (C7), the docked list on the command
-path (ruling 102) and the first pair before the second (ruling 101).
+size 0, so its clearance is 4,096. Each rule has a test: Python flies the
+approach, at full throttle past 16,384; craft only; each order's looking
+line; the lower object index keeps a craft. The 1997 search
+(``old:pai.c:802-939``) is fenced test by test. Then the dock: the board
+action at the point, nothing else sent while the engine docks, the look
+after it, the docked list on the command path and the first pair before
+the second.
 """
 
 from __future__ import annotations

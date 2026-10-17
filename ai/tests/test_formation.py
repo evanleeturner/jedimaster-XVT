@@ -8,8 +8,8 @@ turned back to; at its place it
 flies the leader's heading at the leader's speed; a place ahead speeds it
 up, one behind slows it to half the leader's speed and is never turned back
 to; a place aside turns it that way; a bulky follower's think interval; the
-leader with followers eased to seven eighths (ruling 48); the jump roll
-(ruling 35). Then the two behaviors that call it: patrol, and going home by
+leader with followers eased to seven eighths; the jump roll
+(one by one). Then the two behaviors that call it: patrol, and going home by
 a jump (the follower departing after a leader that has begun its jump), to
 a hangar and with no way out. The log lines. Then a real case: a
 follower 20,000 units behind its place flown through think() until it holds

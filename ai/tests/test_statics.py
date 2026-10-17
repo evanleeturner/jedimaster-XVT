@@ -5,9 +5,9 @@ Attack order; contact 0 is its own, contact 1 an enemy craft. A static is
 a nav buoy, mine, probe or comm sat the question lists after its contacts,
 flagged STATIC, with what the engine gives one: its object record's index,
 signature, type, place and heading, its type's genus and size, its group's
-team, and 0 or NO_OBJECT for all a static lacks. Ruling 77 (no alliance
-test, as 1997's scan of the statics had none) and lane ruling S1 (Attack
-alone fights them) each have a test.
+team, and 0 or NO_OBJECT for all a static lacks. Two rules each have a
+test: no alliance test, as 1997's scan of the statics had none, and Attack
+alone fights them.
 """
 
 from __future__ import annotations

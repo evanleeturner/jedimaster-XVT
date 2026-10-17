@@ -111,7 +111,7 @@ def test_a_break_ends_when_its_target_is_gone(craft, foe, ask, caplog) -> None:
 
 def test_it_breaks_off_from_a_cruiser_4096_off_its_hull(craft, foe, ask) -> None:
     """Its stern, 9,343 behind its position, faces the craft: the break
-    comes 4,096 off it (ruling A12), well inside the 17,932 a clearance
+    comes 4,096 off it, well inside the 17,932 a clearance
     from its position kept."""
     edge = 9343 + 0x1000
     cruiser = CRUISER | CRUISER_BOX
@@ -239,8 +239,7 @@ def test_a_break_a_big_ships_hull_blocks_heads_away_from_its_nearest_part(
 ) -> None:
     """The usual break turns to +x, where a Star Destroyer's bow lies 3,162
     units off, its position some 47,000 to the south-east: the way out
-    heads away from the target and the bow's corner, not the ship's middle
-    (ruling 94)."""
+    heads away from the target and the bow's corner, not the ship's middle."""
     target = foe(x=-2560, y=-451, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
     # Its flank 3,000 east, its bow (the box's smallest y, ahead) 1,000 south.
     other = foe(
@@ -277,7 +276,7 @@ def test_an_escape_that_swings_the_nose_across_either_keeps_the_quarter_turn(
 ) -> None:
     """Away from both lies nearly behind, and the shortest turn there swings
     the nose across one of them: the target, ahead on the left with the
-    other off on the right and a little above (AI5e's network bomber); or
+    other off on the right and a little above (a network game's bomber); or
     the other, ahead on the left with the target ahead on the right, the
     craft flying into the gap between them (the toy's column 12,000). The
     break keeps its quarter turn away from the target, and no craft is

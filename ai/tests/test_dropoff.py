@@ -5,8 +5,8 @@ The carrier leads its group on slot 1 of two Drop Off orders, level and
 facing +y, at (1000, -2000, 300); its order names group 6, of which slot 1
 has delivered 3 (slot 0's count is 9, so a read of the wrong slot shows),
 at throttle 0x9000. The engine names a drop point 65,536 units ahead and
-932 up unless a test moves it. Rulings 133 (Python flies the approach, the
-engine drops) and 134 (nothing to drop is done) each have a test; 1997's
+932 up unless a test moves it. Two rules (Python flies the approach, the
+engine drops; nothing to drop is done) each have a test; 1997's
 approach (``old:paiorder.c:624-667``) is fenced number by number.
 """
 

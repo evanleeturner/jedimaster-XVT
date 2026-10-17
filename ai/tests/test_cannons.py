@@ -376,7 +376,7 @@ def test_a_meeting_past_a_shots_life_is_still_given_and_no_shot_has_none(
     assert cannons.meet(me, mover(), 56) is None
 
 
-# The lead by skill (``aim``, ``lead``; AI rulings 228-231): a fighter at
+# The lead by skill (``aim``, ``lead``): a fighter at
 # tier 2 with one group of rebel lasers, its target crossing 0x4000 ahead,
 # or flying up and across for a lead on every axis.
 JEDI = 5

@@ -18,8 +18,8 @@ from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import Question
 
-# Rulings 34, 42 and 43: with no order target in the battle, the enemy after
-# the craft. HURT leaves 299 of 400, under three quarters.
+# The craft has no order target in the battle, and the enemy is after it.
+# HURT leaves 299 of 400, under three quarters.
 HURT = {"hull_strength": 400, "hull_damage": 101}
 BEHIND = {"object_index": 12, "y": -0x2000, "target": ME}
 AHEAD = BEHIND | {"y": 0x2000}

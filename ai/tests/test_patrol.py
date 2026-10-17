@@ -6,9 +6,9 @@ exact distance, within 4,095 units (8,191 for a starship); back to waypoint 0
 past the last one on, a round counted; rounds kept per order slot; the goals
 of the four orders; one waypoint (bug #205 as a check), and a starship or
 freighter stopping on it; no waypoint on; five times the order's speed at
-full throttle (ruling 39); a starship off its course, and turned round a
+full throttle, as in 1997; a starship off its course, and turned round a
 bulky craft in its way without waiting on it for good; Circle and Evade
-weaving while chased and going back to its round (ruling 29), Circle not; a
+weaving while chased and going back to its round, Circle not; a
 follower flying the round too; the log lines. Then a real case: a
 three-point Circle flown round once, done, and going home.
 """

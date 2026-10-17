@@ -7,7 +7,7 @@ stop; a starship's order stopping for good or jumping. Then the craft already
 jumping, the throttle for a speed, the route log, Hold Steady, and the
 wave 2 bugs #211 and #213 as checks.
 
-Then rulings 31, 33 and 34: with no way out, it fights any enemy; attacked
+Then going home under attack: with no way out, it fights any enemy; attacked
 on the way, it fights back at three quarters of its hull or more, else flies
 home weaving about its way home, and goes home again once no enemy is after
 it; at the door it goes on; a starship's order is never turned round; and no
@@ -219,7 +219,7 @@ def test_bug_213_the_craft_flies_to_the_one_mothership_the_engine_chose(
     assert (actions.target, actions.steer) == (CARRIER, toward((70_000, 6, 7)))
 
 
-# Rulings 31, 33 and 34. The craft flies to its jump at FAR, its nose on the
+# Going home under attack. The craft flies to its jump at FAR, its nose on the
 # way home; contact 0 is its own, contact 1 the enemy (VIEW's enemy mask).
 ME = 4
 CHASER = 12
@@ -301,7 +301,7 @@ def test_attacked_below_three_quarters_it_weaves_about_its_way_home(
 def test_attacked_below_three_quarters_a_sith_lord_turns_to_fight(
     view, mine, enemy
 ) -> None:
-    """A Sith Lord never retreats (lord): rulings 33 and 34 do not hold."""
+    """A Sith Lord never retreats (lord): the hull rule does not hold."""
     craft = view(**JUMPING | {"skill_level": 7})
     decision = decide(craft, [mine(craft, **HURT), enemy()])
     assert decision.actions.target == CHASER

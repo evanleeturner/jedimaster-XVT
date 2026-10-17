@@ -49,7 +49,7 @@ ISD = {
 PLACE = (-0x400, 0x300, 7)
 # A flight's other craft sit this far off, clear of any steering around them.
 AWAY = 0x40000
-# The owner's ruling: a flight forms up for at most 5 game seconds.
+# A flight forms up for at most 5 game seconds.
 LIMIT = 1180
 # A small craft forming up thinks every 29 ticks, a bulky one every 59.
 SMALL_INTERVAL = 29

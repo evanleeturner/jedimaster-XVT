@@ -212,8 +212,9 @@ def test_a_sith_lord_fights_at_8_ticks(craft, foe, ask, level, thinks_at, asks) 
 def test_the_nearest_target_is_measured_to_a_big_ships_hull(
     craft, foe, ask, caplog, fighter_y, picked
 ) -> None:
-    """Ruling 93: a Star Destroyer whose flank lies 10,000 off, its position
-    29,140 off, is nearer than a fighter 20,000 off, not than one 9,000 off."""
+    """Measured to its hull, a Star Destroyer whose flank lies 10,000 off,
+    its position 29,140 off, is nearer than a fighter 20,000 off, not than
+    one 9,000 off."""
     caplog.set_level("INFO")
     flank = ISD_BOX["box_max"][0]
     ship = foe(
@@ -408,9 +409,9 @@ def test_a_fighter_keeps_off_a_freighter_pair_12000_apart(craft, foe, shown) -> 
     its own contact's target, as the engine does. It comes no nearer than
     3,964 units to either, outside 3,410, the freighter's corner and the
     fighter's own (3 of 32 starts come inside at 9,000 apart); with
-    avoidance's side taken from the behavior's heading (AI5e), 2 starts
-    grazed (3,334) and 23 of 32 at 9,000; before the break from a bulky
-    target anywhere inside its clearance, 1,784 (15 of 32)."""
+    avoidance's side taken from the behavior's heading (an earlier build),
+    2 starts grazed (3,334) and 23 of 32 at 9,000; before the break from a
+    bulky target anywhere inside its clearance, 1,784 (15 of 32)."""
     turn, pace, gap = 764, 190, 12000
     freighter = {"genus": FREIGHTER, "size": BULK_FREIGHTER_SIZE, "yaw": 0x4000}
     nearest = 20000

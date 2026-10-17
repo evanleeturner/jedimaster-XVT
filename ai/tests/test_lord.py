@@ -10,8 +10,8 @@ within its cone. The callers' tests hold the rest:
 ``test_attack_lord_aim.py`` the aim in the dogfight, ``test_cannons.py``
 the meeting point and the plain lead.
 
-The aim's tests hold its rules, never its tuned constants' values (AI
-ruling 224): a tuning harness and a flight set those.
+The aim's tests hold its rules, never its tuned constants' values: a
+tuning harness and a flight set those.
 """
 
 from __future__ import annotations
