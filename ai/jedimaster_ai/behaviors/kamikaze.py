@@ -11,16 +11,16 @@ Purpose:
     cannons, the ion cannons held, while the target sits inside Attack's
     aim cone and firing range (``cannons.AIM_CONE``, ``cannons.fire_range``,
     ``cannons.bursts``), and a guided warhead whenever
-    ``warheads.choose`` lets it (ruling K1). Avoidance leaves the target
+    ``warheads.choose`` lets it, as in 1997. Avoidance leaves the target
     alone, since the dive steers into the target's clearance, and turns the
-    craft round any other bulky craft in its way (ruling K3). The engine's
+    craft round any other bulky craft in its way. The engine's
     collisions do the rest: a computer-flown freighter, starship or platform
     that a craft hits takes damage, and so does the craft; every retail
     Kamikaze target is one.
 
     With no target, it flies its group's waypoints as Patrol does
     (``patrol.advance``, ``patrol.cruise``) and weaves while an enemy sits on
-    its tail (``patrol.evade``), as Circle and Evade does (ruling K2). A
+    its tail (``patrol.evade``), as Circle and Evade does. A
     weave under way is flown out before a dive begins.
 
     An evade command drops the target and starts a weave on the craft's
@@ -35,7 +35,7 @@ Purpose:
     mission moves the craft on.
 
     Its status line, in every phase: "Kamikaze attack" (KAMIKAZE_ATTACK),
-    1997's line 191 for all three plans (ruling 166). ``ended`` gives the
+    1997's line 191 for all three plans. ``ended`` gives the
     line back as NONE once another behavior flies the craft and names none.
 
 Phases, the notebook's phase byte:

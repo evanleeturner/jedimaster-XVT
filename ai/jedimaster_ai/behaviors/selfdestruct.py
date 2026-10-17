@@ -9,22 +9,22 @@ Purpose:
     craft asks for that countdown with the ``self_destruct`` action while
     its view's ``lifetime_timer`` reads 0, the engine's own rule, which
     keeps a running timer. Meanwhile the craft sits at throttle 0 and
-    defends itself as a waiting craft does (ruling 105): it fights an enemy
+    defends itself as a waiting craft does: it fights an enemy
     that is after it while it may fight back (``attack.fights_back``), else
     weaves while an enemy sits on its tail, and stops again once clear. Its
     turrets defend, as every craft's do.
 
-    - A variable1 of 0 asks for 2 to 5 units at random, as 1997 did (ruling
-      86), rolled on the craft's dice so every machine of a network game
+    - A variable1 of 0 asks for 2 to 5 units at random, as 1997 did,
+      rolled on the craft's dice so every machine of a network game
       picks the same delay.
     - A delay of more than UNITS_MAX units would wrap the engine's 16-bit
-      lifetime timer, so it is never sent (ruling 85): the craft sits on,
+      lifetime timer, so it is never sent: the craft sits on,
       after one WARN line, written on a think it does not fight.
     - The order has no goal: the craft never moves to a later order, and the
       engine keeps no books for it that would send it home.
 
     Its status line, while it waits and while it fights: "Self-destructing"
-    (SELF_DESTRUCTING), 1997's line 190 for selfdestroypln (ruling 166).
+    (SELF_DESTRUCTING), 1997's line 190 for selfdestroypln.
     ``ended`` gives the line back as NONE once another behavior flies the
     craft and names none, as when a mission gives it a new order.
 

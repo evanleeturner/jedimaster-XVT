@@ -6,7 +6,7 @@ Purpose:
     While it stands, the craft stops where it is, keeps its order for later
     and shows the activity WAITING_FOR_GO, which the HUD reads as awaiting
     further orders. A waiting craft defends itself as a craft going home
-    does (rulings 33, 34 and 43): it fights an enemy that is after it while
+    does: it fights an enemy that is after it while
     it may fight back (``attack.fights_back``), else weaves while an enemy
     sits on its tail, and stops again once clear. The 1997 wait plans
     (craftwaitforgopln, starshipwaitforgopln) stopped the craft and answered

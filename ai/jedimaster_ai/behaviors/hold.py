@@ -1,7 +1,7 @@
 """Hold: the Hold Steady order and its six copies.
 
 Purpose:
-    The 1997 rule (ruling 28): throttle 0 and nothing more. Its 1997 plan
+    The 1997 rule: throttle 0 and nothing more. Its 1997 plan
     had no condition, so the craft never moves to a later order and never
     goes home by its own books (the engine keeps none for it); its turrets
     defend, as every craft's do.

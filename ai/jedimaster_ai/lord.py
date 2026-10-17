@@ -6,8 +6,8 @@ Purpose:
     retreats and it fires warheads unguided at any craft:
 
     - it fights every enemy after it, whatever its hull
-      (``behaviors.attack.fights_back``): AI rulings 33 and 34, which send a
-      craft below three quarters of its hull away evading, do not hold for it
+      (``behaviors.attack.fights_back``): the hull rule, which sends a
+      craft below three quarters of its hull away evading, does not hold for it
     - its group's abort trigger never sends it home or stops its drop
       (``home_books``); its departure time and its orders done still do, so
       a mission's goals score as they did
@@ -16,8 +16,8 @@ Purpose:
       missiles idea E)
     - at a small craft its whole lead follows the target's turn: its
       cannons point where a shot meets the target on its predicted flight
-      (``cannons.meet``), and it walks its shots in by its tracers (``aim``,
-      AI rulings 220 and 231): each of its own tracers that passed the
+      (``cannons.meet``), and it walks its shots in by its tracers (``aim``):
+      each of its own tracers that passed the
       target since its last look shows how far behind, beside or below the
       target it went, and a share of the mean miss moves a correction kept
       in the target's own axes, so it turns with it; at a big ship it takes
@@ -70,12 +70,12 @@ def home_books(view: CraftView, books: int) -> int:
 # A look moves the correction by GAIN, a fraction, of its tracers' mean miss,
 # each axis held within MAX_CORRECTION world units; a tracer counts only when
 # its pass came within NEAR_PASS of the target, so shots at another craft
-# count for nothing. Measured offline against scripted targets (AI ruling
-# 240): a GAIN of 1/4 to 1/2 hit within 2% as often, a limit of 150 to 2,400
+# count for nothing. Measured offline against scripted targets:
+# a GAIN of 1/4 to 1/2 hit within 2% as often, a limit of 150 to 2,400
 # and a NEAR_PASS of 512 to 4,096 within 1%, so these stay; a whole GAIN hit
 # 6% less, and no correction at all 11% less when the program saw its
-# target 8 ticks late. The flight may still move GAIN and MAX_CORRECTION (AI
-# ruling 224).
+# target 8 ticks late. A flight experiment may still move GAIN and
+# MAX_CORRECTION.
 GAIN = (1, 2)
 MAX_CORRECTION = 600
 NEAR_PASS = 0x800

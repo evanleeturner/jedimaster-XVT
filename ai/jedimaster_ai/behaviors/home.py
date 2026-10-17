@@ -16,16 +16,16 @@ Purpose:
       slower than 25), thinking every 29 ticks; it docks once its books say
       it is at the hangar
     - else, with no way out, it fights the nearest enemy in the battle when
-      it can dogfight (ruling 31: hiding at a jump point is no way out); with
+      it can dogfight (hiding at a jump point is no way out); with
       none, it flies to its home point and stops there. A mothership that
       arrives for it, or a jump its books allow, takes it home again
 
     On the way to its jump or its hangar, an enemy after it (``attack.
     pursuer``: a small craft that targets it and hit it last or sits on its
     tail) turns it round to fight while it may fight back (``attack.
-    fights_back``: its hull at three quarters or more, ruling 34), and
+    fights_back``: its hull at three quarters or more), and
     otherwise it flies home evading, weaving about its way home whenever the
-    enemy sits on its tail (ruling 33). Once the enemy is dead, gone, or
+    enemy sits on its tail. Once the enemy is dead, gone, or
     targets another craft, it goes home again. At the door it goes on: a
     craft departing, turning in to the hangar or docking is not turned
     round.
@@ -227,7 +227,7 @@ def _jump(view: CraftView, question: Question) -> Actions:
     (``formation.jumps_now``). Once the leader has begun its jump, the
     follower departs on its roll wherever it is, and surely once the
     leader's speed reaches LAST_CALL: the flight leaves one by one behind
-    its leader (ruling 35), none left to a place behind a leader gone."""
+    its leader, none left to a place behind a leader gone."""
     point = view.home_point if view.books & Books.HOME_POINT else _here(view)
     dx, dy, dz = _offset(view, point)
     leader = formation.leader_for(view, question, _jumping)

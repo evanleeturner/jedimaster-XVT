@@ -13,10 +13,10 @@ Purpose:
 
     The blueprint is 1997's scissors maneuver (``paiman_scissorsmaneuver``,
     deleted with the 1997 AI): its swerve times, its roll, and its flare at a
-    swerve for a pilot of AI level 3 or more on one draw in four (ruling 40).
+    swerve for a pilot of AI level 3 or more on one draw in four.
     The 1997 maneuver ran 10 to 17 simulated seconds, 4 to 8 swerves, blind
-    to whether the chaser was still there; this one is used less (ruling
-    41): three swerves at most, ending when the tail is clear.
+    to whether the chaser was still there; this one is used less: three
+    swerves at most, ending when the tail is clear.
 
 The state, STATE_BYTES little-endian bytes in the flying behavior's scratch:
 u16 the course the weave began on, u16 the swerve's pitch, u8 its side
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 # seconds), each later one 472 and up to 235 more.
 FIRST_SWERVE_TICKS = 472
 SWERVE_SPREAD_TICKS = 236
-# Ruling 41: three swerves at most, 1,416 to 1,886 ticks in all (5.7 to 7.5
+# Three swerves at most, 1,416 to 1,886 ticks in all (5.7 to 7.5
 # real seconds).
 SWERVES_MAX = 3
 # After a weave flown to its limit, the craft fights at least as long as the

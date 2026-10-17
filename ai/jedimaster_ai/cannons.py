@@ -7,14 +7,14 @@ Purpose:
     the cannons are lined up on a target (``aim``), and, by range, whether
     all cannons fire together, in pairs or one at a time (``bursts``). The
     range runs to a starship's or platform's hull, to any other target's
-    position (``hull.nearest``, rulings 98 and 99). No craft fires farther
+    position (``hull.nearest``). No craft fires farther
     than its cannons' shots fly (``bolt_reach``). Its ion cannons hold,
     as in 1997: only the Disable order fires them, at its target, where
     every other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
     ``behaviors.kamikaze`` fire by these rules.
 
     Where the cannons point (``aim``): ahead of the target by the craft's
-    share of the lead (``lead``, AI rulings 228-231), where a shot fired now
+    share of the lead (``lead``), where a shot fired now
     meets it flying straight on at its speed (``meet``); none at skill level
     0, which points at the target's position, a fifth more each level, the
     whole lead from the Jedi level up. The cone is measured to that point,
@@ -51,8 +51,8 @@ from .world import LinkMode
 # skill: a better pilot holds fire until the shot is good. The Sith tiers
 # fire from no farther than a Jedi, and no tier farther than its shots fly
 # (``fire_range``). Their bursts stay a Jedi's: each answer sets the burst
-# again, 16 or 8 ticks on. The Sith Lord's cone, measured offline (AI ruling
-# 240): from 0x100 to 0x280 it hit within 1% as often, at 0x300 4% less.
+# again, 16 or 8 ticks on. The Sith Lord's cone, measured offline:
+# from 0x100 to 0x280 it hit within 1% as often, at 0x300 4% less.
 AIM_CONE = (0x800, 0x600, 0x400, 0x300, 0x200)
 FIRE_RANGE = (0x6000, 0x8000, 0xA000, 0xA000, 0xA000)
 BURST = (3, 4, 5, 5, 5)
@@ -60,7 +60,7 @@ BURST = (3, 4, 5, 5, 5)
 # The 1997 pilot's range changes: a fast target flying the same way, or
 # across, is harder to hit. 1997 also added 0x6000 for a starship or
 # platform, measured from its position; the range now runs to the hull
-# instead, without it (ruling 99).
+# instead, without it.
 FAST_SPEED = 25
 SAME_HEADING = 0x2000
 SAME_HEADING_CUT = 0x4000
@@ -96,8 +96,8 @@ SPEED_TO_WORLD_SCALE = 4660
 SIMULATED_SECOND_TICKS = 236
 # A target's predicted flight (``predict``) is stepped this many ticks at a
 # time, each step on its middle heading, and a shot's time to meet it found
-# in this many passes (``meet``). Measured offline against scripted targets
-# (AI ruling 240): steps of 2 to 32 ticks and 2 to 8 passes moved the meeting
+# in this many passes (``meet``). Measured offline against scripted targets:
+# steps of 2 to 32 ticks and 2 to 8 passes moved the meeting
 # point by less than 30 world units and changed no hit, so both stay.
 PREDICT_STEP_TICKS = 8
 LEAD_PASSES = 4
@@ -105,7 +105,7 @@ LEAD_PASSES = 4
 # out of hyperspace.
 PREDICTED_SPEED_MAX = ARRIVAL_SPEED_MAX
 # The share of the whole lead a craft's cannons point ahead, in fifths, by
-# skill level 0 to 7 (AI rulings 229 and 231): Rookie none, Officer to Top
+# skill level 0 to 7, in even steps: Rookie none, Officer to Top
 # Ace a fifth more each, Jedi and Sith Apprentice the whole; the Sith Lord's
 # whole lead follows the target's turn (``lord.aim``).
 LEAD_FIFTHS = (0, 1, 2, 3, 4, 5, 5, 5)

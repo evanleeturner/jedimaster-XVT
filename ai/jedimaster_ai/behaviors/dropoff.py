@@ -7,7 +7,7 @@ Purpose:
     at a time. 1997's plans are the blueprint: dropoffldr1pln flew the
     approach (``paiorder_dropoffdestorder``), dropoffldr2pln ran the drop
     (``paiman_dropoffmaneuver``), and followers flew in formation. The drop
-    is the engine's (ruling 133): the craft flies the approach and sends one
+    is the engine's: the craft flies the approach and sends one
     action.
 
     The approach: while the craft leads or flies alone and the group named
@@ -28,10 +28,11 @@ Purpose:
     Lord's abort aside, ``lord.home_books``), it stops the drop with
     ``drop_off`` 0 and goes home at its next think.
 
-    Done: ALL_DROPPED, every place delivered, or nothing to deliver (ruling
-    134: a group number outside the mission, the group already arrived, a
-    group of none); ``progress`` marks the order done by ``done``. The
-    craft sends nothing more for the order, and ends its status line.
+    Done: ALL_DROPPED, every place delivered, or nothing to deliver (a
+    group number outside the mission, the group already arrived, a group of
+    none; 1997 circled the drop point for good); ``progress`` marks the
+    order done by ``done``. The craft sends nothing more for the order, and
+    ends its status line.
 
     A follower flies to its place beside its leader (``formation.fly``)
     while the question shows the leader on its order; else it holds still.

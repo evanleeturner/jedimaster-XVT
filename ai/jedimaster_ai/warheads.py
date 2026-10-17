@@ -3,7 +3,7 @@ and from which launcher.
 
 Purpose:
     The fire control of a craft's warhead launchers in a dogfight
-    (``behaviors.attack``), by rulings 52 and 53 and the 1997 pilot's
+    (``behaviors.attack``), by the player's lock rule and the 1997 pilot's
     limits. A craft fires one guided warhead at its target once all of
     these hold, tested in this order:
 
@@ -16,11 +16,11 @@ Purpose:
               mission a big target takes the pulses too, while its weapon
               inhibit timer is under PULSE_INHIBIT_LIMIT (``goes_at``)
     kept      a craft whose order names a bulky craft it may fight keeps
-              its proton torpedoes, advanced ones too, for it (ruling 53)
+              its proton torpedoes, advanced ones too, for it
     launcher  that launcher is ready: its cooldown run out, a warhead left
     lock      the engine declared the craft's lock (``Lock.DECLARED``) and
               counts it on this target, the craft's own target already
-              (ruling 52: the player's rule, at every skill)
+              (the player's rule, at every skill)
     fresh     after a shot at a starfighter or a transport, the lock has
               lapsed and been declared again (1997 started it over)
     limit     the target's front shield and hull left outlast the damage of
@@ -48,7 +48,7 @@ Purpose:
     launcher at once (``pairs``), as 1997's top tier did; the attack run
     counts the pair as one shot, as 1997 counted it.
 
-    The unguided shot (rulings 50 and 51): a small craft at skill level
+    The unguided shot: a small craft at skill level
     Jedi or above (UNGUIDED_SKILL_LEVEL, the Sith ranks too) fires at a
     freighter, starship or platform without its lock declared, and a Sith
     Lord at any craft, a player's too (``lord``, missiles idea E). The lock
@@ -144,7 +144,7 @@ DISABLE_HULL_SHARE = 10
 # fires: 1997 set the lock to 0 after a shot at these and kept it at others.
 _FRESH_LOCK_GENERA = (tactics.GENUS_STARFIGHTER, tactics.GENUS_TRANSPORT)
 # The lowest skill level (``CraftView.skill_level``) that fires an unguided
-# warhead at a big ship: Jedi, 5, and the Sith ranks above it (ruling 50).
+# warhead at a big ship: Jedi, 5, and the Sith ranks above it.
 UNGUIDED_SKILL_LEVEL = 5
 # The engine's motion rule (``object.c``): a speed moves
 # ((SPEED_SCALE x speed + 128) >> 8) world units in GAME_SECOND ticks, a
@@ -186,7 +186,7 @@ KINDS = {
     ),
     MAGNETIC_PULSE: Kind("magnetic_pulse", 600, 3_000, True, False, 25),
 }
-# The kinds a craft whose order names a bulky craft keeps for it (ruling 53).
+# The kinds a craft whose order names a bulky craft keeps for it.
 KEPT_FOR_BULKY = frozenset({PROTON_TORPEDO, ADVANCED_PROTON_TORPEDO})
 # The kinds the version-14 rules also send at a big target.
 PULSES = frozenset({MAGNETIC_PULSE, ION_PULSE})
@@ -356,7 +356,7 @@ def pairs(view: CraftView) -> bool:
 
 def keeps_for_bulky(view: CraftView, question: Question) -> bool:
     """Return whether the craft's order names a bulky craft it may fight
-    among the contacts shown (ruling 53)."""
+    among the contacts shown."""
     return any(
         tactics.is_bulky(contact) for contact in tactics.order_targets(view, question)
     )

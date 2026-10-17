@@ -2,7 +2,7 @@
 
 Purpose:
     The engine keeps the mission's books by the 1997 rules and sends them in
-    the view (ruling 26); this module decides what a craft does about them,
+    the view; this module decides what a craft does about them,
     each think, before a behavior flies it: whether it goes home
     (``behaviors.home`` flies it there) and whether its order slot moves. The
     rules are the 1997 leader plans' order conditions 38 to 40, in their

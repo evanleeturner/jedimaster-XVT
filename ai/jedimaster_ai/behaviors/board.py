@@ -13,10 +13,10 @@ Purpose:
 
     The target is a player's command target first, when the question shows
     it, no other boarder keeps it (Shift+B names one) and the craft has not
-    boarded it (ruling 102: each boarding counts a different craft); else
+    boarded it (each boarding counts a different craft); else
     the nearest craft its order's first pair of targets names that may be
     boarded now, and only when none may, the nearest of the rest its order
-    names (ruling 101, 1997's fallback to the second pair,
+    names (1997's fallback to the second pair,
     ``old:pai.c:654-700``): by 1997's rough distance with no range limit,
     the earlier contact between two as near. A craft
     may be boarded now when its order holds it still (PARKED), it is a
@@ -25,18 +25,17 @@ Purpose:
     Rendezvous craft's line "Waiting for boarding craft") or is a boarder
     stopped to look (a looking activity), 1997's await-board and stop
     maneuvers. Never a craft another boarder keeps (``Contact.boarder``:
-    of two boarders that chose one craft, the lower object index keeps it,
-    ruling C9), one the craft has boarded (``CraftView.boarded``), or one
-    breaking up or exploding. Only craft, never a static object or a point
-    (ruling C6).
+    of two boarders that chose one craft, the lower object index keeps it),
+    one the craft has boarded (``CraftView.boarded``), or one breaking up or
+    exploding. Only craft, never a static object or a point.
 
     It keeps its target, as 1997's approach did, until the question no
     longer shows it, its slot holds another craft, it breaks up or
     explodes, or another boarder keeps it; then it looks again.
 
-    The approach (ruling C1): it steers at the board point at full throttle
+    The approach: it steers at the board point at full throttle
     past 16,384 units, at half past 8,192, at a quarter past 2,048, and
-    stops within 2,048 (ruling C2; 1997 meant the same, but bug #47 left
+    stops within 2,048 (1997 meant the same, but bug #47 left
     its full throttle overwritten by the half). The board point belongs to
     the target the craft named on its last think, so on the think it picks
     a target, and until the engine names the point, it steers at the
@@ -47,14 +46,14 @@ Purpose:
 
     While the engine docks it (``CraftView.board_phase`` 1 to 3: align,
     transfer, separate) it sends no target, steer or throttle: the dock
-    reads the craft's target every step, so a new one would be docked with
-    (ruling L2-1). Once the dock ends it looks again where it is (ruling
-    C7): a craft it boarded is in ``CraftView.boarded`` and is never picked
+    reads the craft's target every step, so a new one would be docked with.
+    Once the dock ends it looks again where it is: a craft it boarded is in
+    ``CraftView.boarded`` and is never picked
     again; after a dock the engine gave up (its target gone, wrecked or
     replaced, the craft disabled, a player's craft moving) it keeps its
     target while it may and approaches it again.
 
-    Its status line (ruling C8): while it looks, the order's own, "Looking
+    Its status line: while it looks, the order's own, "Looking
     for craft to capture" for Capture, "... to pick up" for Pick Up, "...
     to board" for the others; "Docking" from the approach to the dock's
     end. Its cannons
@@ -136,7 +135,7 @@ _STRICT_ORDERS = frozenset({CAPTURE, DESTROY})
 DONE = 2
 NO_TARGET_LEFT = 3
 
-# The approach's throttle by the distance left (ruling C2): full past
+# The approach's throttle by the distance left: full past
 # FULL_RANGE, half past HALF_RANGE, a quarter past BOARD_RANGE, else stopped.
 FULL_RANGE = 0x4000
 HALF_RANGE = 0x2000
@@ -308,7 +307,7 @@ def rough_distance(dx: int, dy: int, dz: int) -> int:
 
 def throttle_for(distance_left: int) -> int:
     """Return the approach's throttle for the distance left to the board
-    point (ruling C2)."""
+    point."""
     if distance_left > FULL_RANGE:
         return tactics.FULL_THROTTLE
     if distance_left > HALF_RANGE:
@@ -331,7 +330,7 @@ def goal_state(view: CraftView) -> int:
 
 
 def looking_line(view: CraftView) -> Activity:
-    """Return the status line the craft shows while it looks (ruling C8)."""
+    """Return the status line the craft shows while it looks."""
     return _LOOKING_LINES.get(view.order_code, Activity.LOOKING_TO_BOARD)
 
 

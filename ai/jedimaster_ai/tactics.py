@@ -13,7 +13,7 @@ Invariants:
       is breaking up, exploding or in hyperspace. The engine never marks the
       craft's own team or a team allied with it. A static object its order
       names it may fight whatever its team: 1997's scan of the statics had
-      no alliance test (ruling 77).
+      no alliance test.
     - Lists keep the question's contact order, so every machine sees the same.
 """
 
@@ -40,8 +40,8 @@ OBJECT_KIND_DISABLED = 2
 _FIGHTABLE_KINDS = (OBJECT_KIND_ACTIVE, OBJECT_KIND_DISABLED)
 # The engine's craft genus codes (object_genus.h): starships and platforms
 # are large targets; with freighters they are the bulky craft that small
-# craft keep clear of (ruling 24). Only a starfighter answers homing shots
-# with countermeasures.
+# craft keep clear of, while fighters and shuttles are not, so dogfights stay
+# close. Only a starfighter answers homing shots with countermeasures.
 GENUS_STARFIGHTER = 0
 GENUS_TRANSPORT = 1
 GENUS_FREIGHTER = 3

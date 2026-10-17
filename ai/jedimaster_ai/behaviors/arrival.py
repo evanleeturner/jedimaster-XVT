@@ -111,8 +111,8 @@ STOPPED_ORDERS = frozenset(
         OrderCode.NULL,
     }
 )
-# A flight out of a hangar forms up for at most 5 game seconds, the owner's
-# ruling; 1997's own out-of-hangar timer ran 10, 2,360 ticks.
+# A flight out of a hangar forms up for at most 5 game seconds; 1997's own
+# out-of-hangar timer ran 10, 2,360 ticks.
 FORM_UP_TICKS = 5 * GAME_SECOND
 # Why a form-up ended, the formed_up line's why: its time ran out, its flight
 # no longer forms up, or an enemy is after it or a homing warhead coming.

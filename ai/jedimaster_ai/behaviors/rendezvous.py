@@ -13,8 +13,8 @@ Purpose:
 
     Here the engine names the point (RENDEZVOUS_POINT,
     ``CraftView.rendezvous_point``: point 12 as the mission file holds it,
-    on or off, ruling B3) and counts the boardings in ``order_progress``,
-    nothing more (ruling B4). The craft:
+    on or off) and counts the boardings in ``order_progress``,
+    nothing more. The craft:
 
     - flies to the point: steers at it at the order's cruise throttle
       (``patrol.cruise_throttle``, 1997's cruise), eased while it leads a
@@ -35,8 +35,8 @@ Purpose:
     on arrival, as 1997's. Its books send it home by its departure and
     abort, the two the engine keeps for Rendezvous.
 
-    It defends itself as a craft on Wait does (rulings 31 to 40,
-    ``waiting``): it fights an enemy after it while it may fight back
+    It defends itself as a craft on Wait does
+    (``waiting``): it fights an enemy after it while it may fight back
     (``attack.fights_back``), else weaves while an enemy sits on its tail,
     under its line; then it flies on, or stops again where it is. 1997's
     rendezvous1pln answered hits too (AVOIDHITORDR).

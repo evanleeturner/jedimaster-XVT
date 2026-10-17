@@ -14,7 +14,7 @@ Purpose:
     with the time left.
 
     The 1997 plan never fought back. Here a craft on Wait defends itself as
-    one on the player's wait command does (rulings 33, 34 and 43): it fights
+    one on the player's wait command does: it fights
     an enemy after it while it may fight back (``attack.fights_back``), else
     weaves while an enemy sits on its tail, and stops again once clear. The
     timer runs on meanwhile.

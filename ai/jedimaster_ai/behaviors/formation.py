@@ -4,7 +4,7 @@ Purpose:
     A craft that follows a leader cruises in formation instead of on its own
     course: the engine gives it its place (``CraftView.place``, the 1997
     formation arithmetic) and the craft flies there with its own turns and
-    throttle, as a pilot would (ruling 45). ``patrol`` and ``home`` call it
+    throttle, as a pilot would. ``patrol`` and ``home`` call it
     where a craft would cruise, and only while its leader flies the same way
     (``leader_for``); a fight, a weave, the turn into a hangar and the jump
     stay theirs. The rule, each think:
@@ -23,20 +23,20 @@ Purpose:
       to full throttle
 
     A leader with followers in the battle cruises at most EASED_THROTTLE
-    (ruling 48), so a follower with the same top speed has speed to spare
+    (seven eighths), so a follower with the same top speed has speed to spare
     to close up; fighting or evading, it flies as its behavior says.
 
-    ``jumps_now`` spaces a flight's jumps out (ruling 35): a follower within
+    ``jumps_now`` spaces a flight's jumps out: a follower within
     reach of its jump departs at a think with chance 1 in JUMP_ODDS, so the
-    flight leaves one by one at moments of its own.
+    flight leaves one by one at moments of its own, as in the films.
 
 Invariants:
     - Pure: the decision depends only on the view and the question. The
       jump roll comes from the craft's own random seed and the tick, so
       every machine of a network game rolls alike, again after a rewind.
     - A craft follows only a leader the engine names, that the question
-      shows and that no player flies (a player's wingmen are AI5f-2b's),
-      and only with its place given (``Books.PLACE``).
+      shows and that no player flies (formation for a player's wingmen is
+      not built), and only with its place given (``Books.PLACE``).
     - It never steers more than a quarter turn off its leader's heading:
       the point it aims at is never behind it along that heading.
 """

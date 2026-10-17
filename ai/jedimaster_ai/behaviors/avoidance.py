@@ -7,14 +7,14 @@ Purpose:
     is, on the side its nose lies, EDGE_PAD past it, and keeps its pitch, so
     the turn never swings the nose across the craft it steers round. Inside
     a clearance the edge is a quarter turn off its nearest part, so the
-    craft turns outward. The next think looks again. Ruling 24 names
-    the bulky kinds; without this step craft flew into their own carrier,
-    and the bulky craft of one group, flying to the group's same points,
-    flew into each other.
+    craft turns outward. The next think looks again. Fighters and shuttles
+    are not bulky, so dogfights stay close; without this step craft flew
+    into their own carrier, and the bulky craft of one group, flying to the
+    group's same points, flew into each other.
 
     A freighter's clearance is a ball round its position
     (``tactics.clearance``). A starship's or platform's runs off its hull
-    (ruling 94): its box grown by ``hull.KEEP`` and the craft's own reach,
+    instead: its box grown by ``hull.KEEP`` and the craft's own reach,
     three quarters of its size, and the headings into it are the grown
     box's (``hull.seen``). A ball round such a ship's position turned every
     heading with any part toward its middle while the craft was inside it,
@@ -43,7 +43,7 @@ Purpose:
     half turn is flown as a quarter turn that way, so the engine turns the
     long way round. Without it, a fighter between two freighters broke off
     from one into the other, or turned back to its target across the other
-    (AI5e-3, the escort network game's bombers).
+    (the bombers of the escort network game).
 
     A Drop Off approach whose drop point lies inside a bulky craft's
     clearance flies straight in while its line there keeps clear of that
@@ -65,7 +65,7 @@ Purpose:
 
 Invariants:
     - Only a decision that steers changes, and only its steer: a craft left
-      drifting keeps drifting (ruling 9). The notebook never changes.
+      drifting keeps drifting. The notebook never changes.
     - Every craft steers clear of bulky craft, a bulky craft of the others
       too; no craft steers clear of a small one.
     - A craft enters a bulky craft's clearance only on a Drop Off approach

@@ -4,14 +4,14 @@ or holds still.
 Purpose:
     A craft boarded on a Capture or Pick Up order changes side: the engine's
     dock gives its object the captor's team and IFF (its flight group keeps
-    its own, ruling 128) and marks it CAPTURED in its books. 1997 then gave
+    its own) and marks it CAPTURED in its books. 1997 then gave
     it a plan of its own (``old:paiman.c:3058-3071``): fly home evading when
     its model could move, else hold still where it was. Here, likewise:
 
     - home (``behaviors.home``) when its full speed is not 0 and its systems
       work: by the way out its books name for a captured craft (its group's
       capture mothership, else hyperspace), evading or fighting back on the
-      way as every craft going home does (rulings 33 and 34)
+      way as every craft going home does
     - else stopped for good: throttle 0, no target, cannons held, no status
       line. A craft picked up is carried with its systems off
       (``old:paiman.c:3178-3185``) and holds so.

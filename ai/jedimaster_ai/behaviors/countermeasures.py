@@ -3,9 +3,11 @@
 Purpose:
     After a craft's order behavior, avoidance and turrets decide, a
     starfighter carrying chaff or flares answers a homing shot aimed at it,
-    whatever its order and whatever it is doing, going home included. 1997's
-    fly-home plans and Circle and Evade never answered, which left those
-    craft sitting ducks (ruling 32). The rule is the 1997 AI's, from the end
+    whatever its order and whatever it is doing, going home included. In
+    1997 only a plan that carried a defending order answered: Go Home's,
+    Circle and Evade's and the fighting orders' did, but a craft on Circle,
+    on Wait or switched to the plain fly-home plan never answered and was
+    left a sitting duck. The rule is the 1997 AI's, from the end
     of its turret order (``paifight_gunnerselfdefenseorder``, deleted with
     the 1997 AI): the first shot in the engine's slot order within the
     craft's threat range is the one answered. The range is THREAT_RANGE by

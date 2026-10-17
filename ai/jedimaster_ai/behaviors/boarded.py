@@ -1,8 +1,8 @@
 """Boarded: a craft that waits to be boarded, on Disabled or Await Boarding.
 
 Purpose:
-    Both orders' 1997 plans, ``disabledpln`` and ``waitforboardpln`` (ruling
-    84), flew one maneuver, the stop (``old:paiman.c``
+    Both orders' 1997 plans, ``disabledpln`` and ``waitforboardpln``, flew
+    one maneuver, the stop (``old:paiman.c``
     ``paiman_awaitboardmaneuver``): no roll, pitch or turn and throttle 0,
     every think, and they named no target of their own. Here, likewise:
     throttle 0 every think, and the order's status line, the one 1997 showed
@@ -30,7 +30,7 @@ Invariants:
     - The notebook goes back as it came; no target, steer or cannon burst is
       sent, so a target the craft held stays, as 1997's plans left it.
     - Its turrets defend and a starfighter answers homing shots, as every
-      craft's do (rulings 31-40); a craft whose systems are off fires no
+      craft's do; a craft whose systems are off fires no
       turret and launches no countermeasure, by the engine's own checks.
 """
 

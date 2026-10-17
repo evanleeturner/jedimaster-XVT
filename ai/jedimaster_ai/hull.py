@@ -8,12 +8,12 @@ Purpose:
     no cannon fired at a Super Star Destroyer and the lowest skill tier
     never fired at a Star Destroyer (issue #302). A craft fights a starship
     or platform by its hull instead: the nearest point of the box around
-    its model (rulings 97 and 98), for its firing range, its break and its
-    pick of the nearest target (ruling 93). ``nearest`` gives that
+    its model, for its firing range, its break and its pick of the nearest
+    target. ``nearest`` gives that
     point for those targets, and the target's position for every other, as
     1997 did; ``keep`` is how near it a craft comes before it breaks off.
     ``seen`` is how the box, grown by a margin, lies from a craft: the
-    headings that reach it, which avoidance steers clear of (ruling 94).
+    headings that reach it, which avoidance steers clear of.
     From over or under the box every yaw reaches it (``ALL_ROUND``), so
     only the pitch can steer clear: a quarter turn either side of the
     nearest point's yaw, which straight down or up names no side, left a
@@ -46,7 +46,7 @@ from .world import Contact
 from .world import CraftView
 
 # How near a starship's or platform's hull a craft comes before it breaks
-# off (ruling 100): the margin a fighter target's clearance already keeps
+# off: the margin a fighter target's clearance already keeps
 # past its position (``tactics.CLEARANCE_MARGIN``).
 KEEP = 0x1000
 # A yaw spread that takes in every yaw: no two yaws lie more than a half turn
@@ -71,8 +71,7 @@ class Nearest:
 
 def by_hull(contact: Contact) -> bool:
     """Return whether a craft measures a contact from its hull: a starship
-    or a platform, the targets 1997 gave its large-target range bonus
-    (ruling 98)."""
+    or a platform, the targets 1997 gave its large-target range bonus."""
     return tactics.is_large(contact)
 
 

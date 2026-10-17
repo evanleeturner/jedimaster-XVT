@@ -31,12 +31,12 @@ Purpose:
     (``pursuer``) fights that enemy while it may fight back (``fights_back``:
     it has cannons, it can move, and its hull is at FIGHT_BACK_HULL or more,
     or it is a Sith Lord, which fights at any hull: ``lord``),
-    and otherwise weaves when the enemy sits on its tail (rulings 34 and 43).
+    and otherwise weaves when the enemy sits on its tail.
     With neither, it flies 1997's cruise (``seek``): round its group's
     waypoints, else to its group's start point, else on its course.
     ``fight`` is the dogfight itself, at the targets a behavior gives it:
     ``home`` flies it for a craft going home that turns on its attacker, and
-    for a craft with no way out (rulings 31 and 33), never cruising.
+    for a craft with no way out, never cruising.
 
     A player's commands come first, as the 1997 target orders took them:
     the craft an attack or cover order named is the target while the craft
@@ -89,7 +89,7 @@ Invariants:
       cannon does.
     - It targets only craft the engine marks hostile (``tactics.can_fight``).
     - Only a small craft is ever after a craft: a freighter, a starship or a
-      platform shooting at it is no pursuer (ruling 42). A disabled craft is
+      platform shooting at it is no pursuer. A disabled craft is
       after nothing: with none of its subsystems working it can neither fly
       nor fire.
     - A break turns away from the side its target is on, so the turn never
@@ -181,8 +181,8 @@ TAIL_ANGLE = 0x6000
 TAIL_TRICK_RANGE = 0x4000
 TAIL_TRICK_THROTTLE = 0x5555
 # A craft an enemy is after fights back while its hull, the hull strength less
-# the hull damage, is at least this share of the strength (ruling 34: three
-# quarters); shields never count.
+# the hull damage, is at least this share of the strength, three quarters;
+# shields never count.
 FIGHT_BACK_HULL = (3, 4)
 
 _SCRATCH = struct.Struct("<HHHHI")
@@ -759,7 +759,7 @@ def _choose_target(
     no target, a memory holding only the weave's state. The nearest is
     measured to each target's nearest part (``hull.nearest``), so a craft
     beside a big ship's flank takes it before a craft whose position is
-    nearer (ruling 93)."""
+    nearer."""
     kept = _remembered(targets, memory)
     if kept is not None and tick < memory.look_again:
         return kept, memory

@@ -17,7 +17,7 @@ Purpose:
     While the engine docks a craft (``CraftView.board_phase`` not 0) only
     ``behaviors.board`` decides, before its books, its order or a player's
     command: the dock reads the craft's target every step, and no other
-    behavior may name one (ruling L2-1). A captured craft (``Books.
+    behavior may name one. A captured craft (``Books.
     CAPTURED``) is flown by ``behaviors.captured``, home or held, whatever
     its order or books say; a player's wait command still holds it.
 

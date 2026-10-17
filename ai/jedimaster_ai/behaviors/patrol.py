@@ -21,7 +21,7 @@ Purpose:
 
     - a starship or freighter stops for good on its one waypoint;
     - the throttle is the order's, and for an order at full throttle with a
-      speed, the one that gives SPEED_SCALE times that speed (ruling 39),
+      speed, the one that gives SPEED_SCALE times that speed, as 1997 did,
       never more than full;
     - a starship STARSHIP_TURN or more off its course to the waypoint has
       throttle 0. The course is read past the bulky craft in its way
@@ -31,8 +31,8 @@ Purpose:
     With no waypoint on, the craft stops where it is and counts one round, as
     a starship does on its one waypoint. Circle and Evade weaves while an
     enemy sits on its tail (``weave``), about its course to the waypoint, at
-    full throttle, and goes back to its round once the weave ends (ruling
-    29); Circle and the starship orders leave attackers to the turrets.
+    full throttle, and goes back to its round once the weave ends; Circle
+    and the starship orders leave attackers to the turrets, as in 1997.
 
     ``advance`` and ``cruise`` are the cruise itself, for another behavior
     that flies its group's waypoints while it has nothing else to do: it
