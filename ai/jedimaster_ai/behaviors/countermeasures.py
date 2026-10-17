@@ -1,4 +1,5 @@
-"""Countermeasures: a starfighter answers the homing shots closing on it.
+"""Countermeasures: a starfighter answers the homing shots closing on it,
+and a small craft swerves from them.
 
 Purpose:
     After a craft's order behavior, avoidance and turrets decide, a
@@ -16,12 +17,23 @@ Purpose:
     homes on that shot yet and the cooldown has run out. The engine launches
     (``ai_countermeasures_launch``).
 
+    The swerve (``incoming``): a starfighter, transport or utility craft
+    weaves from the first homing shot within SWERVE_RANGE by its skill tier,
+    three times that for a concussion missile, as it weaves from an enemy
+    on its tail; the weaving behaviors ask ``attack.chased_by``, which names
+    the enemy first and the shot after it. 1997's order that avoided hits
+    (``paiorder_avoidhitorder``, deleted with the 1997 AI) swerved from the
+    launch ranges, by the same factor; here a rookie never swerves, and
+    both Sith ranks swerve from the Apprentice's range.
+
 Invariants:
     - Only a starfighter answers, and only with a countermeasure the view
-      shows ready (``CraftView.countermeasure_ready``).
+      shows ready (``CraftView.countermeasure_ready``); a freighter,
+      starship or platform never swerves.
     - Only the first shot within range is weighed, as in 1997: a shot
       further down the list waits for the next think, even when the first is
-      already decoyed.
+      already decoyed. The swerve weighs its own first shot within its own
+      range.
     - Distances are exact, as everywhere in the program; 1997 took a rough
       distance.
     - The decision's notebook and its other actions are never changed.
@@ -47,7 +59,15 @@ logger = logging.getLogger(__name__)
 # g_ai_warhead_threat_range_by_skill, then the Sith ranks', a step farther
 # each.
 THREAT_RANGE = (0x800, 0x1000, 0x1800, 0x2000, 0x2800)
-# Concussion missiles are answered from three times as far.
+# How close a homing shot comes before a craft swerves from it, by skill
+# tier, 0 to 4, in world units: a rookie never swerves (no shot comes
+# closer than 0); tiers 1 and 2 swerve from their launch range; both Sith
+# ranks from the Apprentice's: in a model of the engine's homing, a Lord
+# that swerved from his own launch range was hit more often than one that
+# waited until the shot came nearer.
+SWERVE_RANGE = (0, 0x1000, 0x1800, 0x2000, 0x2000)
+# Concussion missiles are answered, and swerved from, from three times as
+# far.
 CONCUSSION_RANGE_FACTOR = 3
 # The engine's object types of the concussion missiles (laser.h).
 CONCUSSION_MISSILE = 144
@@ -64,7 +84,62 @@ def answer(view: CraftView, question: Question, decision: Decision) -> Decision:
     own = tactics.own_contact(view, question)
     if own is None or own.genus != tactics.GENUS_STARFIGHTER:
         return decision
-    reach = threat_range(view)
+    found = _first_within(view, threat_range(view))
+    if found is None:
+        return decision
+    threat, distance, limit = found
+    launch = _calls_for_one(view, threat)
+    logger.debug(
+        "countermeasures.threat object=%d threat=%d type=%d distance=%d "
+        "range=%d kind=%d launch=%d",
+        view.object_index,
+        threat.object_index,
+        threat.object_type,
+        distance,
+        limit,
+        view.countermeasure,
+        int(launch),
+    )
+    if not launch:
+        return decision
+    actions = dataclasses.replace(decision.actions, countermeasure=True)
+    return dataclasses.replace(decision, actions=actions)
+
+
+def incoming(view: CraftView, question: Question) -> Threat | None:
+    """Return the first homing shot aimed at the craft within its swerve
+    range, or None; always None for a freighter, starship or platform, and
+    for a craft whose own contact the question does not show."""
+    if not view.threats:
+        return None
+    own = tactics.own_contact(view, question)
+    if own is None or tactics.is_bulky(own):
+        return None
+    found = _first_within(view, SWERVE_RANGE[tactics.skill_tier(view)])
+    if found is None:
+        return None
+    threat, distance, limit = found
+    logger.debug(
+        "countermeasures.incoming object=%d threat=%d type=%d distance=%d range=%d",
+        view.object_index,
+        threat.object_index,
+        threat.object_type,
+        distance,
+        limit,
+    )
+    return threat
+
+
+def threat_range(view: CraftView) -> int:
+    """Return how close a homing shot other than a concussion missile comes
+    before the craft answers it."""
+    return THREAT_RANGE[tactics.skill_tier(view)]
+
+
+def _first_within(view: CraftView, reach: int) -> tuple[Threat, int, int] | None:
+    """Return the first homing shot in the engine's slot order closer than
+    reach, three times that for a concussion missile, with its distance and
+    that limit; None when none is."""
     for threat in view.threats:
         distance = geometry.distance(
             threat.x - view.x, threat.y - view.y, threat.z - view.z
@@ -72,31 +147,9 @@ def answer(view: CraftView, question: Question, decision: Decision) -> Decision:
         limit = reach * (
             CONCUSSION_RANGE_FACTOR if threat.object_type in _CONCUSSION_TYPES else 1
         )
-        if distance >= limit:
-            continue
-        launch = _calls_for_one(view, threat)
-        logger.debug(
-            "countermeasures.threat object=%d threat=%d type=%d distance=%d "
-            "range=%d kind=%d launch=%d",
-            view.object_index,
-            threat.object_index,
-            threat.object_type,
-            distance,
-            limit,
-            view.countermeasure,
-            int(launch),
-        )
-        if not launch:
-            return decision
-        actions = dataclasses.replace(decision.actions, countermeasure=True)
-        return dataclasses.replace(decision, actions=actions)
-    return decision
-
-
-def threat_range(view: CraftView) -> int:
-    """Return how close a homing shot other than a concussion missile comes
-    before the craft answers it."""
-    return THREAT_RANGE[tactics.skill_tier(view)]
+        if distance < limit:
+            return threat, distance, limit
+    return None
 
 
 def _calls_for_one(view: CraftView, threat: Threat) -> bool:

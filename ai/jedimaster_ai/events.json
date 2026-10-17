@@ -143,6 +143,11 @@
       "fields": ["object", "full_speed", "disabled"],
       "text": "Captured craft {object} holds still for good, as it cannot fly home: full speed {full_speed}, its systems off {disabled}"
     },
+    "countermeasures.incoming": {
+      "level": "D",
+      "fields": ["object", "threat", "type", "distance", "range"],
+      "text": "Homing shot {threat} (object type {type}) is {distance} units from craft {object}, inside its swerve range of {range}: the first such shot aimed at it, the one a weaving behavior weaves from"
+    },
     "countermeasures.threat": {
       "level": "D",
       "fields": ["object", "threat", "type", "distance", "range", "kind", "launch"],

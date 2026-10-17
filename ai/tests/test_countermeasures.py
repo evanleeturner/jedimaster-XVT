@@ -216,3 +216,100 @@ def test_a_craft_going_home_answers_too(fighter, me, caplog) -> None:
     )
     answered = re.search(r"think\.answer object=4 actions=(\d+) ", caplog.text)
     assert int(answered.group(1)) & 1 << 13
+
+
+# The swerve: which homing shot a craft weaves from (``incoming``).
+
+TIER_1 = {"skill": 0x8000}
+
+
+def incoming(view, own):
+    return countermeasures.incoming(view, Question(1000, (view,), (own,)))
+
+
+@pytest.mark.parametrize(
+    ("changes", "reach"),
+    [
+        (TIER_1, 4096),
+        ({"skill": 0xC000}, 6144),
+        ({"skill": 0xFFFF, "skill_level": 6}, 8192),
+        ({"skill": 0xFFFF, "skill_level": 7}, 8192),
+    ],
+    ids=[1, 2, "apprentice", "lord"],
+)
+def test_a_shot_inside_the_swerve_range_is_swerved_from(
+    fighter, me, changes, reach
+) -> None:
+    """Tiers 1 and 2 swerve from their launch range; both Sith ranks from
+    the Apprentice's 8,192, the Lord nearer than his launch range of
+    10,240."""
+    found = incoming(fighter((20, TORPEDO, reach - 1, False), **changes), me())
+    assert found.object_index == 20
+    assert incoming(fighter((20, TORPEDO, reach, False), **changes), me()) is None
+
+
+@pytest.mark.parametrize("shot", [TORPEDO, MISSILE, ADVANCED_MISSILE])
+def test_a_rookie_never_swerves(fighter, me, shot) -> None:
+    assert incoming(fighter((20, shot, 1, False)), me()) is None
+
+
+@pytest.mark.parametrize("missile", [MISSILE, ADVANCED_MISSILE])
+def test_a_concussion_missile_is_swerved_from_three_times_as_far(
+    fighter, me, missile
+) -> None:
+    far = 3 * 4096 - 1
+    assert incoming(fighter((20, missile, far, False), **TIER_1), me()) is not None
+    assert incoming(fighter((20, missile, far + 1, False), **TIER_1), me()) is None
+    assert incoming(fighter((20, TORPEDO, far, False), **TIER_1), me()) is None
+
+
+def test_the_swerve_distance_counts_every_axis(fighter, me) -> None:
+    # 4,123 units away, then 4,050: only the second is inside tier 1's 4,096.
+    far = fighter((20, TORPEDO, 2000, False, 2000, 3000), **TIER_1)
+    near = fighter((20, TORPEDO, 2000, False, 2000, 2900), **TIER_1)
+    assert incoming(far, me()) is None
+    assert incoming(near, me()) is not None
+
+
+@pytest.mark.parametrize("genus", [0, 1, 2])
+def test_a_starfighter_transport_or_utility_craft_swerves(fighter, me, genus) -> None:
+    assert incoming(fighter((20, TORPEDO, 500, False), **TIER_1), me(genus))
+
+
+@pytest.mark.parametrize("genus", [3, 4, 5])
+def test_a_freighter_starship_or_platform_never_swerves(fighter, me, genus) -> None:
+    assert incoming(fighter((20, TORPEDO, 500, False), **TIER_1), me(genus)) is None
+
+
+def test_a_craft_missing_from_the_contacts_never_swerves(fighter, contact) -> None:
+    stranger = contact(object_index=ME + 1, genus=0)
+    assert incoming(fighter((20, TORPEDO, 500, False), **TIER_1), stranger) is None
+
+
+def test_the_first_shot_within_range_is_swerved_from(fighter, me) -> None:
+    """The engine's slot order, as the countermeasures weigh: a shot out of
+    range is passed over, and of two inside the first is named, though the
+    second is nearer."""
+    view = fighter(
+        (20, TORPEDO, 9000, False),
+        (21, TORPEDO, 3000, False),
+        (22, TORPEDO, 500, False),
+        **TIER_1,
+    )
+    assert incoming(view, me()).object_index == 21
+
+
+def test_a_decoyed_shot_is_still_swerved_from(fighter, me) -> None:
+    assert incoming(fighter((20, TORPEDO, 500, True), **TIER_1), me()) is not None
+
+
+def test_no_shot_is_no_swerve(fighter, me) -> None:
+    assert incoming(fighter(**TIER_1), me()) is None
+
+
+def test_the_swerve_is_logged(fighter, me, caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    incoming(fighter((20, MISSILE, 5000, False), **TIER_1), me())
+    assert (
+        "countermeasures.incoming object=4 threat=20 type=144 distance=5000 range=12288"
+    ) in caplog.messages
