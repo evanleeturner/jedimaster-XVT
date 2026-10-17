@@ -319,6 +319,21 @@ static void check_follower(void)
 	XVT_ASSERT_INT_EQ(follower->ai_flight.depart_timer_flag, 0);
 }
 
+/* A craft that may jump loses the bit when every one of its systems is dead,
+ * since it could not leave (it would stall at speed 0 and try again at every
+ * think), and has it again once one system works. */
+static void check_may_jump_needs_a_system(void)
+{
+	fresh_world();
+	struct craft_data *craft = make_craft(1, TEST_GROUP);
+	craft->working_subsystems = (uint16_t)~0u;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+	craft->working_subsystems = 0;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+	craft->working_subsystems = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+}
+
 /* Sets the craft in slot so that abort trigger trigger just holds, or just
  * does not: all systems working, hull 100, shields 400 and 400, one launcher
  * with one warhead left, unless the trigger's own test is set across its
@@ -507,13 +522,15 @@ static void check_skip_and_orders(void)
 
 /* The view's order fields and way home: codes and states of the four slots,
  * the current order's throttle as a craft throttle, variables and speed; may
- * jump only for an active craft with a hyperdrive whose group leaves by
- * hyperspace; by mothership for its group's departure method, or a captured
- * craft's; and mission point 13 times 256 with y negated. */
+ * jump only for an active craft with a working system and a hyperdrive whose
+ * group leaves by hyperspace; by mothership for its group's departure
+ * method, or a captured craft's; and mission point 13 times 256 with y
+ * negated. */
 static void check_view_orders_and_home(void)
 {
 	fresh_world();
 	struct craft_data *craft = make_craft(1, TEST_GROUP);
+	craft->working_subsystems = (uint16_t)~0u;
 	struct mission_flight_group *group =
 		&g_mission_flight_groups[TEST_GROUP];
 	group->fg.orders[0].order = 1;
@@ -937,6 +954,7 @@ static void check_mothership_gone(void)
 {
 	fresh_world();
 	struct craft_data *craft = make_craft(1, TEST_GROUP);
+	craft->working_subsystems = (uint16_t)~0u;
 	struct mission_flight_group *group =
 		&g_mission_flight_groups[TEST_GROUP];
 	group->fg.departure_method = 1;
@@ -1258,6 +1276,7 @@ static void check_jump_and_replay(void)
 	fresh_world();
 	memset(&g_program, 0, sizeof g_program);
 	struct craft_data *craft = make_craft(1, TEST_GROUP);
+	craft->working_subsystems = (uint16_t)~0u;
 	craft->model_index = NO_JUMP_MODEL;
 	ai_brain_set_exchange(fake_program);
 	program_sends(2, steer_depart, sizeof steer_depart);
@@ -1830,6 +1849,7 @@ int main(void)
 	check_static_is_target();
 	check_full_speed();
 	check_mothership_gone();
+	check_may_jump_needs_a_system();
 	check_all_launched();
 	check_board_point_heights();
 	check_board_point_orders();

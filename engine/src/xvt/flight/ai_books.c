@@ -1200,8 +1200,8 @@ static void books_view_home(uint16_t object_index,
 		view->inside_hangar[axis] = 0;
 		view->home_point[axis] = 0;
 	}
-	int may_jump =
-		active && g_model_defs[craft->model_index].has_hyperdrive != 0;
+	int may_jump = active && craft->working_subsystems != 0 &&
+		       g_model_defs[craft->model_index].has_hyperdrive != 0;
 	if (books_by_mothership(object_index)) {
 		books |= AI_WIRE_BOOKS_BY_MOTHERSHIP;
 		may_jump = may_jump && mothership == UINT16_MAX &&

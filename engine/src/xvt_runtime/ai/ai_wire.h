@@ -334,9 +334,9 @@ enum ai_wire_books {
 	AI_WIRE_BOOKS_SKIP_DUE = 0x008,
 	/* It skipped to order 4. */
 	AI_WIRE_BOOKS_SKIPPED = 0x010,
-	/* It may depart: it is active, its model has a hyperdrive and its
-	 * group leaves by hyperspace, or by a mothership that is gone with
-	 * none of its groups still to arrive. */
+	/* It may depart: it is active with a working system, its model has a
+	 * hyperdrive and its group leaves by hyperspace, or by a mothership
+	 * that is gone with none of its groups still to arrive. */
 	AI_WIRE_BOOKS_MAY_JUMP = 0x020,
 	/* It may dock: it is active and within 512 world units of its
 	 * mothership's inside hangar point by rough distance, 1,024 for a

@@ -151,9 +151,9 @@ class Books(enum.IntFlag):
     - DEPARTURE_DUE: its group's departure came and the delay has passed
     - SKIP_DUE: its group's skip-to-order-4 trigger holds
     - SKIPPED: it skipped to order 4
-    - MAY_JUMP: it may depart: active, with a hyperdrive, its group leaving
-      by hyperspace, or by a mothership that is gone with none of its
-      groups still to arrive
+    - MAY_JUMP: it may depart: active with a working system, with a
+      hyperdrive, its group leaving by hyperspace, or by a mothership that
+      is gone with none of its groups still to arrive
     - AT_HANGAR: it may dock: active, within 512 world units of its
       mothership's inside hangar point (1,024 for a starship)
     - BY_MOTHERSHIP: its group leaves by mothership, not by hyperspace
