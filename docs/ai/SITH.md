@@ -75,6 +75,7 @@ each row.
 | Aims ahead of its target by | the whole lead | the whole lead | the whole lead, along the target's turn, corrected by its tracers |
 | Keeps a target this long before it checks for a nearer one | 1 second | 0.5 seconds | 0.26 seconds |
 | Drops chaff or a flare at a homing warhead from | 0.15 km | 0.20 km | 0.25 km |
+| Swerves from a homing warhead from | 0.15 km | 0.20 km | 0.20 km |
 | Slows to one third throttle on a fighter's tail | no | yes | yes |
 | Turns by the rule your own craft turns by | no | yes | yes |
 | Changes speed at once | no | no | yes |
@@ -203,7 +204,10 @@ answers concussion missiles from 3 times as far: 0.45, 0.60 and 0.75 km
 (`ai/jedimaster_ai/behaviors/countermeasures.py`).
 
 When an enemy is on its tail, a craft weaves: it swerves from side to
-side, at most 3 times, to shake the enemy off. From Ace up, Sith included,
+side, at most 3 times, to shake the enemy off. A homing warhead coming at
+it sets off the same weave: a Jedi swerves from 0.15 km, a Sith Apprentice
+and a Sith Lord from 0.20 km, and each from 3 times as far for a concussion
+missile. From Ace up, Sith included,
 a craft that carries flares may drop one at its second and third swerve, 1
 time in 4 (`ai/jedimaster_ai/weave.py`). While it weaves, a Jedi or a Sith
 craft moves all its shield recharge power to its engines and gains an
@@ -226,9 +230,6 @@ not at all:
 - **Sith in network battles.** The setting works in single-player battles
   only.
 - **Tougher craft.** Only if test battles show Sith Lords die too easily.
-- **Swerving away from a homing warhead.** No computer pilot does this yet,
-  at any level
-  ([#313](https://github.com/evanleeturner/jedimaster-XVT/issues/313)).
 
 ## Where to check
 
