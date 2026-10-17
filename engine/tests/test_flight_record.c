@@ -511,13 +511,13 @@ static void check_tracer_written_once(void)
 	xvt_log_set_level(AERON_LOG_DEBUG);
 	age_tracers(16);
 	g_line_count = 0;
-	xvt_flight_record_tracers(32);
+	xvt_flight_record_tracers(32, 16);
 	XVT_ASSERT_INT_EQ(g_line_count, 0);
 	/* Fifteen ticks old is still the first beat; sixteen is not. */
 	build_tracers();
 	age_tracers(15 - 3);
 	g_line_count = 0;
-	xvt_flight_record_tracers(32);
+	xvt_flight_record_tracers(32, 16);
 	XVT_ASSERT_INT_EQ(g_line_count, 1);
 	check_line(0, "world.tracer_track tick=32 object=4 source=0 player=-1 "
 		      "type=137 x=4000 y=-8000 z=120 yaw=1024 pitch=128 "
@@ -533,27 +533,61 @@ static void check_tracers_need_a_living_lord(void)
 	build_tracers();
 	g_tr_craft[0].ai_rank = 6;
 	g_line_count = 0;
-	xvt_flight_record_tracers(16);
+	xvt_flight_record_tracers(16, 16);
 	XVT_ASSERT_INT_EQ(g_line_count, 0);
 	build_tracers();
 	g_tr_craft[0].object_kind = CRAFT_OBJECT_KIND_BREAKING_UP;
-	xvt_flight_record_tracers(16);
+	xvt_flight_record_tracers(16, 16);
 	g_tr_craft[0].object_kind = CRAFT_OBJECT_KIND_EXPLODING;
-	xvt_flight_record_tracers(16);
+	xvt_flight_record_tracers(16, 16);
 	XVT_ASSERT_INT_EQ(g_line_count, 0);
 	build_tracers();
 	g_tr_objects[0].object_type = 0;
-	xvt_flight_record_tracers(16);
+	xvt_flight_record_tracers(16, 16);
 	XVT_ASSERT_INT_EQ(g_line_count, 0);
 	build_tracers();
 	g_active_region_craft_object_slot_end = 0;
-	xvt_flight_record_tracers(16);
+	xvt_flight_record_tracers(16, 16);
 	XVT_ASSERT_INT_EQ(g_line_count, 0);
 	build_tracers();
 	xvt_log_set_level(AERON_LOG_INFO);
-	xvt_flight_record_tracers(16);
+	xvt_flight_record_tracers(16, 16);
 	xvt_flight_record_warhead_beat(8, 16);
 	XVT_ASSERT_INT_EQ(g_line_count, 0);
+}
+
+/* A slow frame steps many ticks at once: a beat 63 ticks after the last
+ * writes every tracer born since that beat, the bolt 40 ticks old too (a
+ * window of 16 missed it), and the next beat writes none of them again; and
+ * beats 20 ticks apart take 20 ticks of bolts. */
+static void check_tracer_window_follows_the_step(void)
+{
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	build_tracers();
+	xvt_flight_record_warhead_beat(8, 16);
+	g_line_count = 0;
+	xvt_flight_record_warhead_beat(16, 79);
+	XVT_ASSERT_INT_EQ(g_line_count, 4);
+	check_line(3, "world.tracer_track tick=79 object=10 source=0 player=-1 "
+		      "type=137 x=10000 y=-20000 z=300 yaw=2560 pitch=320 "
+		      "speed=3010 age=40");
+	age_tracers(16);
+	g_line_count = 0;
+	xvt_flight_record_warhead_beat(79, 95);
+	/* Only the torpedo's warhead line. */
+	XVT_ASSERT_INT_EQ(g_line_count, 1);
+	/* Beats need not fall 16 ticks apart: one 20 ticks after the last
+	 * writes a bolt born 18 ticks before it. */
+	build_tracers();
+	xvt_flight_record_warhead_beat(12, 17);
+	g_tr_mobiles[10].lifetime_timer =
+		(uint16_t)(laser_get_projectile_lifetime_ticks(137) - 18);
+	g_line_count = 0;
+	xvt_flight_record_warhead_beat(31, 37);
+	XVT_ASSERT_INT_EQ(g_line_count, 4);
+	check_line(3, "world.tracer_track tick=37 object=10 source=0 player=-1 "
+		      "type=137 x=10000 y=-20000 z=300 yaw=2560 pitch=320 "
+		      "speed=3010 age=18");
 }
 
 int main(void)
@@ -570,5 +604,6 @@ int main(void)
 	check_tracer_lines();
 	check_tracer_written_once();
 	check_tracers_need_a_living_lord();
+	check_tracer_window_follows_the_step();
 	return 0;
 }

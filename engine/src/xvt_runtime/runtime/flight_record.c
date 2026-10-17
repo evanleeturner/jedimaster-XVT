@@ -140,7 +140,7 @@ static int xvt_flight_record_tracer_firer(int slot, int *lord)
 	return g_object_table[slot].player_owner_idx;
 }
 
-void xvt_flight_record_tracers(int tick)
+void xvt_flight_record_tracers(int tick, int window)
 {
 	if (!xvt_log_enabled(AERON_LOG_DEBUG) || !ai_tracer_lord_alive()) {
 		return;
@@ -158,8 +158,7 @@ void xvt_flight_record_tracers(int tick)
 		int life = laser_get_projectile_lifetime_ticks(
 			object->object_type);
 		int age = life - (int)mobj->lifetime_timer;
-		if ((!lord && player < 0) || age < 0 ||
-		    age >= XVT_WARHEAD_TRACK_TICKS) {
+		if ((!lord && player < 0) || age < 0 || age >= window) {
 			continue;
 		}
 		XVT_LOG_DEBUG(
@@ -181,13 +180,26 @@ static int xvt_flight_record_crossed(int from_tick, int to_tick, int beat)
 	       from_tick / beat != to_tick / beat;
 }
 
+/* The tick of the last warhead beat, so the next beat's tracer lines take the
+ * bolts born since it; -1 before the first. */
+static int g_last_warhead_beat_tick = -1;
+
 void xvt_flight_record_warhead_beat(int from_tick, int to_tick)
 {
-	if (xvt_flight_record_crossed(from_tick, to_tick,
-				      XVT_WARHEAD_TRACK_TICKS)) {
-		xvt_flight_record_warheads(to_tick);
-		xvt_flight_record_tracers(to_tick);
+	if (!xvt_flight_record_crossed(from_tick, to_tick,
+				       XVT_WARHEAD_TRACK_TICKS)) {
+		return;
 	}
+	int since = g_last_warhead_beat_tick;
+	if (since < 0 || since >= to_tick) {
+		since = to_tick - XVT_WARHEAD_TRACK_TICKS;
+	}
+	if (since > from_tick) {
+		since = from_tick;
+	}
+	g_last_warhead_beat_tick = to_tick;
+	xvt_flight_record_warheads(to_tick);
+	xvt_flight_record_tracers(to_tick, to_tick - since);
 }
 
 void xvt_flight_record_step(int from_tick, int to_tick)
