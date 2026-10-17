@@ -1,4 +1,5 @@
-"""Fence for cannons: the aim, the firing range, the link mode and the ion hold.
+"""Fence for cannons: the aim, the lead by skill, the firing range, the link
+mode and the ion hold.
 
 The craft flies at the origin facing +y (yaw 0), level, at tier 2 unless a
 test says otherwise; its target is a contact flying the same way.
@@ -224,3 +225,258 @@ def test_a_starships_reach_runs_to_its_hull_any_other_targets_to_its_position(
     aim = cannons.aim(craft(skill=0), ship, 0)
     assert (aim.reach, aim.lined_up) == (reach, lined_up)
     assert (aim.yaw, aim.off_nose) == (0, 0)
+
+
+# The predicted flight and the meeting point (``predict``, ``meet``): the
+# craft flies at the origin facing +y at speed 300; the target, a type 8's
+# size and speed, sits 0x4000 ahead.
+CRAFT_SPEED = 300
+TARGET_SPEED = 300
+# A turn record of a full turn's quarter over 59 ticks: a full turn in 236
+# ticks, one simulated second.
+QUARTER_TURN_TICKS = 59
+
+
+@pytest.fixture
+def mover(foe):
+    def make(**changes):
+        moving = {
+            "x": 0,
+            "y": 0x4000,
+            "z": 0,
+            "yaw": 0x4000,
+            "pitch": LEVEL,
+            "speed": TARGET_SPEED,
+            "size": 400,
+        }
+        return foe(**(moving | changes))
+
+    return make
+
+
+def shot_ticks(reach: int, craft_speed: int = CRAFT_SPEED) -> int:
+    """Return the ticks a rebel laser shot takes to fly a reach from its
+    cannon: placed 921 ahead, then at its speed and the craft's."""
+    pace = cannons.pace(2000 + craft_speed)
+    return (reach - 921) * cannons.SIMULATED_SECOND_TICKS // pace
+
+
+def test_a_target_at_rest_is_met_at_its_position(craft, mover) -> None:
+    meeting = cannons.meet(craft(speed=CRAFT_SPEED), mover(speed=0), REBEL_LASER)
+    assert (meeting.dx, meeting.dy, meeting.dz) == (0, 0x4000, 0)
+    assert meeting.ticks == shot_ticks(0x4000)
+
+
+def test_a_target_flying_straight_is_met_on_its_line(craft, mover) -> None:
+    meeting = cannons.meet(craft(speed=CRAFT_SPEED), mover(), REBEL_LASER)
+    # Crossing along +x, level: it is met ahead of where it is, on its line.
+    assert meeting.dx > 0
+    assert (meeting.dy, meeting.dz) == (0x4000, 0)
+    reach = geometry.distance(meeting.dx, meeting.dy, meeting.dz)
+    assert meeting.ticks == shot_ticks(reach)
+    assert meeting.dx == cannons.predict(mover(), meeting.ticks)[0]
+
+
+def test_a_turning_target_is_met_round_its_curve(craft, mover) -> None:
+    straight = cannons.meet(craft(speed=CRAFT_SPEED), mover(), REBEL_LASER)
+    target = mover(yaw_turned=0x4000, turn_ticks=QUARTER_TURN_TICKS)
+    meeting = cannons.meet(craft(speed=CRAFT_SPEED), target, REBEL_LASER, True)
+    # Turning right off +x swings it toward -y, nearer the craft, and it
+    # covers less of +x than flying straight.
+    assert meeting.dy < straight.dy
+    assert meeting.dx < straight.dx
+    assert (meeting.dx, meeting.dy, meeting.dz) == cannons.predict(
+        target, meeting.ticks
+    )
+    reach = geometry.distance(meeting.dx, meeting.dy, meeting.dz)
+    assert meeting.ticks == shot_ticks(reach)
+
+
+def test_a_left_turn_mirrors_a_right(craft, mover) -> None:
+    right = cannons.meet(
+        craft(speed=CRAFT_SPEED),
+        mover(yaw=0x4000, yaw_turned=0x2000, turn_ticks=QUARTER_TURN_TICKS),
+        REBEL_LASER,
+        True,
+    )
+    left = cannons.meet(
+        craft(speed=CRAFT_SPEED),
+        mover(yaw=0xC000, yaw_turned=-0x2000, turn_ticks=QUARTER_TURN_TICKS),
+        REBEL_LASER,
+        True,
+    )
+    assert (left.dx, left.dy, left.dz, left.ticks) == (
+        -right.dx,
+        right.dy,
+        right.dz,
+        right.ticks,
+    )
+
+
+def test_a_steady_full_turn_comes_round_to_its_start(mover) -> None:
+    target = mover(yaw=0, yaw_turned=0x4000, turn_ticks=QUARTER_TURN_TICKS)
+    circle = cannons.pace(TARGET_SPEED)
+    x, y, z = cannons.predict(target, cannons.SIMULATED_SECOND_TICKS)
+    assert geometry.distance(x - target.x, y - target.y, z - target.z) < circle // 100
+    # Half way round, a right turn off +y has carried it a diameter to +x.
+    x, y, _ = cannons.predict(target, cannons.SIMULATED_SECOND_TICKS // 2)
+    assert abs(x - round(circle / math.pi)) < circle // 100
+    assert abs(y - target.y) < circle // 100
+
+
+def test_a_climb_is_followed_as_a_turn_is(mover) -> None:
+    target = mover(yaw=0, pitch_turned=-0x4000, turn_ticks=QUARTER_TURN_TICKS)
+    _, y, z = cannons.predict(target, cannons.SIMULATED_SECOND_TICKS // 4)
+    # A quarter of a loop up off level flight along +y: as far up as ahead.
+    assert z > 0
+    assert abs(z - (y - target.y)) < cannons.pace(TARGET_SPEED) // 100
+
+
+def test_with_no_turn_record_the_heading_holds(mover) -> None:
+    target = mover(yaw_turned=0x1000, pitch_turned=0x100, speed_changed=50)
+    assert cannons.heading_at(target, 100) == (0x4000, LEVEL, TARGET_SPEED)
+
+
+@pytest.mark.parametrize(
+    ("changed", "speed"), [(-0x4000, 0), (0x4000, cannons.PREDICTED_SPEED_MAX)]
+)
+def test_a_predicted_speed_stays_within_0_and_the_fastest(
+    mover, changed, speed
+) -> None:
+    target = mover(speed_changed=changed, turn_ticks=1)
+    assert cannons.heading_at(target, 1000)[2] == speed
+
+
+def test_a_speed_change_is_shared_over_its_ticks(mover) -> None:
+    target = mover(speed_changed=-30, turn_ticks=10)
+    assert cannons.heading_at(target, 5)[2] == TARGET_SPEED - 15
+
+
+def test_the_plain_meeting_leaves_the_turn_out(craft, mover) -> None:
+    me = craft(speed=CRAFT_SPEED)
+    turning = mover(
+        yaw_turned=0x4000, pitch_turned=0x100, speed_changed=40, turn_ticks=59
+    )
+    assert cannons.meet(me, turning, REBEL_LASER) == cannons.meet(
+        me, mover(), REBEL_LASER
+    )
+    assert cannons.meet(me, turning, REBEL_LASER, True) != cannons.meet(
+        me, mover(), REBEL_LASER
+    )
+
+
+def test_a_meeting_past_a_shots_life_is_still_given_and_no_shot_has_none(
+    craft, mover
+) -> None:
+    # The firing range, unchanged, answers for a shot that cannot get there.
+    me = craft(speed=CRAFT_SPEED)
+    far = cannons.bolt_reach(me, REBEL_LASER) + 1000
+    meeting = cannons.meet(me, mover(speed=0, y=far), REBEL_LASER)
+    assert (meeting.dx, meeting.dy, meeting.dz) == (0, far, 0)
+    assert cannons.meet(me, mover(), 56) is None
+
+
+# The lead by skill (``aim``, ``lead``; AI rulings 228-231): a fighter at
+# tier 2 with one group of rebel lasers, its target crossing 0x4000 ahead,
+# or flying up and across for a lead on every axis.
+JEDI = 5
+# Off the craft's line on every axis, so a share of the offset and a share
+# of the meeting point differ.
+CLIMBING = {"x": 3000, "z": -1000, "yaw": 0x2000, "pitch": 0x3000}
+
+
+@pytest.fixture
+def pilot(craft):
+    def make(level, **changes):
+        mine = {
+            "speed": CRAFT_SPEED,
+            "cannon_type": (REBEL_LASER, 0),
+            "skill_level": level,
+        }
+        return craft(**(mine | changes))
+
+    return make
+
+
+def test_at_level_0_the_cannons_point_at_the_target(pilot, mover) -> None:
+    me, target = pilot(0, yaw=0x0100), mover(**CLIMBING)
+    yaw, pitch = geometry.bearing(target.x, target.y, target.z)
+    reach = geometry.distance(target.x, target.y, target.z)
+    lined_up = (
+        geometry.angle_between(yaw, me.yaw) < cannons.AIM_CONE[2]
+        and geometry.angle_between(pitch, me.pitch) < cannons.AIM_CONE[2]
+        and reach < cannons.fire_range(me, target, 2)
+    )
+    assert cannons.aim(me, target, 2) == cannons.Aim(
+        reach, yaw, pitch, geometry.angle_between(yaw, me.yaw), lined_up
+    )
+    assert cannons.lead(me, target) == (target.x, target.y, target.z)
+
+
+@pytest.mark.parametrize("level", [1, 2, 3, 4, 5])
+def test_each_level_leads_a_fifth_more(pilot, mover, level) -> None:
+    target = mover(**CLIMBING)
+    meeting = cannons.meet(pilot(level), target, REBEL_LASER)
+    whole = (meeting.dx - target.x, meeting.dy - target.y, meeting.dz - target.z)
+    # Up and across, ahead of it is +x, +y and +z alike: positive shares.
+    assert min(whole) > 0
+    assert cannons.lead(pilot(level), target) == (
+        target.x + whole[0] * level // 5,
+        target.y + whole[1] * level // 5,
+        target.z + whole[2] * level // 5,
+    )
+
+
+@pytest.mark.parametrize("level", [6, 7, 9])
+def test_from_the_jedi_up_the_plain_lead_is_whole(pilot, mover, level) -> None:
+    target = mover(**CLIMBING)
+    assert cannons.lead(pilot(level), target) == cannons.lead(pilot(JEDI), target)
+
+
+def test_a_target_at_rest_and_a_craft_with_no_known_shot_are_not_led(
+    pilot, mover
+) -> None:
+    still = mover(speed=0)
+    assert cannons.lead(pilot(JEDI), still) == (still.x, still.y, still.z)
+    target = mover()
+    unknown = pilot(JEDI, cannon_type=(56, 0))
+    assert cannons.lead(unknown, target) == (target.x, target.y, target.z)
+
+
+def test_the_cone_is_measured_to_the_lead(pilot, mover) -> None:
+    target = mover()
+    at_it = cannons.aim(pilot(JEDI), target, 2)
+    # Its nose on the target's position, the lead lies outside its cone.
+    assert at_it.off_nose == 0
+    assert not at_it.lined_up
+    on_lead = cannons.aim(pilot(JEDI, yaw=at_it.yaw, pitch=at_it.pitch), target, 2)
+    assert on_lead.lined_up
+    assert on_lead.off_nose == geometry.angle_between(0, at_it.yaw)
+
+
+@pytest.mark.parametrize("off", ["yaw", "pitch"])
+def test_off_the_lead_in_yaw_or_pitch_holds_fire(pilot, mover, off) -> None:
+    target = mover()
+    lead = cannons.aim(pilot(JEDI), target, 2)
+    nose = {"yaw": lead.yaw, "pitch": lead.pitch}
+    nose[off] += 2 * cannons.AIM_CONE[2]
+    assert not cannons.aim(pilot(JEDI, **nose), target, 2).lined_up
+
+
+def test_the_lead_leaves_the_firing_range_as_it_was(pilot, mover) -> None:
+    # Fast and across: 0x2000 off the range, 32,768, as before.
+    target = mover(y=34000)
+    lead = cannons.aim(pilot(JEDI), target, 2)
+    aimed = cannons.aim(pilot(JEDI, yaw=lead.yaw, pitch=lead.pitch), target, 2)
+    assert cannons.fire_range(pilot(JEDI), target, 2) == 0x8000
+    assert not aimed.lined_up
+
+
+def test_a_disabling_craft_leads_with_its_ion_shot(pilot, mover) -> None:
+    me = pilot(JEDI, cannon_type=(REBEL_LASER, ION_CANNON), cannon_group_count=2)
+    target = mover()
+    ion = cannons.meet(me, target, ION_CANNON)
+    assert cannons.lead(me, target, disabling=True) == (ion.dx, ion.dy, ion.dz)
+    laser = cannons.meet(me, target, REBEL_LASER)
+    assert cannons.lead(me, target) == (laser.dx, laser.dy, laser.dz)
+    assert ion.dx > laser.dx

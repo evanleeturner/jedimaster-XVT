@@ -292,7 +292,7 @@ def fight(
     if target is None:
         return _seek(view, question, book, memory, interval, cruising)
 
-    aim = cannons.aim(view, target, tier)
+    aim = cannons.aim(view, target, tier, disabling)
     keep = hull.keep(target)
     if aim.reach < keep and (aim.off_nose < BREAK_CONE or tactics.is_bulky(target)):
         held_yaw, held_pitch, blocked, state = _break_course(

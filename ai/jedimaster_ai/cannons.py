@@ -13,11 +13,23 @@ Purpose:
     every other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
     ``behaviors.kamikaze`` fire by these rules.
 
+    Where the cannons point (``aim``): ahead of the target by the craft's
+    share of the lead (``lead``, AI rulings 228-231), where a shot fired now
+    meets it flying straight on at its speed (``meet``); none at skill level
+    0, which points at the target's position, a fifth more each level, the
+    whole lead from the Jedi level up. The cone is measured to that point,
+    the range to the target as before. Where a target will be (``predict``)
+    as its contact's turn record shows it turning and speeding up, and the
+    meeting on that path: the Sith Lord's lead (``lord.aim``).
+
 Invariants:
     - It fires only the cannon groups the view counts.
     - Ion cannons fire only for a craft disabling its target, and there no
       other cannon does.
     - Pure: the answer depends only on the view, the target and the tier.
+    - At skill level 0 the cannons point at the target's position, the
+      1997 pilot's aim, bit for bit.
+    - Integers only, as ``geometry``, so every machine predicts alike.
 """
 
 from __future__ import annotations
@@ -27,6 +39,7 @@ import dataclasses
 from . import geometry
 from . import hull
 from . import tactics
+from .world import ARRIVAL_SPEED_MAX
 from .world import CANNON_GROUPS
 from .world import CannonGroup
 from .world import Contact
@@ -80,40 +93,110 @@ _CANNON_SHOTS = {
 # simulated second, 236 ticks (object/object.c).
 SPEED_TO_WORLD_SCALE = 4660
 SIMULATED_SECOND_TICKS = 236
+# A target's predicted flight (``predict``) is stepped this many ticks at a
+# time, each step on its middle heading, and a shot's time to meet it found
+# in this many passes (``meet``). Starting values: a tuning harness and a
+# flight set them (AI ruling 224).
+PREDICT_STEP_TICKS = 8
+LEAD_PASSES = 4
+# A predicted speed stays between 0 and the fastest any craft flies, the speed
+# out of hyperspace.
+PREDICTED_SPEED_MAX = ARRIVAL_SPEED_MAX
+# The share of the whole lead a craft's cannons point ahead, in fifths, by
+# skill level 0 to 7 (AI rulings 229 and 231): Rookie none, Officer to Top
+# Ace a fifth more each, Jedi and Sith Apprentice the whole; the Sith Lord's
+# whole lead follows the target's turn (``lord.aim``).
+LEAD_FIFTHS = (0, 1, 2, 3, 4, 5, 5, 5)
+FIFTHS = 5
+
+
+@dataclasses.dataclass(frozen=True)
+class Meeting:
+    """Where a cannon shot fired now meets a target: the point's offset from
+    the craft in world units, and the ticks the shot takes to it."""
+
+    dx: int
+    dy: int
+    dz: int
+    ticks: int
 
 
 @dataclasses.dataclass(frozen=True)
 class Aim:
-    """Where a target lies from a craft, and whether its cannons are lined
-    up on it."""
+    """Where a target lies from a craft, where its cannons point, and
+    whether they are lined up."""
 
     # How far the target is: from its hull for a starship or platform.
     reach: int
+    # The heading the cannons point along: at the lead (``lead``).
     yaw: int
     pitch: int
-    # How far the target's bearing lies from the craft's heading, in yaw.
+    # How far the target's own bearing lies from the craft's heading, in yaw.
     off_nose: int
     lined_up: bool
 
 
-def aim(view: CraftView, target: Contact, tier: int) -> Aim:
+def aim(view: CraftView, target: Contact, tier: int, disabling: bool = False) -> Aim:
     """Return how far the target lies (``hull.nearest``), the yaw and pitch
-    that point at its position, how far that yaw lies off the craft's nose,
-    and whether the cannons are lined up: the target inside the aim cone in
-    yaw and in pitch alike, and nearer than the firing range
-    (``fire_range``). A bolt aimed at a big ship's position meets its hull
-    first."""
+    that point at the craft's lead (``lead``; ``disabling`` picks its ion
+    cannons' shot), how far the target's own bearing lies off the nose, and
+    whether the cannons are lined up there (``fires_at``). A bolt aimed at a
+    big ship's position meets its hull first."""
     dx, dy, dz = tactics.offset(view, target)
     reach = hull.nearest(view, target).distance
     yaw, pitch = geometry.bearing(dx, dy, dz)
     off_nose = geometry.angle_between(yaw, view.yaw)
-    off_level = geometry.angle_between(pitch, view.pitch)
-    lined_up = (
-        off_nose < AIM_CONE[tier]
-        and off_level < AIM_CONE[tier]
+    ahead = lead(view, target, disabling)
+    if ahead != (dx, dy, dz):
+        yaw, pitch = geometry.bearing(*ahead)
+    lined_up = fires_at(view, target, tier, reach, yaw, pitch)
+    return Aim(reach, yaw, pitch, off_nose, lined_up)
+
+
+def fires_at(
+    view: CraftView, target: Contact, tier: int, reach: int, yaw: int, pitch: int
+) -> bool:
+    """Return whether cannons pointing along yaw and pitch are lined up: that
+    heading inside the tier's aim cone of the nose in yaw and in pitch alike,
+    and the target nearer than the firing range (``fire_range``)."""
+    return (
+        geometry.angle_between(yaw, view.yaw) < AIM_CONE[tier]
+        and geometry.angle_between(pitch, view.pitch) < AIM_CONE[tier]
         and reach < fire_range(view, target, tier)
     )
-    return Aim(reach, yaw, pitch, off_nose, lined_up)
+
+
+def lead(
+    view: CraftView, target: Contact, disabling: bool = False
+) -> tuple[int, int, int]:
+    """Return the offset from the craft its cannons point at: the target's
+    position moved toward where a shot of its first firing group
+    (``firing_shot``) meets the target flying straight on (``meet``), by
+    LEAD_FIFTHS of its skill level, rounded toward 0. The position itself
+    at level 0 and for a craft with no known cannon shot."""
+    dx, dy, dz = tactics.offset(view, target)
+    fifths = LEAD_FIFTHS[min(view.skill_level, len(LEAD_FIFTHS) - 1)]
+    if fifths == 0:
+        return dx, dy, dz
+    meeting = meet(view, target, firing_shot(view, disabling))
+    if meeting is None:
+        return dx, dy, dz
+    return (
+        dx + _toward_zero((meeting.dx - dx) * fifths, FIFTHS),
+        dy + _toward_zero((meeting.dy - dy) * fifths, FIFTHS),
+        dz + _toward_zero((meeting.dz - dz) * fifths, FIFTHS),
+    )
+
+
+def firing_shot(view: CraftView, disabling: bool = False) -> int:
+    """Return the shot type of the first cannon group that fires: its ion
+    cannons alone when disabling, else every other group (``bursts``); 0,
+    no shot, when none does."""
+    for group in range(view.cannon_group_count):
+        kind = view.cannon_type[group]
+        if (kind == ION_CANNON) == disabling:
+            return kind
+    return 0
 
 
 def fire_range(view: CraftView, target: Contact, tier: int) -> int:
@@ -141,12 +224,100 @@ def bolt_reach(view: CraftView, shot_type: int) -> int | None:
     shot = _CANNON_SHOTS.get(shot_type)
     if shot is None:
         return None
-    speed, seconds, fraction, placed = shot
-    life = SIMULATED_SECOND_TICKS * seconds + (
+    speed, _, _, placed = shot
+    return placed + pace(speed + view.speed) * _life(shot) // SIMULATED_SECOND_TICKS
+
+
+def pace(speed: int) -> int:
+    """Return the world units a speed moves in a simulated second, by the
+    engine's motion rule."""
+    return (SPEED_TO_WORLD_SCALE * speed + 128) >> 8
+
+
+def _life(shot: tuple[int, int, int, int]) -> int:
+    """Return a cannon shot's life in ticks, from its whole seconds and
+    65,536ths of one."""
+    _, seconds, fraction, _ = shot
+    return SIMULATED_SECOND_TICKS * seconds + (
         (SIMULATED_SECOND_TICKS * fraction + 0x8000) >> 16
     )
-    per_second = (SPEED_TO_WORLD_SCALE * (speed + view.speed) + 128) >> 8
-    return placed + per_second * life // SIMULATED_SECOND_TICKS
+
+
+def heading_at(target: Contact, ticks: int) -> tuple[int, int, int]:
+    """Return the target's yaw, pitch and speed ticks on, turning and
+    speeding up at the rates its turn record shows: each change over its
+    ``turn_ticks``, rounded toward 0, so a left turn mirrors a right. With no
+    record it holds them; the speed stays within 0 and PREDICTED_SPEED_MAX."""
+    over = target.turn_ticks
+    if over == 0:
+        return target.yaw, target.pitch, target.speed
+    yaw = target.yaw + _toward_zero(target.yaw_turned * ticks, over)
+    pitch = target.pitch + _toward_zero(target.pitch_turned * ticks, over)
+    speed = target.speed + _toward_zero(target.speed_changed * ticks, over)
+    return (
+        yaw % geometry.TURN,
+        pitch % geometry.TURN,
+        min(max(speed, 0), PREDICTED_SPEED_MAX),
+    )
+
+
+def predict(target: Contact, ticks: int) -> tuple[int, int, int]:
+    """Return where the target will be ticks on: flown from its position at
+    its pace (``pace``), PREDICT_STEP_TICKS at a time, each step along the
+    heading at its middle (``heading_at``), so a target turning steadily is
+    followed round its curve and one flying straight goes straight on."""
+    scale = SIMULATED_SECOND_TICKS << 16
+    # With no turn record every step flies one heading: one step is the same.
+    stride = PREDICT_STEP_TICKS if target.turn_ticks else max(ticks, 1)
+    x = y = z = 0
+    done = 0
+    while done < ticks:
+        step = min(stride, ticks - done)
+        yaw, pitch, speed = heading_at(target, done + step // 2)
+        ux, uy, uz = geometry.forward(yaw, pitch)
+        moved = pace(speed) * step
+        x, y, z = x + ux * moved, y + uy * moved, z + uz * moved
+        done += step
+    return (
+        target.x + _toward_zero(x, scale),
+        target.y + _toward_zero(y, scale),
+        target.z + _toward_zero(z, scale),
+    )
+
+
+def _toward_zero(numerator: int, denominator: int) -> int:
+    """Return a quotient of a positive denominator rounded toward 0, so a
+    mirrored input gives the mirrored answer."""
+    quotient = abs(numerator) // denominator
+    return -quotient if numerator < 0 else quotient
+
+
+def meet(
+    view: CraftView, target: Contact, shot_type: int, turning: bool = False
+) -> Meeting | None:
+    """Return where a cannon shot of this type, fired now from the craft,
+    meets the target: flying straight on along its heading at its speed, or,
+    ``turning``, on its predicted flight (``predict``). LEAD_PASSES passes of
+    the ticks the shot takes to reach where the target will be then, from
+    where the shot is placed, at its speed and the craft's. None for a type
+    that is no cannon shot; the meeting may lie past the shot's life, which
+    the firing range answers for."""
+    shot = _CANNON_SHOTS.get(shot_type)
+    if shot is None:
+        return None
+    if not turning:
+        target = dataclasses.replace(
+            target, yaw_turned=0, pitch_turned=0, speed_changed=0, turn_ticks=0
+        )
+    speed, _, _, placed = shot
+    per_second = pace(speed + view.speed)
+    ticks = 0
+    for _ in range(LEAD_PASSES):
+        x, y, z = predict(target, ticks)
+        reach = geometry.distance(x - view.x, y - view.y, z - view.z)
+        ticks = max(reach - placed, 0) * SIMULATED_SECOND_TICKS // per_second
+    x, y, z = predict(target, ticks)
+    return Meeting(x - view.x, y - view.y, z - view.z, ticks)
 
 
 def bursts(
