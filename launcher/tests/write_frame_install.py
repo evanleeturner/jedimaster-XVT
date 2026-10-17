@@ -15,7 +15,12 @@ Purpose:
     image lists that name them: the base install's ``frontres/icons.lst``
     holds every sprite but the Campaign button's, the eighth light and the
     sixth button's lit pieces, which only Balance of Power's
-    ``frontres/side.lst`` holds (as in the game).
+    ``frontres/side.lst`` holds (as in the game). It also writes the
+    debriefing screen's art: the 32 backgrounds ``frontres/deb*.BMP``, the
+    ``frame``, ``alloff`` and ``regoverlay`` layers, the 44 tab, button and
+    badge sprites, three image lists that name them (Balance of Power's
+    ``top.lst`` holds a Leave picture of its own that wins over the base
+    ``top.lst``'s) and font 15.
 
 Flow:
     ``python tests/write_frame_install.py INSTALL`` writes the files into
@@ -24,8 +29,9 @@ Flow:
 
 Invariants:
     - No game data: everything is made up.
-    - Only the backgrounds, the Combat folder and the side sprites with
-      their lists are written; the caller's other files stay.
+    - Only the backgrounds, the Combat folder, the side sprites with their
+      lists and the debriefing art are written; the caller's other files
+      stay.
     - A sprite is 44 by 360 with index 0 everywhere but a block of index 1
       (its own color) at the place the 1997 screen draws that button or
       light.
@@ -44,9 +50,12 @@ from bmpdata import bmp
 from bmpdata import plain
 from bmpdata import ramp
 from listdata import crlf
+from textdata import font_bytes
 from textdata import write_files
 from write_briefing_install import mission_file
 
+from jedimaster.briefing.debrief import BACKGROUND_STEMS
+from jedimaster.briefing.debrief import SPRITE_NAMES
 from jedimaster.briefing.frame import BACKGROUNDS
 from jedimaster.briefing.side import SIDE_SPRITE_NAMES
 
@@ -117,6 +126,122 @@ def side_files() -> dict[str, bytes]:
     return files
 
 
+DEBRIEF_FIRST_COLOR = 60
+"""The palette index of the first debriefing background; the next ones follow."""
+LAYER_NAMES = ("frame", "alloff", "regoverlay")
+"""The three layers the lists name that the game draws over a background."""
+BADGE_SHAPE = {65: (6, [b"\x04\x00"] * 10), 66: (2, [b"\x01\x00"] * 10)}
+"""The glyph rows of the made-up font 15."""
+
+
+def small_bitmap(width: int, height: int, color: tuple[int, int, int]) -> bytes:
+    """Return a bitmap of palette index 1 (``color``) with index 0 at (0, 0)."""
+    rows = [bytearray((1,)) * width for _ in range(height)]
+    rows[0][0] = 0
+    palette = [ramp(i) for i in range(256)]
+    palette[1] = color
+    return bmp(
+        width, height, plain([bytes(r) for r in rows]), compression=0, palette=palette
+    )
+
+
+STRIP_PLACES = {
+    "debrief1": (22, 114, 20, 24),
+    "debrief2": (22, 142, 20, 24),
+    "debrief4": (22, 170, 20, 24),
+    "deb4": (22, 170, 20, 24),
+    "leave": (85, 447, 91, 24),
+}
+"""Where a drawn button's made-up picture sits: left, top, width, height."""
+
+
+def strip_bitmap(
+    left: int, top: int, width: int, height: int, color: tuple[int, int, int]
+) -> bytes:
+    """Return a strip from the screen's corner: index 0 but ``color`` at its place.
+
+    The game's button pictures are drawn from (0, 0) of the screen, so a
+    picture is as wide as its right edge and as tall as its bottom edge.
+    """
+    rows = [bytearray(left + width) for _ in range(top + height)]
+    for y in range(top, top + height):
+        rows[y][left : left + width] = bytes((1,)) * width
+    palette = [ramp(i) for i in range(256)]
+    palette[1] = color
+    return bmp(
+        left + width,
+        top + height,
+        plain([bytes(r) for r in rows]),
+        compression=0,
+        palette=palette,
+    )
+
+
+def debrief_sprite(name: str, color: tuple[int, int, int]) -> bytes:
+    """Return the made-up picture ``name``: a strip for a drawn button, else small."""
+    for stem, place in STRIP_PLACES.items():
+        if name.startswith(stem):
+            return strip_bitmap(*place, color)
+    return small_bitmap(91 if name.startswith("fly") else 20, 24, color)
+
+
+def layer_bitmap(left: int, top: int, color: tuple[int, int, int]) -> bytes:
+    """Return a 640 by 480 bitmap of index 0 with a 4 by 4 block of ``color`` at (left, top)."""
+    rows = [bytearray(640) for _ in range(480)]
+    for y in range(top, top + 4):
+        rows[y][left : left + 4] = bytes((1,)) * 4
+    palette = [ramp(i) for i in range(256)]
+    palette[1] = color
+    return bmp(
+        640, 480, plain([bytes(r) for r in rows]), compression=0, palette=palette
+    )
+
+
+def debrief_color(name: str) -> tuple[int, int, int]:
+    """Return the color of the made-up sprite ``name``, different for each name."""
+    at = SPRITE_NAMES.index(name)
+    return (200 - 2 * at, 30 + 3 * at, 90 + at)
+
+
+def debrief_files() -> dict[str, bytes]:
+    """Return the debriefing art and its lists, by install-relative path.
+
+    The tab and Leave pictures are strips from the screen's corner with
+    their 20 by 24 (Leave 91 by 24) block at the control's place, as the
+    game's are; the other sprites are small, 20 by 24 (Fly 91 by 24); a
+    list line is ``<file> <name> <flag>``. The base ``top.lst`` names the
+    tab, badge and Leave pictures and the layers, the base ``promo.lst`` the
+    Fly pictures, and Balance of Power's ``top.lst`` a second ``leaveup``
+    that wins.
+    """
+    files: dict[str, bytes] = {
+        "TIMES15.ABP": font_bytes(BADGE_SHAPE, height=10, spacing=1)
+    }
+    for n, stem in enumerate(BACKGROUND_STEMS):
+        files[f"frontres/{stem}.BMP"] = background_bytes(DEBRIEF_FIRST_COLOR + n)
+    layers = {"frame": (0, 0), "alloff": (10, 10), "regoverlay": (20, 20)}
+    base_top = ["// made-up image list, first line is skipped"]
+    promo = ["// made-up image list, first line is skipped"]
+    for at, (name, (left, top)) in enumerate(layers.items()):
+        files[f"frontres/{name}.BMP"] = layer_bitmap(
+            left, top, (250 - 40 * at, 40, 40 + 60 * at)
+        )
+        base_top.append(f"frontres\\{name}.bmp {name} 1  ")
+    for name in SPRITE_NAMES:
+        files[f"frontres/{name}.BMP"] = debrief_sprite(name, debrief_color(name))
+        lines = promo if name.startswith("fly") else base_top
+        lines.append(f"frontres\\{name}.bmp {name} 1  ")
+    base_top.insert(3, "// a comment line in the middle")
+    files["BalanceOfPower/frontres/leave2.BMP"] = debrief_sprite("leave2", (9, 99, 199))
+    files["frontres/top.lst"] = crlf(*base_top)
+    files["frontres/promo.lst"] = crlf(*promo)
+    files["BalanceOfPower/frontres/top.lst"] = crlf(
+        "// made-up image list, first line is skipped",
+        "frontres\\leave2.bmp leaveup 1  ",
+    )
+    return files
+
+
 def main(argv: list[str]) -> int:
     """Write the made-up frame backgrounds into the folder ``argv[0]``; return 0."""
     install = Path(argv[0])
@@ -156,6 +281,7 @@ def main(argv: list[str]) -> int:
             [f"{wing} Wing A", f"{wing} Wing B"]
         )
     files.update(side_files())
+    files.update(debrief_files())
     write_files(install, files)
     return 0
 

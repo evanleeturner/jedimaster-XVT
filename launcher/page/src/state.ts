@@ -158,6 +158,10 @@ export interface DebriefView {
   readonly tab: DebriefTab;
   readonly tables: readonly Table[];
   readonly fresh: boolean;
+  /** The debriefing on show, for the 1997 screen; null when none is. */
+  readonly shown: Debrief | null;
+  /** The tabs that are not offered (the framed screen's kind has none of them). */
+  readonly hiddenTabs: readonly DebriefTab[];
 }
 
 export interface View {
@@ -432,6 +436,8 @@ export function debriefView(state: DebriefState): DebriefView {
     tab: state.tab,
     tables: shown === null ? [] : tablesOf(shown, state.tab),
     fresh: state.fresh,
+    shown,
+    hiddenTabs: [],
   };
 }
 

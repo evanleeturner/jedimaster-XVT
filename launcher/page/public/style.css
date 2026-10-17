@@ -729,3 +729,11 @@ a {
 .debrief-page td:not(:first-child) {
   font-variant-numeric: tabular-nums;
 }
+
+/* The 1997 debriefing screen's pieces show only in the framed page (frame.css). */
+.debrief-art,
+.debrief-leave,
+.debrief-scroll,
+.tab-art {
+  display: none;
+}

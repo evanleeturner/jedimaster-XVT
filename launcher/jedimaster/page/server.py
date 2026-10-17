@@ -14,7 +14,7 @@ Flow:
     redirects to ``/``; every other request needs the cookie). ``socket``
     checks the origin, sends the status (and the battle that flies, if any),
     then reads one JSON message at a time, hands it to ``Control.handle``,
-    sends the reply and then the pushes to every open socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set and ``frame`` serves ``GET /art/frame/<name>`` for the twelve menu frame pictures; ``side`` serves ``GET /art/side/<name>.png`` for the 48 side button sprites. ``serve`` binds, prints the page's URL and runs until stopped.
+    sends the reply and then the pushes to every open socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set and ``frame`` serves ``GET /art/frame/<name>`` for the twelve menu frame pictures; ``side`` serves ``GET /art/side/<name>.png`` for the 48 side button sprites; ``debrief`` serves ``GET /art/debrief/<name>`` for the 79 files of the debriefing screen. ``serve`` binds, prints the page's URL and runs until stopped.
     ``PageOpener`` opens the page in the browser, at the start and when the
     bot finds no page open (``open_page``), at most once while an opened
     page has not yet connected.
@@ -49,6 +49,7 @@ from aiohttp import web
 from aiohttp import WSMsgType
 
 from ..briefing import ArtStore
+from ..briefing.debrief import DebriefStore
 from ..briefing.frame import FrameStore
 from ..briefing.side import SideStore
 from .control import Control
@@ -63,6 +64,7 @@ COOKIE_NAME = "jedimaster_key"
 ART = web.AppKey("art", ArtStore)
 FRAMES = web.AppKey("frames", FrameStore)
 SIDES = web.AppKey("sides", SideStore)
+DEBRIEFS = web.AppKey("debriefs", DebriefStore)
 CONTROL = web.AppKey("control", Control)
 KEY = web.AppKey("key", str)
 PAGE_DIR = web.AppKey("page_dir", Path)
@@ -242,6 +244,20 @@ async def side(request: web.Request) -> web.StreamResponse:
     return web.Response(body=found.data, content_type=found.content_type)
 
 
+async def debrief(request: web.Request) -> web.StreamResponse:
+    """Return one of the debriefing screen's files, or 404 for any other name.
+
+    The bytes come from the application's ``DebriefStore``: the 32
+    backgrounds, the tab, button and badge sprites, the two fonts and their
+    metrics, built from the install on first use. A name outside the set, no
+    install, or a file that cannot be built is a refusal.
+    """
+    found = request.app[DEBRIEFS].get(request.match_info["name"])
+    if found is None:
+        return _refuse(request, 404, "no such debriefing art")
+    return web.Response(body=found.data, content_type=found.content_type)
+
+
 async def _send(ws: web.WebSocketResponse, message: dict) -> None:
     try:
         await ws.send_str(json.dumps(message))
@@ -329,6 +345,7 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     app[ART] = ArtStore(control.install)
     app[FRAMES] = FrameStore(control.install)
     app[SIDES] = SideStore(control.install)
+    app[DEBRIEFS] = DebriefStore(control.install)
     app[KEY] = key
     app[PAGE_DIR] = page_dir
     app[SOCKETS] = set()
@@ -344,6 +361,7 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     app.router.add_get("/art/briefing/{name}", art)
     app.router.add_get("/art/frame/{name}", frame)
     app.router.add_get("/art/side/{name}", side)
+    app.router.add_get("/art/debrief/{name}", debrief)
     if page_dir.is_dir():
         app.router.add_static("/", page_dir)
     app.on_shutdown.append(_close_sockets)

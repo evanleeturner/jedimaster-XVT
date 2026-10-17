@@ -55,6 +55,19 @@ page's Debriefing menu shows each one as the game's mission overview and
 player statistics, and `/results` in Discord lists them. The battle summary
 and tournament standings pages, and awards and promotions, are not shown yet.
 
+When the page has room for the game's menu frame (a window at least 640 by 480
+pixels, without forced colors), opening the Debriefing shows the debriefing
+screen as the game drew it, in the frame: the background the game picked for a
+win, a loss or a tie on your side, the page tabs at their old places, the
+numbers in the game's own font, the Leave button and your side's badge, all
+read out of your own install. The words sit on a dark, see-through panel, so
+the game's art still shows behind them, and colored words such as ranks sit
+on a darker patch of their own, so every word stays easy to read. The
+Mission Selection screen is out of the way
+until you leave. The tables stay in the page, out of sight, so a screen reader
+reads every number. With no frame, or in a small window, the page shows the
+plain tables as before, and a picture the install lacks is left out.
+
 ## The side buttons on the page
 
 When the page has room for the game's menu frame (a window at least 640 by

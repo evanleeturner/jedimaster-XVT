@@ -88,21 +88,85 @@ function byScore<T extends { score: number }>(items: readonly T[]): T[] {
   return [...items].sort((a, b) => b.score - a.score);
 }
 
-function playerName(p: DebriefPlayer, local: number): string {
-  const marks = [p.entry === local ? "you" : "", p.has_left ? "left" : ""];
-  const said = marks.filter((m) => m !== "").join(", ");
-  return said === "" ? p.name : `${p.name} (${said})`;
+/** One line of the overview's standings: a team, or a player under it. */
+export interface StandingRow {
+  readonly kind: "team" | "player";
+  /** The team's place counted from 1, 0 for a player. */
+  readonly place: number;
+  readonly name: string;
+  readonly rank: string;
+  readonly score: number;
+  readonly kills: number;
+  readonly shared: number;
+  readonly deaths: number;
+  readonly local: boolean;
+  readonly left: boolean;
 }
 
-function playerRow(p: DebriefPlayer, local: number): string[] {
-  return [
-    "",
-    playerName(p, local),
-    p.rank,
-    String(p.score),
-    killsText(p.kills, p.shared),
-    String(p.losses),
-  ];
+function playerName(row: StandingRow): string {
+  const marks = [row.local ? "you" : "", row.left ? "left" : ""];
+  const said = marks.filter((m) => m !== "").join(", ");
+  return said === "" ? row.name : `${row.name} (${said})`;
+}
+
+function playerRow(p: DebriefPlayer, local: number): StandingRow {
+  return {
+    kind: "player",
+    place: 0,
+    name: p.name,
+    rank: p.rank,
+    score: p.score,
+    kills: p.kills,
+    shared: p.shared,
+    deaths: p.losses,
+    local: p.entry === local,
+    left: p.has_left,
+  };
+}
+
+/** Return the overview's standings: teams by score, each team's players under it. */
+export function standingRows(d: Debrief): StandingRow[] {
+  if (d.players.length === 0 && d.teams.length === 0) {
+    return [
+      {
+        kind: "player",
+        place: 0,
+        name: d.pilot,
+        rank: "",
+        score: d.score,
+        kills: d.kills,
+        shared: 0,
+        deaths: d.losses,
+        local: false,
+        left: false,
+      },
+    ];
+  }
+  const teams: DebriefTeam[] = byScore(d.teams);
+  const placed = places(teams.map((t) => t.score));
+  const rows: StandingRow[] = [];
+  teams.forEach((team, index) => {
+    rows.push({
+      kind: "team",
+      place: placed[index] ?? 0,
+      name: team.name,
+      rank: "",
+      score: team.score,
+      kills: team.kills,
+      shared: team.shared,
+      deaths: team.losses,
+      local: false,
+      left: false,
+    });
+    for (const p of byScore(d.players.filter((q) => q.team === team.team))) {
+      rows.push(playerRow(p, d.local_entry));
+    }
+  });
+  const listed = new Set(teams.map((t) => t.team));
+  for (const p of byScore(d.players.filter((q) => !listed.has(q.team)))) {
+    rows.push(playerRow(p, d.local_entry));
+  }
+  return rows;
 }
 
 /** Return the overview's table of teams by score, each team's players under it. */
@@ -115,39 +179,18 @@ export function standingsTable(d: Debrief): Table {
     "Kills",
     "Deaths",
   ];
-  const caption = "Mission overview";
-  if (d.players.length === 0 && d.teams.length === 0) {
-    const row = [
-      "",
-      d.pilot,
-      "",
-      String(d.score),
-      String(d.kills),
-      String(d.losses),
-    ];
-    return { caption, columns, rows: [row] };
-  }
-  const teams: DebriefTeam[] = byScore(d.teams);
-  const placed = places(teams.map((t) => t.score));
-  const rows: string[][] = [];
-  teams.forEach((team, index) => {
-    rows.push([
-      ordinal(placed[index] ?? 0),
-      team.name,
-      "",
-      String(team.score),
-      killsText(team.kills, team.shared),
-      String(team.losses),
-    ]);
-    for (const p of byScore(d.players.filter((q) => q.team === team.team))) {
-      rows.push(playerRow(p, d.local_entry));
-    }
-  });
-  const listed = new Set(teams.map((t) => t.team));
-  for (const p of byScore(d.players.filter((q) => !listed.has(q.team)))) {
-    rows.push(playerRow(p, d.local_entry));
-  }
-  return { caption, columns, rows };
+  const rows = standingRows(d).map((row) => [
+    row.kind === "team" ? ordinal(row.place) : "",
+    row.kind === "team" ? row.name : playerName(row),
+    row.rank,
+    String(row.score),
+    // The pilot's own line without players has no shared count to print.
+    d.players.length === 0 && d.teams.length === 0
+      ? String(row.kills)
+      : killsText(row.kills, row.shared),
+    String(row.deaths),
+  ]);
+  return { caption: "Mission overview", columns, rows };
 }
 
 function killsTable(

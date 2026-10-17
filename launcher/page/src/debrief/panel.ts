@@ -4,7 +4,8 @@
  *
  * It draws a DebriefView and reports the player's picks through the two
  * callbacks; it changes no state of its own. The tabs follow the ARIA tabs
- * pattern: one tab stop, arrow keys, Home and End move between them.
+ * pattern: one tab stop, arrow keys, Home and End move between the tabs on
+ * show (a tab the view hides is skipped).
  */
 import type { DebriefView } from "../state.ts";
 import type { DebriefTab, Table } from "./view.ts";
@@ -90,12 +91,13 @@ export class DebriefPanel {
     tab: HTMLButtonElement,
     key: string,
   ): HTMLButtonElement | undefined {
-    const at = this.tabs.indexOf(tab);
-    const last = this.tabs.length - 1;
-    if (key === "ArrowRight") return this.tabs[at === last ? 0 : at + 1];
-    if (key === "ArrowLeft") return this.tabs[at === 0 ? last : at - 1];
-    if (key === "Home") return this.tabs[0];
-    if (key === "End") return this.tabs[last];
+    const tabs = this.tabs.filter((t) => !t.hidden);
+    const at = tabs.indexOf(tab);
+    const last = tabs.length - 1;
+    if (key === "ArrowRight") return tabs[at === last ? 0 : at + 1];
+    if (key === "ArrowLeft") return tabs[at === 0 ? last : at - 1];
+    if (key === "Home") return tabs[0];
+    if (key === "End") return tabs[last];
     return undefined;
   }
 
@@ -124,6 +126,8 @@ export class DebriefPanel {
     this.tabList.hidden = !shown;
     this.page.hidden = !shown;
     for (const tab of this.tabs) {
+      tab.hidden =
+        isTab(tab.dataset.tab) && view.hiddenTabs.includes(tab.dataset.tab);
       const selected = tab.dataset.tab === view.tab;
       tab.setAttribute("aria-selected", String(selected));
       tab.tabIndex = selected ? 0 : -1;

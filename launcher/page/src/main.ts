@@ -1,7 +1,10 @@
 import { BriefingPanel } from "./briefing/panel.ts";
 import type { Request } from "./codec.ts";
 import { decode, encodeRequest, isArtScaling, isMissionType } from "./codec.ts";
+import { screenTabs } from "./debrief/look.ts";
 import { DebriefPanel } from "./debrief/panel.ts";
+import { DebriefScreen } from "./debrief/screen.ts";
+import { tablesOf } from "./debrief/view.ts";
 import type { SideButtonId, SideView } from "./frame/side.ts";
 import {
   keyOfShown,
@@ -84,12 +87,17 @@ const debriefPanel = new DebriefPanel(
     dispatch({ kind: "debrief-tab", tab });
   },
 );
+const debriefScreen = new DebriefScreen(() => {
+  closePanel(true);
+});
 let framed = false;
 const frameSkin = new FrameSkin(
   find(HTMLCanvasElement, "#frame-art"),
   (layout) => {
     briefingPanel.setFrame(layout);
     framed = layout !== null;
+    debriefScreen.setLayout(layout);
+    if (lastView !== null) renderDebrief(lastView);
     if (lastView !== null) renderSide(lastView.side, lastView.sideNote);
   },
 );
@@ -267,6 +275,31 @@ function setPanel(id: string): void {
   if (id === "panel-debrief" && state.debrief.fresh) {
     dispatch({ kind: "debrief-seen" });
   }
+  if (lastView !== null) renderDebrief(lastView);
+}
+
+/** Draw the Debriefing panel: the 1997 screen when the page is framed and the menu is open. */
+function renderDebrief(view: View): void {
+  const shown = view.debrief.shown;
+  const tab = debriefScreen.update({
+    debrief: shown,
+    tab: view.debrief.tab,
+    chosen: view.sideFaction,
+    open: openPanel === "panel-debrief",
+  });
+  if (tab === null || shown === null) {
+    debriefPanel.render(view.debrief);
+    return;
+  }
+  const offered = screenTabs(shown);
+  debriefPanel.render({
+    ...view.debrief,
+    tab,
+    tables: tablesOf(shown, tab),
+    hiddenTabs: (["overview", "statistics"] as const).filter(
+      (t) => !offered.includes(t),
+    ),
+  });
 }
 
 function openerOf(id: string): HTMLButtonElement | undefined {
@@ -433,7 +466,7 @@ function render(view: View): void {
   renderBriefing(view);
   renderBattle(view);
   renderOptions(view);
-  debriefPanel.render(view.debrief);
+  renderDebrief(view);
   setText(pilotLine, view.pilotLine);
   setText(barPilot, view.pilotBar);
   setText(shownLine, view.shownText);

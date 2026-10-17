@@ -175,7 +175,8 @@ def _briefings(mission: Mission, used: list[int]) -> list[BriefingData]:
     ]
 
 
-def _font_data(font: Font, game_name: str) -> FontData:
+def font_data(font: Font, game_name: str) -> FontData:
+    """Return ``font``'s metrics and atlas cells, its picture named from ``game_name``."""
     atlas = font_atlas(font)
     return FontData(
         font.spacing,
@@ -193,7 +194,7 @@ def _font(install: Path) -> FontData:
     font = read_font10(install)
     if font is None:
         raise BriefingBuildError(f"{FONT_GAME_NAME} cannot be read from the install")
-    return _font_data(font, FONT_GAME_NAME)
+    return font_data(font, FONT_GAME_NAME)
 
 
 def _heading_font(install: Path) -> FontData | None:
@@ -201,7 +202,7 @@ def _heading_font(install: Path) -> FontData | None:
     if font is None:
         logger.warning("no heading: %s cannot be read", HEADING_FONT_NAME)
         return None
-    return _font_data(font, HEADING_FONT_NAME)
+    return font_data(font, HEADING_FONT_NAME)
 
 
 def _sheets(install: Path) -> tuple[list[IconSheetData], IconSheetData | None]:

@@ -844,3 +844,240 @@ html.framed .side-note:empty {
   padding: 0;
   background: none;
 }
+
+/*
+ * The 1997 debriefing screen: the Debriefing menu, opened while a flown
+ * battle is on show, becomes the whole 640 x 480 screen (the page sets
+ * `debrief-screen` on the root element). The drawn pictures and numbers are
+ * out of the accessibility tree; the real controls (the tab buttons, Leave,
+ * the scroll buttons and the picker of kept results) sit on the rectangles
+ * the 1997 screen drew them in, and the tables stay in the page, visually
+ * hidden, as the way to read every number.
+ *
+ * Contrast: the numbers are drawn on a plate of the panel colour at alpha
+ * 0.97 (see paint.ts); the picker sits on the same plate.
+ */
+html.framed.debrief-screen .skip-link,
+html.framed.debrief-screen .menu-btn,
+html.framed.debrief-screen .connection-line,
+html.framed.debrief-screen #reconnect,
+html.framed.debrief-screen .problem,
+html.framed.debrief-screen .battle-strip,
+html.framed.debrief-screen .page-main,
+html.framed.debrief-screen .side-col,
+html.framed.debrief-screen .side-sprites,
+html.framed.debrief-screen .side-note,
+html.framed.debrief-screen .frame-only,
+html.framed.debrief-screen .frame-art,
+html.framed.debrief-screen .dd-panel:not(#panel-debrief) {
+  display: none !important;
+}
+
+html.framed.debrief-screen #panel-debrief,
+html.framed.debrief-screen #panel-debrief.panel-wide {
+  inset: 0 auto auto 0;
+  inline-size: 640px;
+  block-size: 480px;
+  max-block-size: none;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html.framed.debrief-screen #debrief {
+  position: static;
+}
+
+html.framed.debrief-screen .debrief-art {
+  display: block;
+  position: absolute;
+  z-index: 19;
+  inset: 0;
+  inline-size: 640px;
+  block-size: 480px;
+}
+
+html.framed.debrief-screen .debrief-art canvas {
+  position: absolute;
+  inset: 0;
+  inline-size: 640px;
+  block-size: 480px;
+}
+
+html.framed.debrief-screen .debrief-badge-art {
+  position: absolute;
+  z-index: 1;
+  max-inline-size: none;
+  image-rendering: pixelated;
+}
+
+html.framed.debrief-screen #debrief-badge-left {
+  inset: 453px auto auto 204px;
+}
+
+html.framed.debrief-screen #debrief-badge-right {
+  inset: 453px auto auto 420px;
+}
+
+/* What the drawn screen shows in numbers stays in the page for a reader of the tables. */
+html.framed.debrief-screen #debrief-heading,
+html.framed.debrief-screen #debrief-note,
+html.framed.debrief-screen #debrief-title,
+html.framed.debrief-screen .debrief-pick label,
+html.framed.debrief-screen .debrief-page,
+html.framed.debrief-screen .tab-label {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+html.framed.debrief-screen .debrief-tabs {
+  display: block;
+  margin: 0;
+}
+
+html.framed.debrief-screen .debrief-tabs [role="tab"],
+html.framed.debrief-screen .debrief-leave,
+html.framed.debrief-screen .debrief-scroll button {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  min-inline-size: 24px;
+  min-block-size: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ffffff;
+  outline-offset: 0;
+}
+
+/* Each control's place in the 640 x 480 screen, read by its pictures too. */
+html.framed.debrief-screen .debrief-tabs [role="tab"] {
+  --at-x: 20px;
+  inset: var(--at-y) auto auto var(--at-x);
+  inline-size: 24px;
+  block-size: 24px;
+}
+
+html.framed.debrief-screen #debrief-tab-overview {
+  --at-y: 114px;
+}
+
+html.framed.debrief-screen #debrief-tab-statistics {
+  --at-y: 142px;
+}
+
+html.framed.debrief-screen .debrief-leave {
+  --at-x: 85px;
+  --at-y: 447px;
+  display: block;
+  inset: var(--at-y) auto auto var(--at-x);
+  inline-size: 91px;
+  block-size: 24px;
+}
+
+html.framed.debrief-screen .debrief-tabs [aria-selected="true"] {
+  outline: 0;
+}
+
+/* A 1997 button picture is a strip drawn from the screen's top left corner,
+   so it is pulled back by its control's place and lets clicks through. */
+html.framed.debrief-screen .tab-art {
+  display: block;
+  position: absolute;
+  inset: calc(-1 * var(--at-y)) auto auto calc(-1 * var(--at-x));
+  max-inline-size: none;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* The second picture of a tab is the selected look; of Leave, the pressed look. */
+html.framed.debrief-screen .tab-selected,
+html.framed.debrief-screen .debrief-leave:active .tab-art:first-of-type {
+  display: none;
+}
+
+html.framed.debrief-screen [aria-selected="true"] .tab-art:first-of-type,
+html.framed.debrief-screen [role="tab"][aria-selected="false"] .tab-selected {
+  display: none;
+}
+
+html.framed.debrief-screen [aria-selected="true"] .tab-selected,
+html.framed.debrief-screen .debrief-leave:active .tab-selected {
+  display: block;
+}
+
+/* A picture that did not load: the control shows its name on a plate instead. */
+html.framed.debrief-screen .no-art {
+  inline-size: auto;
+  padding: 0 5px;
+  background: var(--plate);
+  white-space: nowrap;
+}
+
+html.framed.debrief-screen .no-art .tab-label {
+  position: static;
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+  clip-path: none;
+}
+
+html.framed.debrief-screen .no-art .tab-art {
+  display: none;
+}
+
+html.framed.debrief-screen .debrief-pick {
+  position: absolute;
+  z-index: 3;
+  inset: 66px auto auto 84px;
+  inline-size: 350px;
+  margin: 0;
+}
+
+html.framed.debrief-screen .debrief-pick select {
+  inline-size: 350px;
+  block-size: 24px;
+  min-block-size: 24px;
+  border: 1px solid var(--f-rule);
+  border-radius: 0;
+  background: var(--drop);
+  color: #ffffff;
+  font: inherit;
+}
+
+html.framed.debrief-screen .debrief-scroll {
+  display: block;
+}
+
+html.framed.debrief-screen .debrief-scroll[hidden] {
+  display: none !important;
+}
+
+html.framed.debrief-screen #debrief-scroll-up {
+  inset: 107px auto auto 440px;
+}
+
+html.framed.debrief-screen #debrief-scroll-down {
+  inset: 409px auto auto 440px;
+}
+
+html.framed.debrief-screen .debrief-scroll button {
+  inline-size: 24px;
+  block-size: 24px;
+  background: var(--drop);
+  border: 1px solid var(--f-rule);
+}
+
+html.framed.debrief-screen .debrief-scroll button:disabled {
+  color: var(--f-muted);
+}

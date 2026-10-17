@@ -126,7 +126,9 @@
                         aria-controls="debrief-page"
                         aria-selected="true"
                       >
-                        Mission overview
+                        <span class="tab-label">Mission overview</span>
+                        <img class="tab-art" alt="" />
+                        <img class="tab-art tab-selected" alt="" />
                       </button>
                       <button
                         class="button"
@@ -138,7 +140,34 @@
                         aria-selected="false"
                         tabindex="-1"
                       >
-                        Player statistics
+                        <span class="tab-label">Player statistics</span>
+                        <img class="tab-art" alt="" />
+                        <img class="tab-art tab-selected" alt="" />
+                      </button>
+                    </div>
+                    <button
+                      class="debrief-leave"
+                      id="debrief-leave"
+                      type="button"
+                    >
+                      <span class="tab-label">Back to the menu</span>
+                      <img class="tab-art" alt="" />
+                      <img class="tab-art tab-selected" alt="" />
+                    </button>
+                    <div class="debrief-scroll" id="debrief-scroll" hidden>
+                      <button
+                        id="debrief-scroll-up"
+                        type="button"
+                        aria-label="Scroll the statistics up"
+                      >
+                        <span aria-hidden="true">&#9650;</span>
+                      </button>
+                      <button
+                        id="debrief-scroll-down"
+                        type="button"
+                        aria-label="Scroll the statistics down"
+                      >
+                        <span aria-hidden="true">&#9660;</span>
                       </button>
                     </div>
                     <div
@@ -506,6 +535,12 @@
         height="480"
         aria-hidden="true"
       ></canvas>
+      <div class="debrief-art" aria-hidden="true">
+        <canvas id="debrief-ground" width="640" height="480"></canvas>
+        <canvas id="debrief-ink" width="640" height="480"></canvas>
+        <img class="debrief-badge-art" id="debrief-badge-left" alt="" hidden />
+        <img class="debrief-badge-art" id="debrief-badge-right" alt="" hidden />
+      </div>
       <p class="frame-only bar-pilot" id="bar-pilot">Pilot: not known yet</p>
       <p class="frame-only bar-version" id="bar-version"></p>
       <div class="frame-only options-copy" id="options-copy" aria-hidden="true">

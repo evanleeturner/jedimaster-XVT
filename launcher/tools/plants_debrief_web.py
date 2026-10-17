@@ -134,7 +134,7 @@ DEBRIEF_WEB_PLANTS: list[Plant] = [
     plant(
         "arrow-keys-ignored",
         PAN,
-        '    if (key === "ArrowRight") return this.tabs[at === last ? 0 : at + 1];',
+        '    if (key === "ArrowRight") return tabs[at === last ? 0 : at + 1];',
         '    if (key === "ArrowRight") return undefined;',
         FLOWN,
     ),

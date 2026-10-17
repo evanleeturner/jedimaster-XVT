@@ -34,6 +34,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from ..icons import BmpFile
 from ..icons import read_bmp
 from ..icons.bmp import BmpFormatError
 from ..lists import ListFormatError
@@ -97,17 +98,19 @@ def list_bytes(path: Path) -> bytes:
     return b"".join(kept)
 
 
-def sprite_files(install: Path, name: str) -> list[str]:
+def sprite_files(
+    install: Path, name: str, lists: tuple[str, ...] = SIDE_LISTS
+) -> list[str]:
     """Return the bitmap words the install's lists give ``name``, in order.
 
-    Each list of ``SIDE_LISTS`` is read as found in ``BalanceOfPower/`` and
+    Each list of ``lists`` (the side button lists unless given) is read as found in ``BalanceOfPower/`` and
     then as found in the base install (a file found twice is read once); the words come in that order, so the
     first is the one the game uses. A list that is missing or unreadable is
     skipped (DEBUG, or WARNING when unreadable). Does not check the files.
     """
     words: list[str] = []
     seen: set[Path] = set()
-    for game_path in SIDE_LISTS:
+    for game_path in lists:
         for balance_of_power in (True, False):
             found = resolve(install, game_path, balance_of_power)
             if found is None or not found.is_file():
@@ -129,20 +132,33 @@ def sprite_files(install: Path, name: str) -> list[str]:
     return words
 
 
+def sprite_bitmap(
+    install: Path, name: str, lists: tuple[str, ...] = SIDE_LISTS
+) -> BmpFile | None:
+    """Return the bitmap the first list line naming ``name`` has a file for, or None.
+
+    None, with a WARNING, when no list names it or no file a line names is
+    there. A file that cannot be read raises the bitmap reader's error. Does
+    not keep anything.
+    """
+    for word in sprite_files(install, name, lists):
+        path = resolve(install, word)
+        if path is None or not path.is_file():
+            logger.warning("%s: %s not found", install, word)
+            continue
+        return read_bmp(path)
+    logger.warning("sprite %s: no list line with a file", name)
+    return None
+
+
 def side_picture(install: Path, name: str) -> bytes | None:
     """Return the PNG of the side sprite ``name``, or None.
 
     None, with a WARNING, when no list names it or the file it names is
     missing or cannot be read. Does not keep anything.
     """
-    for word in sprite_files(install, name):
-        path = resolve(install, word)
-        if path is None or not path.is_file():
-            logger.warning("%s: %s not found", install, word)
-            continue
-        return sprite_png(read_bmp(path))
-    logger.warning("side sprite %s: no list line with a file", name)
-    return None
+    bitmap = sprite_bitmap(install, name)
+    return None if bitmap is None else sprite_png(bitmap)
 
 
 class SideStore:

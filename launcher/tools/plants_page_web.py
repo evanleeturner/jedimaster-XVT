@@ -30,6 +30,7 @@ import logging
 
 from plants_briefing_web import BRIEFING_WEB_PLANTS
 from plants_common import Plant
+from plants_debrief_look_web import DEBRIEF_LOOK_WEB_PLANTS
 from plants_debrief_web import DEBRIEF_WEB_PLANTS
 from plants_launch_web import LAUNCH_WEB_PLANTS
 from plants_page_frame_web import FRAME_WEB_PLANTS
@@ -640,4 +641,5 @@ WEB_PLANTS: list[Plant] = [
     *SIDE_WEB_PLANTS,
     *OPTIONS_WEB_PLANTS,
     *DEBRIEF_WEB_PLANTS,
+    *DEBRIEF_LOOK_WEB_PLANTS,
 ]
